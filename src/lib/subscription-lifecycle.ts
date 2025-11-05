@@ -422,7 +422,7 @@ function calculateBillingCycles(
 
   // Start with 1 cycle (charged immediately upon activation)
   let cycles = 1;
-  let currentRenewal = new Date(renewalDate);
+  const currentRenewal = new Date(renewalDate);
 
   // Add additional cycles for each renewal period that has passed
   while (endDate >= currentRenewal) {

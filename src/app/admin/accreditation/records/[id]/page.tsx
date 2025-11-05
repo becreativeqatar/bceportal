@@ -648,7 +648,7 @@ export default function AccreditationDetailPage({ params }: { params: Promise<{ 
             <DialogHeader>
               <DialogTitle>Approve Accreditation</DialogTitle>
               <DialogDescription>
-                Approve {accreditation.firstName} {accreditation.lastName}'s accreditation request.
+                Approve {accreditation.firstName} {accreditation.lastName}&apos;s accreditation request.
                 This will generate a QR code for verification.
               </DialogDescription>
             </DialogHeader>
@@ -683,7 +683,7 @@ export default function AccreditationDetailPage({ params }: { params: Promise<{ 
             <DialogHeader>
               <DialogTitle>Reject Accreditation</DialogTitle>
               <DialogDescription>
-                Reject {accreditation.firstName} {accreditation.lastName}'s accreditation request.
+                Reject {accreditation.firstName} {accreditation.lastName}&apos;s accreditation request.
                 Please provide a reason for rejection.
               </DialogDescription>
             </DialogHeader>

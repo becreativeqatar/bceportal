@@ -74,7 +74,7 @@ export default async function EmployeeDashboard() {
               Welcome back, {session.user.name}!
             </h1>
             <p className="text-gray-600">
-              Here's an overview of your assets and subscriptions
+              Here&apos;s an overview of your assets and subscriptions
             </p>
           </div>
 

@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
 
         // Parse cost
         let costPerCycle = null;
-        let costCurrency = row['Cost Currency'] || 'QAR';
+        const costCurrency = row['Cost Currency'] || 'QAR';
         let costQAR = null;
 
         if (row['Cost Per Cycle']) {
@@ -276,7 +276,7 @@ export async function POST(request: NextRequest) {
         const createdAt = parseDDMMYYYY(row['Created At (dd/mm/yyyy)']);
 
         // Project ID handling - keep null if no project found
-        let projectId = null;
+        const projectId = null;
 
         // Find user by name or email
         let assignedUserId = null;

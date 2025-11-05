@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     const activityLogsData = activityLogsSheet ? XLSX.utils.sheet_to_json(activityLogsSheet) as any[] : [];
     const maintenanceRecordsData = maintenanceRecordsSheet ? XLSX.utils.sheet_to_json(maintenanceRecordsSheet) as any[] : [];
 
-    let importedCounts = {
+    const importedCounts = {
       users: 0,
       assets: 0,
       subscriptions: 0,

@@ -18,10 +18,10 @@ export default function OfflinePage() {
           <WifiOff className="h-10 w-10 text-orange-600" />
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">You're Offline</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-3">You&apos;re Offline</h1>
 
         <p className="text-gray-600 mb-6">
-          It looks like you've lost your internet connection. Some features may not be available.
+          It looks like you&apos;ve lost your internet connection. Some features may not be available.
         </p>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">

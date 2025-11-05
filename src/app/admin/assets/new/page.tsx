@@ -168,7 +168,7 @@ export default function NewAssetPage() {
   const onSubmit = async (data: CreateAssetRequest) => {
     try {
       // Calculate price in QAR based on currency
-      let price = data.price;
+      const price = data.price;
       let priceInQAR = null;
 
       if (price) {

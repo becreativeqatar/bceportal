@@ -69,7 +69,7 @@ export function getNextRenewalDate(
  */
 function getNextWeeklyRenewal(baseDate: Date, now: Date): Date {
   const daysToAdd = 7;
-  let nextDate = new Date(baseDate);
+  const nextDate = new Date(baseDate);
 
   while (nextDate <= now) {
     nextDate.setDate(nextDate.getDate() + daysToAdd);

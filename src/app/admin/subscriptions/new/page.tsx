@@ -91,7 +91,7 @@ export default function NewSubscriptionPage() {
   useEffect(() => {
     if (watchedPurchaseDate && watchedBillingCycle) {
       const purchaseDate = new Date(watchedPurchaseDate);
-      let renewalDate = new Date(purchaseDate);
+      const renewalDate = new Date(purchaseDate);
 
       switch (watchedBillingCycle) {
         case 'MONTHLY':
@@ -158,7 +158,7 @@ export default function NewSubscriptionPage() {
   const onSubmit = async (data: CreateSubscriptionRequest) => {
     try {
       // Store cost in the currency selected by user
-      let costPerCycle = data.costPerCycle;
+      const costPerCycle = data.costPerCycle;
       let costInQAR = null;
 
       if (costPerCycle) {

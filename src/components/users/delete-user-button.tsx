@@ -75,7 +75,7 @@ export function DeleteUserButton({ userId, userName }: DeleteUserButtonProps) {
           <DialogTitle>Delete User</DialogTitle>
           <DialogDescription>
             This will soft-delete <strong>{userName}</strong>. The user will be marked as deleted but their history
-            will be preserved for records. This action can be viewed in the user list under "Deleted Users".
+            will be preserved for records. This action can be viewed in the user list under &quot;Deleted Users&quot;.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">

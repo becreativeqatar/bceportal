@@ -122,7 +122,7 @@ export default async function AdminSubscriptionsPage() {
 
             <Card>
               <CardHeader className="pb-1 pt-3 px-4">
-                <CardTitle className="text-xs font-medium text-gray-600">This Month's Charges</CardTitle>
+                <CardTitle className="text-xs font-medium text-gray-600">This Month&apos;s Charges</CardTitle>
               </CardHeader>
               <CardContent className="pb-3 px-4">
                 <div>

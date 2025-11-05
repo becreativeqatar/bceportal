@@ -125,7 +125,7 @@ export function PWAInstaller() {
               To install this app on iOS, please open it in <strong>Safari</strong> browser instead of Chrome.
             </p>
             <p className="text-xs text-gray-500">
-              Chrome on iOS doesn't support app installation.
+              Chrome on iOS doesn&apos;t support app installation.
             </p>
           </div>
         </div>
@@ -171,7 +171,7 @@ export function PWAInstaller() {
                 </div>
                 <div className="flex-1">
                   <p className="text-xs font-medium text-gray-900">Step 2</p>
-                  <p className="text-xs text-gray-600">Select "Add to Home Screen"</p>
+                  <p className="text-xs text-gray-600">Select &quot;Add to Home Screen&quot;</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
@@ -180,7 +180,7 @@ export function PWAInstaller() {
                 </div>
                 <div className="flex-1">
                   <p className="text-xs font-medium text-gray-900">Step 3</p>
-                  <p className="text-xs text-gray-600">Tap "Add" to install</p>
+                  <p className="text-xs text-gray-600">Tap &quot;Add&quot; to install</p>
                 </div>
               </div>
             </div>

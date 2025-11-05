@@ -52,7 +52,9 @@
       "Bash(then rm -rf .next)",
       "Bash(rm:*)",
       "Bash(wait)",
-      "Bash(npm audit:*)"
+      "Bash(npm audit:*)",
+      "Bash(npm run lint:*)",
+      "Bash(git diff:*)"
     ],
     "deny": [],
     "ask": []
