@@ -1,40 +1,90 @@
-import { calculateNextRenewal } from '../utils/renewal-date';
+import { getNextRenewalDate, getDaysUntilRenewal, isRenewalOverdue } from '../utils/renewal-date';
 import { BillingCycle } from '@prisma/client';
 
 describe('Renewal Date Utilities', () => {
-  describe('calculateNextRenewal', () => {
-    const testDate = new Date('2024-01-15');
+  describe('getNextRenewalDate', () => {
+    it('should return future date as-is if already in future', () => {
+      const futureDate = new Date();
+      futureDate.setMonth(futureDate.getMonth() + 3);
 
-    it('should calculate monthly renewal correctly', () => {
-      const nextRenewal = calculateNextRenewal(testDate, BillingCycle.MONTHLY);
-      expect(nextRenewal.getMonth()).toBe(1); // February
-      expect(nextRenewal.getDate()).toBe(15);
+      const nextRenewal = getNextRenewalDate(futureDate, BillingCycle.MONTHLY);
+      expect(nextRenewal).toBeDefined();
+      expect(nextRenewal?.getTime()).toBe(futureDate.getTime());
     });
 
-    it('should calculate yearly renewal correctly', () => {
-      const nextRenewal = calculateNextRenewal(testDate, BillingCycle.YEARLY);
-      expect(nextRenewal.getFullYear()).toBe(2025);
-      expect(nextRenewal.getMonth()).toBe(0); // January
-      expect(nextRenewal.getDate()).toBe(15);
+    it('should calculate next monthly renewal for past date', () => {
+      const pastDate = new Date();
+      pastDate.setMonth(pastDate.getMonth() - 2); // 2 months ago
+
+      const nextRenewal = getNextRenewalDate(pastDate, BillingCycle.MONTHLY);
+      expect(nextRenewal).toBeDefined();
+      expect(nextRenewal!.getTime()).toBeGreaterThan(new Date().getTime());
+      expect(nextRenewal?.getDate()).toBe(pastDate.getDate());
+    });
+
+    it('should calculate next yearly renewal for past date', () => {
+      const pastDate = new Date();
+      pastDate.setFullYear(pastDate.getFullYear() - 1); // 1 year ago
+
+      const nextRenewal = getNextRenewalDate(pastDate, BillingCycle.YEARLY);
+      expect(nextRenewal).toBeDefined();
+      expect(nextRenewal!.getTime()).toBeGreaterThan(new Date().getTime());
     });
 
     it('should handle ONE_TIME billing cycle', () => {
-      const nextRenewal = calculateNextRenewal(testDate, BillingCycle.ONE_TIME);
-      // ONE_TIME should return the same date or null
+      const pastDate = new Date('2024-01-15');
+      const nextRenewal = getNextRenewalDate(pastDate, BillingCycle.ONE_TIME);
+      // ONE_TIME should return the original date
       expect(nextRenewal).toBeDefined();
+      expect(nextRenewal?.getFullYear()).toBe(2024);
     });
 
-    it('should handle end-of-month dates', () => {
-      const endOfMonth = new Date('2024-01-31');
-      const nextRenewal = calculateNextRenewal(endOfMonth, BillingCycle.MONTHLY);
-      // Should handle February correctly (28/29 days)
-      expect(nextRenewal.getMonth()).toBe(1); // February
+    it('should return null for null input', () => {
+      const nextRenewal = getNextRenewalDate(null, BillingCycle.MONTHLY);
+      expect(nextRenewal).toBeNull();
+    });
+  });
+
+  describe('isRenewalOverdue', () => {
+    it('should return true for past dates', () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 1);
+
+      expect(isRenewalOverdue(pastDate)).toBe(true);
     });
 
-    it('should handle leap years', () => {
-      const leapYearDate = new Date('2024-02-29'); // 2024 is a leap year
-      const nextRenewal = calculateNextRenewal(leapYearDate, BillingCycle.YEARLY);
-      expect(nextRenewal.getFullYear()).toBe(2025);
+    it('should return false for future dates', () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 1);
+
+      expect(isRenewalOverdue(futureDate)).toBe(false);
+    });
+
+    it('should return false for null', () => {
+      expect(isRenewalOverdue(null)).toBe(false);
+    });
+  });
+
+  describe('getDaysUntilRenewal', () => {
+    it('should return positive number for future dates', () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 5);
+
+      const days = getDaysUntilRenewal(futureDate);
+      expect(days).toBeGreaterThanOrEqual(4);
+      expect(days).toBeLessThanOrEqual(6);
+    });
+
+    it('should return negative number for past dates', () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 5);
+
+      const days = getDaysUntilRenewal(pastDate);
+      expect(days).toBeLessThan(0);
+    });
+
+    it('should return null for null input', () => {
+      expect(getDaysUntilRenewal(null)).toBeNull();
     });
   });
 });

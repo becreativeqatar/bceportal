@@ -34,7 +34,7 @@ const config: Config = {
     '!src/app/**', // Exclude Next.js app directory (test via integration tests)
   ],
 
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       branches: 50,
       functions: 50,
