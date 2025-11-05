@@ -1,6 +1,5 @@
 import { NextAuthOptions } from 'next-auth';
 import AzureADProvider from 'next-auth/providers/azure-ad';
-import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from './prisma';
 import { Role } from '@prisma/client';
@@ -12,67 +11,17 @@ export const authOptions: NextAuthOptions = {
   // to avoid database session issues
   adapter: PrismaAdapter(prisma),
   providers: [
-    // Only include Azure AD if real credentials are provided (not placeholder)
-    ...(process.env.AZURE_AD_CLIENT_ID && 
-        process.env.AZURE_AD_CLIENT_SECRET && 
-        process.env.AZURE_AD_TENANT_ID &&
-        process.env.AZURE_AD_CLIENT_ID !== 'placeholder' ? [
-      AzureADProvider({
-        clientId: process.env.AZURE_AD_CLIENT_ID,
-        clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
-        tenantId: process.env.AZURE_AD_TENANT_ID,
-        authorization: {
-          params: {
-            prompt: "select_account", // Force account selection on every sign-in
-          }
+    // Azure AD authentication (required)
+    AzureADProvider({
+      clientId: process.env.AZURE_AD_CLIENT_ID!,
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
+      tenantId: process.env.AZURE_AD_TENANT_ID!,
+      authorization: {
+        params: {
+          prompt: "select_account", // Force account selection on every sign-in
         }
-      })
-    ] : []),
-    // Credentials provider for local development
-    ...(process.env.ALLOW_LOCAL_CREDENTIALS === 'true' ? [
-      CredentialsProvider({
-        id: 'credentials',
-        name: 'Credentials',
-        credentials: {
-          email: { label: 'Email', type: 'email' },
-          password: { label: 'Password', type: 'password' }
-        },
-        async authorize(credentials) {
-          if (!credentials?.email || !credentials?.password) {
-            return null;
-          }
-
-          // Simple local auth for development
-          if (credentials.password === 'dev123') {
-            // Check if user exists in database
-            let user = await prisma.user.findUnique({
-              where: { email: credentials.email },
-            });
-
-            // If user doesn't exist, create them
-            if (!user) {
-              const isAdmin = adminEmails.includes(credentials.email);
-              user = await prisma.user.create({
-                data: {
-                  email: credentials.email,
-                  name: credentials.email.split('@')[0],
-                  role: isAdmin ? Role.ADMIN : Role.EMPLOYEE,
-                },
-              });
-            }
-
-            return {
-              id: user.id,
-              email: user.email,
-              name: user.name,
-              role: user.role,
-            };
-          }
-
-          return null;
-        },
-      })
-    ] : []),
+      }
+    }),
   ],
   callbacks: {
     async signIn({ user, account, profile }) {

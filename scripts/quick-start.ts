@@ -28,8 +28,7 @@ AZURE_AD_TENANT_ID="placeholder"
 SUPABASE_URL="placeholder"
 SUPABASE_SERVICE_ROLE_KEY="placeholder"
 
-# Local development settings
-ALLOW_LOCAL_CREDENTIALS="true"
+# Application settings
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX=100
 ACTIVITY_RETENTION_DAYS=365
@@ -80,9 +79,8 @@ NODE_ENV="development"
     console.log('\n🚀 Ready to start!');
     console.log('Run: npm run dev');
     console.log('\n🌐 Then open: http://localhost:3000');
-    console.log('\n🔑 Login with:');
-    console.log('  📧 Email: admin@test.com');
-    console.log('  🔒 Password: dev123');
+    console.log('\n⚠️  Note: Azure AD authentication is required.');
+    console.log('  Configure your Azure AD credentials in .env.local to login.');
 
   } catch (error) {
     console.error('\n❌ Quick start failed:', error);
