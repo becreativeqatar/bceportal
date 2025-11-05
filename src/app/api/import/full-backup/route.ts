@@ -3,9 +3,49 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export const maxDuration = 60; // Set max duration to 60 seconds for large imports
+
+// Helper function to convert ExcelJS worksheet to JSON
+function worksheetToJson(worksheet: ExcelJS.Worksheet | undefined): any[] {
+  if (!worksheet) return [];
+
+  const rows: any[] = [];
+  const headers: string[] = [];
+
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) {
+      // First row contains headers
+      row.eachCell((cell, colNumber) => {
+        headers[colNumber] = cell.value?.toString() || '';
+      });
+    } else {
+      // Data rows
+      const rowData: any = {};
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        const header = headers[colNumber];
+        if (header) {
+          // Handle different cell types
+          if (cell.type === ExcelJS.ValueType.Date) {
+            rowData[header] = cell.value;
+          } else if (cell.type === ExcelJS.ValueType.Number) {
+            rowData[header] = cell.value;
+          } else if (cell.type === ExcelJS.ValueType.Boolean) {
+            rowData[header] = cell.value;
+          } else if (cell.type === ExcelJS.ValueType.Null) {
+            rowData[header] = null;
+          } else {
+            rowData[header] = cell.value;
+          }
+        }
+      });
+      rows.push(rowData);
+    }
+  });
+
+  return rows;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,54 +65,55 @@ export async function POST(request: NextRequest) {
     // Read the Excel file
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer as Buffer);
 
     // Verify metadata
-    const metadataSheet = workbook.Sheets['Metadata'];
+    const metadataSheet = workbook.getWorksheet('Metadata');
     if (!metadataSheet) {
       return NextResponse.json({ error: 'Invalid backup file: Metadata sheet not found' }, { status: 400 });
     }
 
-    const metadata = XLSX.utils.sheet_to_json(metadataSheet)[0] as any;
+    const metadata = worksheetToJson(metadataSheet)[0] as any;
     if (!metadata.version || !metadata.exportDate) {
       return NextResponse.json({ error: 'Invalid backup file: Missing metadata' }, { status: 400 });
     }
 
     // Read all sheets
-    const usersSheet = workbook.Sheets['Users'];
-    const assetsSheet = workbook.Sheets['Assets'];
-    const subscriptionsSheet = workbook.Sheets['Subscriptions'];
-    const suppliersSheet = workbook.Sheets['Suppliers'];
-    const accreditationsSheet = workbook.Sheets['Accreditations'];
-    const projectsSheet = workbook.Sheets['Projects'];
+    const usersSheet = workbook.getWorksheet('Users');
+    const assetsSheet = workbook.getWorksheet('Assets');
+    const subscriptionsSheet = workbook.getWorksheet('Subscriptions');
+    const suppliersSheet = workbook.getWorksheet('Suppliers');
+    const accreditationsSheet = workbook.getWorksheet('Accreditations');
+    const projectsSheet = workbook.getWorksheet('Projects');
 
     if (!usersSheet || !assetsSheet || !subscriptionsSheet || !suppliersSheet || !accreditationsSheet || !projectsSheet) {
       return NextResponse.json({ error: 'Invalid backup file: Missing required sheets' }, { status: 400 });
     }
 
-    const usersData = XLSX.utils.sheet_to_json(usersSheet) as any[];
-    const assetsData = XLSX.utils.sheet_to_json(assetsSheet) as any[];
-    const subscriptionsData = XLSX.utils.sheet_to_json(subscriptionsSheet) as any[];
-    const suppliersData = XLSX.utils.sheet_to_json(suppliersSheet) as any[];
-    const accreditationsData = XLSX.utils.sheet_to_json(accreditationsSheet) as any[];
-    const projectsData = XLSX.utils.sheet_to_json(projectsSheet) as any[];
+    const usersData = worksheetToJson(usersSheet) as any[];
+    const assetsData = worksheetToJson(assetsSheet) as any[];
+    const subscriptionsData = worksheetToJson(subscriptionsSheet) as any[];
+    const suppliersData = worksheetToJson(suppliersSheet) as any[];
+    const accreditationsData = worksheetToJson(accreditationsSheet) as any[];
+    const projectsData = worksheetToJson(projectsSheet) as any[];
 
     // Optional history sheets (may not exist in older backups)
-    const assetHistorySheet = workbook.Sheets['Asset History'];
-    const subscriptionHistorySheet = workbook.Sheets['Subscription History'];
-    const supplierEngagementsSheet = workbook.Sheets['Supplier Engagements'];
-    const accreditationHistorySheet = workbook.Sheets['Accreditation History'];
-    const accreditationScansSheet = workbook.Sheets['Accreditation Scans'];
-    const activityLogsSheet = workbook.Sheets['Activity Logs'];
-    const maintenanceRecordsSheet = workbook.Sheets['Maintenance Records'];
+    const assetHistorySheet = workbook.getWorksheet('Asset History');
+    const subscriptionHistorySheet = workbook.getWorksheet('Subscription History');
+    const supplierEngagementsSheet = workbook.getWorksheet('Supplier Engagements');
+    const accreditationHistorySheet = workbook.getWorksheet('Accreditation History');
+    const accreditationScansSheet = workbook.getWorksheet('Accreditation Scans');
+    const activityLogsSheet = workbook.getWorksheet('Activity Logs');
+    const maintenanceRecordsSheet = workbook.getWorksheet('Maintenance Records');
 
-    const assetHistoryData = assetHistorySheet ? XLSX.utils.sheet_to_json(assetHistorySheet) as any[] : [];
-    const subscriptionHistoryData = subscriptionHistorySheet ? XLSX.utils.sheet_to_json(subscriptionHistorySheet) as any[] : [];
-    const supplierEngagementsData = supplierEngagementsSheet ? XLSX.utils.sheet_to_json(supplierEngagementsSheet) as any[] : [];
-    const accreditationHistoryData = accreditationHistorySheet ? XLSX.utils.sheet_to_json(accreditationHistorySheet) as any[] : [];
-    const accreditationScansData = accreditationScansSheet ? XLSX.utils.sheet_to_json(accreditationScansSheet) as any[] : [];
-    const activityLogsData = activityLogsSheet ? XLSX.utils.sheet_to_json(activityLogsSheet) as any[] : [];
-    const maintenanceRecordsData = maintenanceRecordsSheet ? XLSX.utils.sheet_to_json(maintenanceRecordsSheet) as any[] : [];
+    const assetHistoryData = assetHistorySheet ? worksheetToJson(assetHistorySheet) as any[] : [];
+    const subscriptionHistoryData = subscriptionHistorySheet ? worksheetToJson(subscriptionHistorySheet) as any[] : [];
+    const supplierEngagementsData = supplierEngagementsSheet ? worksheetToJson(supplierEngagementsSheet) as any[] : [];
+    const accreditationHistoryData = accreditationHistorySheet ? worksheetToJson(accreditationHistorySheet) as any[] : [];
+    const accreditationScansData = accreditationScansSheet ? worksheetToJson(accreditationScansSheet) as any[] : [];
+    const activityLogsData = activityLogsSheet ? worksheetToJson(activityLogsSheet) as any[] : [];
+    const maintenanceRecordsData = maintenanceRecordsSheet ? worksheetToJson(maintenanceRecordsSheet) as any[] : [];
 
     const importedCounts = {
       users: 0,
@@ -93,15 +134,21 @@ export async function POST(request: NextRequest) {
     // Helper function to parse dates
     const parseDate = (value: any): Date | null => {
       if (!value || value === '') return null;
-      // Handle Excel serial dates
-      if (typeof value === 'number') {
-        const date = XLSX.SSF.parse_date_code(value);
-        return new Date(date.y, date.m - 1, date.d);
+      // Handle Date objects (ExcelJS returns Date objects for date cells)
+      if (value instanceof Date) {
+        return isNaN(value.getTime()) ? null : value;
       }
       // Handle date strings
       if (typeof value === 'string') {
         const parsed = new Date(value);
         return isNaN(parsed.getTime()) ? null : parsed;
+      }
+      // Handle Excel serial dates (in case they come through as numbers)
+      if (typeof value === 'number') {
+        // Excel serial date: days since 1900-01-01 (with 1900 being day 1)
+        const excelEpoch = new Date(1899, 11, 30); // Dec 30, 1899
+        const date = new Date(excelEpoch.getTime() + value * 24 * 60 * 60 * 1000);
+        return isNaN(date.getTime()) ? null : date;
       }
       return null;
     };
