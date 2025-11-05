@@ -1,0 +1,500 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+  VALIDATOR
+}
+
+enum UsageType {
+  PROJECT
+  OFFICE
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+  ONE_TIME
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum AssetStatus {
+  IN_USE
+  SPARE
+  REPAIR
+  DISPOSED
+}
+
+enum AcquisitionType {
+  NEW_PURCHASE
+  TRANSFERRED
+}
+
+enum SupplierStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AccreditationStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  REVOKED
+  ISSUED // Temporary - will be migrated to APPROVED
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                         String                 @id @default(cuid())
+  name                       String?
+  email                      String                 @unique
+  emailVerified              DateTime?
+  image                      String?
+  role                       Role                   @default(EMPLOYEE)
+  isTemporaryStaff           Boolean                @default(false)
+  isSystemAccount            Boolean                @default(false)  // For shared assets and system users
+  accounts                   Account[]
+  sessions                   Session[]
+  assets                     Asset[]
+  subscriptions              Subscription[]
+  activityLogs               ActivityLog[]
+  assetHistoryFrom           AssetHistory[]         @relation("AssetHistoryFromUser")
+  assetHistoryTo             AssetHistory[]         @relation("AssetHistoryToUser")
+  assetHistoryPerformed      AssetHistory[]         @relation("AssetHistoryPerformer")
+  subscriptionHistoryPerformed SubscriptionHistory[] @relation("SubscriptionHistoryPerformer")
+  subscriptionHistoryOldUser SubscriptionHistory[] @relation("SubscriptionHistoryOldUser")
+  subscriptionHistoryNewUser SubscriptionHistory[] @relation("SubscriptionHistoryNewUser")
+  approvedSuppliers          Supplier[]             @relation("SupplierApprover")
+  supplierEngagements        SupplierEngagement[]
+  createdAccreditations      Accreditation[]        @relation("AccreditationCreator")
+  approvedAccreditations     Accreditation[]        @relation("AccreditationApprover")
+  revokedAccreditations      Accreditation[]        @relation("AccreditationRevoker")
+  accreditationHistory       AccreditationHistory[] @relation("AccreditationHistoryPerformer")
+  accreditationScans         AccreditationScan[]    @relation("AccreditationScans")
+  deletedUsersPerformed      User[]                 @relation("UserDeletion")
+  deletedBy                  User?                  @relation("UserDeletion", fields: [deletedById], references: [id])
+  deletedById                String?
+  deletedAt                  DateTime?
+  deletionNotes              String?
+  createdAt                  DateTime               @default(now())
+  updatedAt                  DateTime               @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Project model removed - projects are now handled separately by accreditation module
+
+model Asset {
+  id                  String          @id @default(cuid())
+  assetTag            String?         @unique // #1 Asset ID/Tag
+  type                String                   // #2 Asset Type (Laptop, Mouse, Monitor, etc.)
+  category            String?                  // #3 Category/Department (IT, Marketing, Engineering, etc.)
+  brand               String?                  // #4 Brand/Manufacturer (Apple, Dell, HP, etc.)
+  model               String                   // #5 Model/Version (MacBook Pro 16", Dell XPS 15, etc.)
+  serial              String?                  // #6 Serial Number
+  configuration       String?                  // #7 Configuration/Specs (16GB RAM, 512GB SSD, etc.)
+  purchaseDate        DateTime?                // #8 Purchase Date
+  warrantyExpiry      DateTime?                // #9 Warranty Expiry
+  supplier            String?                  // #10 Supplier/Vendor (where purchased from)
+  invoiceNumber       String?                  // #12 Invoice/PO Number
+  assignedUserId      String?                  // #13 Assigned To/User
+  assignedUser        User?           @relation(fields: [assignedUserId], references: [id])
+  status              AssetStatus     @default(IN_USE) // #14 Status/Condition
+  acquisitionType     AcquisitionType @default(NEW_PURCHASE) // #15 Asset Movement (New/Transferred)
+  transferNotes       String?                  // Notes for transferred assets
+  price               Decimal?                 // #16 Cost/Value
+  priceCurrency       String?         @default("QAR")
+  priceQAR            Decimal?
+
+  // Additional fields
+  notes               String?                  // General notes/remarks about the asset
+  location            String?                  // Physical location of the asset (Office, Building, Room, etc.)
+
+  // Relations & Metadata
+  history             AssetHistory[]
+  maintenanceRecords  MaintenanceRecord[]
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([warrantyExpiry])
+  @@index([brand])
+}
+
+enum AssetHistoryAction {
+  ASSIGNED
+  UNASSIGNED
+  STATUS_CHANGED
+  LOCATION_CHANGED
+  CREATED
+  UPDATED
+}
+
+model AssetHistory {
+  id             String             @id @default(cuid())
+  assetId        String
+  asset          Asset              @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  action         AssetHistoryAction
+  fromUserId     String?
+  fromUser       User?              @relation("AssetHistoryFromUser", fields: [fromUserId], references: [id])
+  toUserId       String?
+  toUser         User?              @relation("AssetHistoryToUser", fields: [toUserId], references: [id])
+  fromStatus     AssetStatus?
+  toStatus       AssetStatus?
+  fromLocation   String?
+  toLocation     String?
+  notes          String?
+  performedBy    String?
+  performer      User?              @relation("AssetHistoryPerformer", fields: [performedBy], references: [id])
+  assignmentDate DateTime?          // When asset was assigned (for ASSIGNED action)
+  returnDate     DateTime?          // When asset was returned (for UNASSIGNED action)
+  createdAt      DateTime           @default(now())
+
+  @@index([assetId])
+  @@index([createdAt])
+  @@index([toUserId])
+}
+
+model Subscription {
+  id             String      @id @default(cuid())
+  serviceName    String
+  category       String?
+  accountId      String?
+  purchaseDate   DateTime?
+  renewalDate    DateTime?
+  billingCycle   BillingCycle
+  costPerCycle   Decimal?
+  costCurrency   String?     @default("QAR")
+  costQAR        Decimal?
+  vendor         String?
+  usageType      UsageType
+  status         SubscriptionStatus @default(ACTIVE)
+  assignedUserId String?
+  assignedUser   User?       @relation(fields: [assignedUserId], references: [id])
+  autoRenew      Boolean     @default(true)
+  paymentMethod  String?
+  notes          String?
+  lastActiveRenewalDate DateTime?  // Track last renewal before cancel
+  cancelledAt    DateTime?          // When it was cancelled
+  reactivatedAt  DateTime?          // When it was last reactivated
+  history        SubscriptionHistory[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([renewalDate])
+  @@index([status])
+  @@index([category])
+}
+
+enum SubscriptionHistoryAction {
+  CREATED
+  REACTIVATED
+  CANCELLED
+  RENEWED
+  REASSIGNED
+}
+
+model SubscriptionHistory {
+  id               String                    @id @default(cuid())
+  subscriptionId   String
+  subscription     Subscription              @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  action           SubscriptionHistoryAction
+  oldStatus        SubscriptionStatus?
+  newStatus        SubscriptionStatus?
+  oldRenewalDate   DateTime?
+  newRenewalDate   DateTime?
+  reactivationDate DateTime?                // Date when service was reactivated
+  assignmentDate   DateTime?                // Date when user was assigned/reassigned
+  oldUserId        String?                  // Previous assigned user
+  newUserId        String?                  // New assigned user
+  oldUser          User?                    @relation("SubscriptionHistoryOldUser", fields: [oldUserId], references: [id])
+  newUser          User?                    @relation("SubscriptionHistoryNewUser", fields: [newUserId], references: [id])
+  notes            String?
+  performedBy      String?
+  performer        User?                    @relation("SubscriptionHistoryPerformer", fields: [performedBy], references: [id])
+  createdAt        DateTime                 @default(now())
+
+  @@index([subscriptionId])
+  @@index([createdAt])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actorUser   User?    @relation(fields: [actorUserId], references: [id])
+  action      String
+  entityType  String?
+  entityId    String?
+  payload     Json?
+  at          DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([at])
+}
+
+model MaintenanceRecord {
+  id              String   @id @default(cuid())
+  assetId         String
+  asset           Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  maintenanceDate DateTime
+  notes           String?
+  performedBy     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([assetId])
+  @@index([maintenanceDate])
+}
+
+model Supplier {
+  id                    String           @id @default(cuid())
+  suppCode              String?          @unique // Auto-generated SUPP-XXXX on approval
+  name                  String
+  category              String           // Material category
+  address               String?
+  city                  String?
+  country               String?
+  website               String?
+  establishmentYear     Int?
+  primaryContactName    String?
+  primaryContactTitle   String?
+  primaryContactEmail   String?
+  primaryContactMobile  String?
+  secondaryContactName  String?
+  secondaryContactTitle String?
+  secondaryContactEmail String?
+  secondaryContactMobile String?
+  paymentTerms          String?
+  additionalInfo        String?          // Additional information (portfolio, certifications, etc.)
+  status                SupplierStatus   @default(PENDING)
+  rejectionReason       String?
+  approvedAt            DateTime?
+  approvedById          String?
+  approvedBy            User?            @relation("SupplierApprover", fields: [approvedById], references: [id])
+  engagements           SupplierEngagement[]
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([status])
+  @@index([suppCode])
+  @@index([createdAt])
+}
+
+model SupplierEngagement {
+  id         String   @id @default(cuid())
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  date       DateTime
+  notes      String
+  rating     Int?     // 1-5 star rating (optional)
+  createdById String
+  createdBy  User     @relation(fields: [createdById], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([supplierId])
+  @@index([date])
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model AccreditationProject {
+  id   String  @id @default(cuid())
+  name String  @default("Unnamed Project")
+  code String? @unique
+
+  // Phase dates (sequential)
+  bumpInStart  DateTime
+  bumpInEnd    DateTime
+  liveStart    DateTime
+  liveEnd      DateTime
+  bumpOutStart DateTime
+  bumpOutEnd   DateTime
+
+  // Project-specific access groups (JSON array)
+  accessGroups Json // ["VIP", "VVIP", "Organiser", "Contractor", "Medical", "Security", "Media"]
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accreditations Accreditation[]
+
+  @@index([isActive])    // For filtering active projects
+  @@index([bumpInStart]) // For date-based queries
+  @@index([liveStart])   // For date-based queries
+  @@index([code])        // For project code lookups
+}
+
+model Accreditation {
+  id                   String   @id @default(cuid())
+  accreditationNumber  String   @unique // Auto-generated ACC-XXXX
+
+  // Personal Information
+  firstName   String
+  lastName    String
+  organization String
+  jobTitle    String
+  accessGroup String
+  profilePhotoUrl String? // Supabase storage path
+
+  // Identification (Either QID OR Passport+Hayya)
+  qidNumber       String?
+  qidExpiry       DateTime?
+  passportNumber  String?
+  passportCountry String?  // Country of passport issuance
+  passportExpiry  DateTime?
+  hayyaVisaNumber String?
+  hayyaVisaExpiry DateTime?
+
+  // Access Validity Periods (within project phases)
+  hasBumpInAccess Boolean   @default(false)
+  bumpInStart     DateTime?
+  bumpInEnd       DateTime?
+
+  hasLiveAccess Boolean   @default(false)
+  liveStart     DateTime?
+  liveEnd       DateTime?
+
+  hasBumpOutAccess Boolean   @default(false)
+  bumpOutStart     DateTime?
+  bumpOutEnd       DateTime?
+
+  // Workflow
+  status      AccreditationStatus @default(DRAFT)
+  qrCodeToken String?             @unique // For verification URL
+  qrCodeImage String?             // Cached base64 QR code image
+
+  // Relations
+  projectId   String
+  project     AccreditationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("AccreditationCreator", fields: [createdById], references: [id])
+
+  approvedById String?
+  approvedBy   User?   @relation("AccreditationApprover", fields: [approvedById], references: [id])
+  approvedAt   DateTime?
+
+  revokedById String?
+  revokedBy   User?   @relation("AccreditationRevoker", fields: [revokedById], references: [id])
+  revokedAt   DateTime?
+  revocationReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  history AccreditationHistory[]
+  scans   AccreditationScan[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([accreditationNumber])
+  @@index([qrCodeToken])
+  @@index([accessGroup])
+  @@index([firstName])
+  @@index([lastName])
+  @@index([organization])
+  @@index([createdAt])
+  @@index([qidNumber])              // For duplicate detection
+  @@index([passportNumber])         // For duplicate detection
+  @@index([status, projectId])      // Composite for filtered queries
+  @@index([createdAt, status])      // For approval queue sorting
+}
+
+model AccreditationHistory {
+  id              String   @id @default(cuid())
+  accreditationId String
+  accreditation   Accreditation @relation(fields: [accreditationId], references: [id], onDelete: Cascade)
+
+  action      String // CREATED, SUBMITTED, APPROVED, REJECTED, UPDATED
+  oldStatus   AccreditationStatus?
+  newStatus   AccreditationStatus?
+  changes     Json? // Store field changes
+  notes       String?
+
+  performedById String
+  performedBy   User   @relation("AccreditationHistoryPerformer", fields: [performedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([accreditationId])
+  @@index([createdAt])
+}
+
+model AccreditationScan {
+  id              String   @id @default(cuid())
+  accreditationId String
+  accreditation   Accreditation @relation(fields: [accreditationId], references: [id], onDelete: Cascade)
+
+  scannedById String
+  scannedBy   User   @relation("AccreditationScans", fields: [scannedById], references: [id])
+
+  scannedAt   DateTime @default(now())
+  location    String?  // Optional: Physical location where scanned
+  device      String?  // Optional: Device info (user agent)
+  ipAddress   String?  // Optional: IP address
+  wasValid    Boolean  // Whether the accreditation was valid at scan time
+  validPhases Json?    // Which phases were active ["BUMP_IN", "LIVE", "BUMP_OUT"]
+  notes       String?  // Optional notes from scanner
+
+  @@index([accreditationId])
+  @@index([scannedById])
+  @@index([scannedAt])
+  @@index([wasValid])
+}

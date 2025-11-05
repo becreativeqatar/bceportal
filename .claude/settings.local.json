@@ -42,7 +42,17 @@
       "Bash(dir:*)",
       "Bash(powershell -Command:*)",
       "Bash(git rm:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(cmd /c:*)",
+      "Bash(tree:*)",
+      "Bash(xargs:*)",
+      "Bash(if [ -d \".next\" ])",
+      "Bash(then du -sh .next)",
+      "Bash(fi)",
+      "Bash(then rm -rf .next)",
+      "Bash(rm:*)",
+      "Bash(wait)",
+      "Bash(npm audit:*)"
     ],
     "deny": [],
     "ask": []
