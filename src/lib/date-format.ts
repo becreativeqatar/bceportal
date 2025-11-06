@@ -71,31 +71,54 @@ export function formatDateTime(date: Date | string | null | undefined, fallback:
 
 /**
  * Convert a Date to yyyy-MM-dd format for HTML date inputs
- * Uses Qatar timezone to ensure consistent date handling
+ * Parses date strings WITHOUT timezone conversion to prevent date shifting
  * @param date - Date object, string, or null
  * @returns ISO date string (yyyy-MM-dd) or empty string
  */
 export function toInputDateString(date: Date | string | null | undefined): string {
   if (!date) return '';
 
+  // If it's already a yyyy-mm-dd string, return it as-is
+  if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return date;
+  }
+
+  // If it's an ISO string with time, extract just the date part
+  if (typeof date === 'string' && date.includes('T')) {
+    return date.split('T')[0];
+  }
+
+  // For Date objects or other string formats
   const dateObj = typeof date === 'string' ? new Date(date) : date;
 
   if (isNaN(dateObj.getTime())) return '';
 
-  // Format in Qatar timezone
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: QATAR_TIMEZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-
-  const parts = formatter.formatToParts(dateObj);
-  const year = parts.find(p => p.type === 'year')?.value || '2024';
-  const month = parts.find(p => p.type === 'month')?.value || '01';
-  const day = parts.find(p => p.type === 'day')?.value || '01';
+  // Use UTC methods to avoid timezone shifts
+  const year = dateObj.getUTCFullYear();
+  const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getUTCDate()).padStart(2, '0');
 
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * Parse a yyyy-mm-dd string to a Date object at UTC midnight
+ * This prevents timezone shifts when storing dates
+ * @param dateString - Date string in yyyy-mm-dd format
+ * @returns Date object at UTC midnight or null
+ */
+export function parseInputDateString(dateString: string | null | undefined): Date | null {
+  if (!dateString) return null;
+
+  // Check if it's yyyy-mm-dd format
+  if (!dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return null;
+
+  // Parse as UTC midnight to avoid timezone shifts
+  // Add 'T00:00:00.000Z' to force UTC parsing
+  const isoString = `${dateString}T00:00:00.000Z`;
+  const date = new Date(isoString);
+
+  return isNaN(date.getTime()) ? null : date;
 }
 
 /**

@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { createSubscriptionSchema, subscriptionQuerySchema } from '@/lib/validations/subscriptions';
 import { logAction, ActivityActions } from '@/lib/activity';
 import { getQatarNow, getQatarStartOfDay } from '@/lib/qatar-timezone';
+import { parseInputDateString } from '@/lib/date-format';
 
 export async function GET(request: NextRequest) {
   try {
@@ -141,8 +142,8 @@ export async function POST(request: NextRequest) {
       ...data,
       costCurrency: currency, // Use the calculated currency with default
       costQAR: costQAR || null, // Ensure costQAR is always set, use null instead of undefined
-      purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : null,
-      renewalDate: data.renewalDate ? new Date(data.renewalDate) : null,
+      purchaseDate: data.purchaseDate ? parseInputDateString(data.purchaseDate) : null,
+      renewalDate: data.renewalDate ? parseInputDateString(data.renewalDate) : null,
     };
 
     // Remove assignmentDate - it's only used for history tracking, not stored on subscription

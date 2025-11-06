@@ -5,6 +5,7 @@ import { Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { updateSubscriptionSchema } from '@/lib/validations/subscriptions';
 import { logAction, ActivityActions } from '@/lib/activity';
+import { parseInputDateString } from '@/lib/date-format';
 
 export async function GET(
   request: NextRequest,
@@ -119,10 +120,10 @@ export async function PUT(
     delete updateData.assignmentDate;
 
     if (data.purchaseDate !== undefined) {
-      updateData.purchaseDate = data.purchaseDate ? new Date(data.purchaseDate) : null;
+      updateData.purchaseDate = data.purchaseDate ? parseInputDateString(data.purchaseDate) : null;
     }
     if (data.renewalDate !== undefined) {
-      updateData.renewalDate = data.renewalDate ? new Date(data.renewalDate) : null;
+      updateData.renewalDate = data.renewalDate ? parseInputDateString(data.renewalDate) : null;
     }
 
     const subscription = await prisma.subscription.update({
