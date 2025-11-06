@@ -48,6 +48,7 @@ export default function EditSubscriptionPage() {
   const [categorySuggestions, setCategorySuggestions] = useState<string[]>([]);
   const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
   const [lastAssignmentDate, setLastAssignmentDate] = useState<string>('');
+  const [manualRenewalEdit, setManualRenewalEdit] = useState(false);
 
   const {
     register,
@@ -110,7 +111,14 @@ export default function EditSubscriptionPage() {
   }, [watchedCostPerCycle, watchedCostCurrency, setValue]);
 
   // Auto-calculate renewal date based on purchase date and billing cycle
+  // Reset manual edit flag when purchase date or billing cycle changes
   useEffect(() => {
+    setManualRenewalEdit(false); // Allow auto-calc when these change
+  }, [watchedPurchaseDate, watchedBillingCycle]);
+
+  useEffect(() => {
+    if (manualRenewalEdit) return; // Skip if user manually edited
+
     if (watchedPurchaseDate && watchedBillingCycle && watchedBillingCycle !== 'ONE_TIME') {
       const purchaseDate = new Date(watchedPurchaseDate);
       const renewalDate = new Date(purchaseDate);
@@ -126,14 +134,12 @@ export default function EditSubscriptionPage() {
 
       // Format date as YYYY-MM-DD for input type="date"
       const formattedDate = toInputDateString(renewalDate);
-      if (watchedRenewalDate !== formattedDate) {
-        setValue('renewalDate', formattedDate);
-      }
+      setValue('renewalDate', formattedDate);
     } else if (watchedBillingCycle === 'ONE_TIME') {
       setValue('renewalDate', '');
       setValue('autoRenew', false);
     }
-  }, [watchedPurchaseDate, watchedBillingCycle, watchedRenewalDate, setValue]);
+  }, [watchedPurchaseDate, watchedBillingCycle, setValue, manualRenewalEdit]);
 
   const fetchUsers = async () => {
     try {
@@ -481,7 +487,10 @@ export default function EditSubscriptionPage() {
                     <DatePicker
                       id="renewalDate"
                       value={watchedRenewalDate || ''}
-                      onChange={(value) => setValue('renewalDate', value)}
+                      onChange={(value) => {
+                        setValue('renewalDate', value);
+                        setManualRenewalEdit(true); // Mark as manually edited
+                      }}
                     />
                     {errors.renewalDate && (
                       <p className="text-sm text-red-500">{errors.renewalDate.message}</p>
