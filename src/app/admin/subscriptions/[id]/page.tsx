@@ -194,9 +194,13 @@ export default async function SubscriptionDetailPage({ params }: Props) {
                           <div>
                             {subscription.costCurrency === 'USD' ? '$' : 'QAR '}{Number(subscription.costPerCycle).toFixed(2)}
                           </div>
-                          {subscription.costCurrency === 'USD' && (
+                          {subscription.costCurrency === 'USD' ? (
                             <div className="text-sm text-gray-600 font-normal mt-1">
                               ≈ QAR {(Number(subscription.costPerCycle) * 3.64).toFixed(2)}
+                            </div>
+                          ) : (
+                            <div className="text-sm text-gray-600 font-normal mt-1">
+                              ≈ USD {(Number(subscription.costPerCycle) / 3.64).toFixed(2)}
                             </div>
                           )}
                         </div>

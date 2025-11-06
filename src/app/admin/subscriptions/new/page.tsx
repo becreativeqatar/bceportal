@@ -461,27 +461,20 @@ export default function NewSubscriptionPage() {
                       placeholder="0.00"
                       className={errors.costPerCycle ? 'border-red-500' : ''}
                     />
+                    {watchedCostPerCycle && (
+                      <p className="text-xs text-muted-foreground">
+                        {watchedCostCurrency === 'USD' ? (
+                          <>≈ QAR {(watchedCostPerCycle * USD_TO_QAR_RATE).toFixed(2)}</>
+                        ) : (
+                          <>≈ USD {(watchedCostPerCycle / USD_TO_QAR_RATE).toFixed(2)}</>
+                        )}
+                      </p>
+                    )}
                     {errors.costPerCycle && (
                       <p className="text-sm text-red-500">{errors.costPerCycle.message}</p>
                     )}
                   </div>
                 </div>
-
-                {watchedCostCurrency === 'USD' && watchedCostPerCycle && (
-                  <div className="space-y-2">
-                    <Label htmlFor="costQAR">Equivalent in QAR</Label>
-                    <Input
-                      id="costQAR"
-                      type="text"
-                      value={`QAR ${(watchedCostPerCycle * USD_TO_QAR_RATE).toFixed(2)}`}
-                      disabled
-                      className="bg-gray-50"
-                    />
-                    <p className="text-xs text-gray-500">
-                      Auto-calculated (1 USD = {USD_TO_QAR_RATE} QAR)
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Status & Usage Section */}

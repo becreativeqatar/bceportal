@@ -421,7 +421,7 @@ export default function NewAssetPage() {
                       {watchedPrice && (
                         <p className="text-xs text-muted-foreground">
                           {watchedCurrency === 'USD' ? (
-                            <>≈ QAR {(watchedPrice * USD_TO_QAR_RATE).toFixed(2)} (will be saved with asset)</>
+                            <>≈ QAR {(watchedPrice * USD_TO_QAR_RATE).toFixed(2)}</>
                           ) : watchedCurrency === 'QAR' ? (
                             <>≈ USD {(watchedPrice / USD_TO_QAR_RATE).toFixed(2)}</>
                           ) : null}
