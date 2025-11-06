@@ -418,9 +418,13 @@ export default function NewAssetPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      {watchedPrice && watchedCurrency === 'USD' && (
+                      {watchedPrice && (
                         <p className="text-xs text-muted-foreground">
-                          ≈ QAR {(watchedPrice * USD_TO_QAR_RATE).toFixed(2)}
+                          {watchedCurrency === 'USD' ? (
+                            <>≈ QAR {(watchedPrice * USD_TO_QAR_RATE).toFixed(2)} (will be saved with asset)</>
+                          ) : watchedCurrency === 'QAR' ? (
+                            <>≈ USD {(watchedPrice / USD_TO_QAR_RATE).toFixed(2)}</>
+                          ) : null}
                         </p>
                       )}
                     </div>

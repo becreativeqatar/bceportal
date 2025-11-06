@@ -225,6 +225,11 @@ export default async function AssetDetailPage({ params }: Props) {
                                 ≈ QAR {Number(asset.priceQAR).toFixed(2)} (saved at time of entry)
                               </div>
                             )}
+                            {asset.priceCurrency === 'QAR' && asset.price && (
+                              <div className="text-sm text-gray-600 font-normal mt-1">
+                                ≈ USD {(Number(asset.price) / 3.64).toFixed(2)}
+                              </div>
+                            )}
                           </div>
                         ) : 'Not specified'}
                       </div>
