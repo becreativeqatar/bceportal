@@ -39,8 +39,8 @@ export function SubscriptionListTable({ subscriptions }: SubscriptionListTablePr
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [billingFilter, setBillingFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('purchaseDate');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortBy, setSortBy] = useState<string>('renewalDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Get unique statuses and billing cycles for filters
   const uniqueStatuses = useMemo(() => {
@@ -122,9 +122,25 @@ export function SubscriptionListTable({ subscriptions }: SubscriptionListTablePr
           bValue = b.purchaseDate ? new Date(b.purchaseDate).getTime() : Infinity;
           break;
         case 'renewalDate':
-          // Use Infinity for null dates so they always sort to the end
-          aValue = a.renewalDate ? new Date(a.renewalDate).getTime() : Infinity;
-          bValue = b.renewalDate ? new Date(b.renewalDate).getTime() : Infinity;
+          // Sort by calculated next renewal date (considering billing cycle)
+          // Cancelled subscriptions always go to the end
+          if (a.status === 'CANCELLED') {
+            aValue = Infinity;
+          } else if (a.renewalDate && a.billingCycle !== 'ONE_TIME') {
+            const nextRenewalA = getNextRenewalDate(a.renewalDate, a.billingCycle);
+            aValue = getDaysUntilRenewal(nextRenewalA) ?? Infinity;
+          } else {
+            aValue = Infinity;
+          }
+
+          if (b.status === 'CANCELLED') {
+            bValue = Infinity;
+          } else if (b.renewalDate && b.billingCycle !== 'ONE_TIME') {
+            const nextRenewalB = getNextRenewalDate(b.renewalDate, b.billingCycle);
+            bValue = getDaysUntilRenewal(nextRenewalB) ?? Infinity;
+          } else {
+            bValue = Infinity;
+          }
           break;
         case 'assignedUser':
           aValue = a.assignedUser?.name || a.assignedUser?.email || 'zzz';
