@@ -49,9 +49,20 @@ export function DatePicker({
   // Update internal state when value prop changes
   React.useEffect(() => {
     if (value) {
-      const parsed = new Date(value);
-      if (!isNaN(parsed.getTime())) {
-        setDate(parsed);
+      // Parse yyyy-mm-dd string as local date to avoid timezone shifts
+      // Split the date parts and create a date at midnight local time
+      if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [year, month, day] = value.split('-').map(Number);
+        const localDate = new Date(year, month - 1, day);
+        if (!isNaN(localDate.getTime())) {
+          setDate(localDate);
+        }
+      } else {
+        // Fallback to normal parsing for other formats
+        const parsed = new Date(value);
+        if (!isNaN(parsed.getTime())) {
+          setDate(parsed);
+        }
       }
     } else {
       setDate(undefined);
@@ -61,7 +72,8 @@ export function DatePicker({
   const handleSelect = (selectedDate: Date | undefined) => {
     setDate(selectedDate);
     if (selectedDate) {
-      // Convert to yyyy-mm-dd format
+      // Convert to yyyy-mm-dd format using UTC to avoid timezone issues
+      // The calendar gives us a date at midnight local time, we want to preserve that exact date
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate.getDate()).padStart(2, '0');
