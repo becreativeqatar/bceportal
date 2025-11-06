@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { writeFileSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync, existsSync, mkdirSync, statSync, readdirSync, readFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import logger from '../../src/lib/log';
 
@@ -64,12 +64,7 @@ async function createDatabaseBackup(options: BackupOptions = {}): Promise<string
 
     const pgDump = spawn('pg_dump', args);
 
-    let stdout = '';
     let stderr = '';
-
-    pgDump.stdout?.on('data', (data) => {
-      stdout += data.toString();
-    });
 
     pgDump.stderr?.on('data', (data) => {
       stderr += data.toString();
@@ -87,7 +82,7 @@ async function createDatabaseBackup(options: BackupOptions = {}): Promise<string
           format,
           includeData,
           compression,
-          size: require('fs').statSync(backupPath).size,
+          size: statSync(backupPath).size,
         };
 
         const metadataPath = backupPath + '.meta.json';
@@ -107,20 +102,29 @@ async function createDatabaseBackup(options: BackupOptions = {}): Promise<string
   });
 }
 
-async function listBackups(): Promise<Array<{ filename: string; metadata: any }>> {
+interface BackupMetadata {
+  filename: string;
+  path: string;
+  timestamp: string;
+  format: string;
+  includeData: boolean;
+  compression: boolean;
+  size: number;
+}
+
+async function listBackups(): Promise<Array<{ filename: string; metadata: BackupMetadata }>> {
   if (!existsSync(BACKUP_DIR)) {
     return [];
   }
 
-  const fs = require('fs');
-  const files = fs.readdirSync(BACKUP_DIR);
-  const backups = [];
+  const files = readdirSync(BACKUP_DIR);
+  const backups: Array<{ filename: string; metadata: BackupMetadata }> = [];
 
   for (const file of files) {
     if (file.endsWith('.meta.json')) {
       try {
         const metadataPath = join(BACKUP_DIR, file);
-        const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+        const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as BackupMetadata;
         backups.push({
           filename: metadata.filename,
           metadata,
@@ -131,7 +135,7 @@ async function listBackups(): Promise<Array<{ filename: string; metadata: any }>
     }
   }
 
-  return backups.sort((a, b) => 
+  return backups.sort((a, b) =>
     new Date(b.metadata.timestamp).getTime() - new Date(a.metadata.timestamp).getTime()
   );
 }
@@ -147,15 +151,14 @@ async function cleanupOldBackups(retentionDays: number = 30): Promise<void> {
     const backupDate = new Date(backup.metadata.timestamp);
     if (backupDate < cutoffDate) {
       try {
-        const fs = require('fs');
         const backupPath = backup.metadata.path;
         const metadataPath = backupPath + '.meta.json';
 
         if (existsSync(backupPath)) {
-          fs.unlinkSync(backupPath);
+          unlinkSync(backupPath);
         }
         if (existsSync(metadataPath)) {
-          fs.unlinkSync(metadataPath);
+          unlinkSync(metadataPath);
         }
 
         deletedCount++;

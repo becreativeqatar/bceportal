@@ -1,6 +1,6 @@
 import { createDatabaseBackup } from './database';
 import { createFileInventory } from './files';
-import { writeFileSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import logger from '../../src/lib/log';
 
@@ -133,19 +133,18 @@ async function main() {
 
       case 'status':
         // Show recent backup status
-        const fs = require('fs');
-        const manifestFiles = fs.readdirSync(BACKUP_DIR)
+        const manifestFiles = readdirSync(BACKUP_DIR)
           .filter((file: string) => file.startsWith('damp-backup-manifest-') && file.endsWith('.json'))
           .sort()
           .reverse()
           .slice(0, 5);
 
         console.log('\n📋 Recent backup manifests:\n');
-        
+
         for (const file of manifestFiles) {
           try {
             const manifestPath = join(BACKUP_DIR, file);
-            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
             const date = new Date(manifest.timestamp).toLocaleString();
             const duration = (manifest.summary.duration / 1000 / 60).toFixed(2);
             const status = manifest.summary.success ? '✅' : '❌';

@@ -69,11 +69,11 @@ async function main() {
         },
       });
       console.log(`   ✓ Restored user: ${user.name || user.email}`);
-    } catch (error: any) {
-      if (error.code === 'P2002') {
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         console.log(`   ⚠ User already exists: ${user.name || user.email}`);
       } else {
-        console.error(`   ✗ Failed to restore user ${user.email}:`, error.message);
+        console.error(`   ✗ Failed to restore user ${user.email}:`, error instanceof Error ? error.message : 'Unknown error');
       }
     }
   }
@@ -84,7 +84,7 @@ async function main() {
   for (const subscription of subscriptionsData) {
     try {
       // Prepare subscription data matching current schema
-      const subData: any = {
+      const subData: Prisma.SubscriptionCreateInput = {
         id: subscription.id,
         serviceName: subscription.serviceName,
         accountId: subscription.accountId,
@@ -127,14 +127,14 @@ async function main() {
                 createdAt: new Date(history.createdAt),
               },
             });
-          } catch (error: any) {
-            console.error(`     ⚠ Failed to restore history for ${subscription.serviceName}:`, error.message);
+          } catch (error) {
+            console.error(`     ⚠ Failed to restore history for ${subscription.serviceName}:`, error instanceof Error ? error.message : 'Unknown error');
           }
         }
         console.log(`     ✓ Restored ${subscription.history.length} history records`);
       }
-    } catch (error: any) {
-      console.error(`   ✗ Failed to restore subscription ${subscription.serviceName}:`, error.message);
+    } catch (error) {
+      console.error(`   ✗ Failed to restore subscription ${subscription.serviceName}:`, error instanceof Error ? error.message : 'Unknown error');
     }
   }
   console.log(`✅ Restored ${subscriptionsData.length} subscriptions\n`);
@@ -156,7 +156,7 @@ async function main() {
         },
       });
       activityCount++;
-    } catch (error: any) {
+    } catch {
       // Silently skip activity logs that fail (e.g., if referenced entities don't exist)
     }
   }

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, AccreditationStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -168,7 +168,7 @@ async function main() {
           hasBumpOutAccess,
           bumpOutStart: hasBumpOutAccess ? new Date(project.bumpOutStart) : null,
           bumpOutEnd: hasBumpOutAccess ? new Date(project.bumpOutEnd) : null,
-          status: status as any,
+          status: status as AccreditationStatus,
           qrCodeToken,
           approvedById,
           approvedAt,
@@ -182,7 +182,7 @@ async function main() {
         data: {
           accreditationId: accreditation.id,
           action: 'CREATED',
-          newStatus: status as any,
+          newStatus: status as AccreditationStatus,
           performedById: admin.id,
         },
       });
@@ -193,8 +193,8 @@ async function main() {
           data: {
             accreditationId: accreditation.id,
             action: 'APPROVED',
-            oldStatus: 'PENDING' as any,
-            newStatus: 'APPROVED' as any,
+            oldStatus: AccreditationStatus.PENDING,
+            newStatus: AccreditationStatus.APPROVED,
             performedById: admin.id,
           },
         });

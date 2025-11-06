@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Asset } from '@prisma/client';
 import { sendEmail } from '../../src/lib/email';
 import { logAction, ActivityActions } from '../../src/lib/activity';
 
@@ -6,6 +6,13 @@ const prisma = new PrismaClient();
 
 const ADMIN_EMAILS = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || [];
 const WARRANTY_WINDOWS = [60, 30]; // Days before warranty expiry
+
+type AssetWithUser = Asset & {
+  assignedUser: {
+    name: string | null;
+    email: string;
+  } | null;
+};
 
 async function checkWarrantyExpirations() {
   console.log('🔍 Checking warranty expirations...');
@@ -81,7 +88,7 @@ async function checkWarrantyExpirations() {
   }
 }
 
-function generateWarrantyEmailHtml(assets: any[], windowDays: number): string {
+function generateWarrantyEmailHtml(assets: AssetWithUser[], windowDays: number): string {
   const assetsList = assets.map(asset => `
     <tr style="border-bottom: 1px solid #eee;">
       <td style="padding: 8px; font-weight: 500;">${asset.assetTag || asset.model}</td>

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Subscription } from '@prisma/client';
 import { sendEmail } from '../../src/lib/email';
 import { logAction, ActivityActions } from '../../src/lib/activity';
 
@@ -6,6 +6,13 @@ const prisma = new PrismaClient();
 
 const ADMIN_EMAILS = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || [];
 const RENEWAL_WINDOWS = [30, 14, 7]; // Days before renewal
+
+type SubscriptionWithUser = Subscription & {
+  assignedUser: {
+    name: string | null;
+    email: string;
+  } | null;
+};
 
 async function checkSubscriptionRenewals() {
   console.log('🔍 Checking subscription renewals...');
@@ -77,7 +84,7 @@ async function checkSubscriptionRenewals() {
   }
 }
 
-function generateRenewalEmailHtml(subscriptions: any[], windowDays: number): string {
+function generateRenewalEmailHtml(subscriptions: SubscriptionWithUser[], windowDays: number): string {
   const subscriptionsList = subscriptions.map(sub => `
     <tr style="border-bottom: 1px solid #eee;">
       <td style="padding: 8px; font-weight: 500;">${sub.serviceName}</td>

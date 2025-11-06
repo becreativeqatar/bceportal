@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { writeFileSync, existsSync } from 'fs';
+import { writeFileSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
 
@@ -42,7 +42,7 @@ NODE_ENV="development"
     // 2. Update Prisma schema to use SQLite
     console.log('\n🔧 Configuring database for SQLite...');
     const prismaSchemaPath = join('prisma', 'schema.prisma');
-    let schemaContent = require('fs').readFileSync(prismaSchemaPath, 'utf8');
+    let schemaContent = readFileSync(prismaSchemaPath, 'utf8');
     
     // Replace PostgreSQL with SQLite
     schemaContent = schemaContent.replace(
