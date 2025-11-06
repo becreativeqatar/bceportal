@@ -483,6 +483,9 @@ export default function EditSubscriptionPage() {
                       value={watchedRenewalDate || ''}
                       onChange={(value) => setValue('renewalDate', value)}
                     />
+                    {errors.renewalDate && (
+                      <p className="text-sm text-red-500">{errors.renewalDate.message}</p>
+                    )}
                     <p className="text-xs text-gray-500">
                       {watchedPurchaseDate && watchedRenewalDate ? (
                         <span className="text-green-600">
