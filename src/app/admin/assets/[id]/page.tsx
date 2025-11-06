@@ -220,9 +220,9 @@ export default async function AssetDetailPage({ params }: Props) {
                         {asset.price ? (
                           <div>
                             {asset.priceCurrency === 'USD' ? '$' : 'QAR '}{Number(asset.price).toFixed(2)}
-                            {asset.priceQAR && (
+                            {asset.priceCurrency === 'USD' && asset.priceQAR && (
                               <div className="text-sm text-gray-600 font-normal mt-1">
-                                ≈ USD ${Number(asset.priceQAR).toFixed(2)}
+                                ≈ QAR {Number(asset.priceQAR).toFixed(2)} (saved at time of entry)
                               </div>
                             )}
                           </div>
@@ -293,7 +293,19 @@ export default async function AssetDetailPage({ params }: Props) {
             </Card>
           )}
 
-          {/* System Information */}
+          {/* Asset Utilization Stats */}
+          <AssetCostBreakdown
+            assetId={asset.id}
+            purchaseDate={asset.purchaseDate}
+          />
+
+          {/* Maintenance Records */}
+          <AssetMaintenanceRecords assetId={asset.id} readOnly={true} />
+
+          {/* Asset History */}
+          <AssetHistory assetId={asset.id} />
+
+          {/* System Information - Moved to bottom */}
           <Card>
             <CardHeader>
               <CardTitle>System Information</CardTitle>
@@ -314,18 +326,6 @@ export default async function AssetDetailPage({ params }: Props) {
               </div>
             </CardContent>
           </Card>
-
-          {/* Asset Utilization Stats */}
-          <AssetCostBreakdown
-            assetId={asset.id}
-            purchaseDate={asset.purchaseDate}
-          />
-
-          {/* Maintenance Records */}
-          <AssetMaintenanceRecords assetId={asset.id} readOnly={true} />
-
-          {/* Asset History */}
-          <AssetHistory assetId={asset.id} />
         </div>
       </div>
     </div>

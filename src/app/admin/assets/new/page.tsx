@@ -390,6 +390,7 @@ export default function NewAssetPage() {
                         id="purchaseDate"
                         value={watchedPurchaseDate || ''}
                         onChange={(value) => setValue('purchaseDate', value)}
+                        maxDate={new Date()} // Only allow today and past dates
                       />
                     </div>
                     <div className="space-y-2">
@@ -506,6 +507,20 @@ export default function NewAssetPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    {watchedAssignedUserId && (
+                      <div className="space-y-2">
+                        <Label htmlFor="assignmentDate">Assignment Date</Label>
+                        <DatePicker
+                          id="assignmentDate"
+                          value={watch('assignmentDate') || ''}
+                          onChange={(value) => setValue('assignmentDate', value)}
+                          maxDate={new Date()}
+                        />
+                        <p className="text-xs text-gray-500">
+                          When was this asset assigned? (Defaults to today)
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

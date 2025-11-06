@@ -152,6 +152,7 @@ model Asset {
   invoiceNumber       String?                  // #12 Invoice/PO Number
   assignedUserId      String?                  // #13 Assigned To/User
   assignedUser        User?           @relation(fields: [assignedUserId], references: [id])
+  assignmentDate      String?                  // When the asset was assigned to current user
   status              AssetStatus     @default(IN_USE) // #14 Status/Condition
   acquisitionType     AcquisitionType @default(NEW_PURCHASE) // #15 Asset Movement (New/Transferred)
   transferNotes       String?                  // Notes for transferred assets

@@ -15,6 +15,8 @@ export interface DatePickerProps {
   className?: string;
   placeholder?: string;
   required?: boolean;
+  maxDate?: Date; // Maximum selectable date
+  minDate?: Date; // Minimum selectable date
 }
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -31,6 +33,8 @@ export function DatePicker({
   className,
   placeholder = 'Pick a date',
   required,
+  maxDate,
+  minDate,
 }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(() => {
     if (value) {
@@ -123,6 +127,13 @@ export function DatePicker({
             onSelect={handleSelect}
             defaultMonth={date}
             initialFocus
+            disabled={(day) => {
+              if (maxDate && day > maxDate) return true;
+              if (minDate && day < minDate) return true;
+              return false;
+            }}
+            toDate={maxDate}
+            fromDate={minDate}
           />
         </PopoverContent>
       </Popover>

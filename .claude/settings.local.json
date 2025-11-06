@@ -55,7 +55,8 @@
       "Bash(npm audit:*)",
       "Bash(npm run lint:*)",
       "Bash(git diff:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(git fetch:*)"
     ],
     "deny": [],
     "ask": []
