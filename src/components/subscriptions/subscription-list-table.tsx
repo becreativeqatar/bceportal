@@ -117,12 +117,14 @@ export function SubscriptionListTable({ subscriptions }: SubscriptionListTablePr
           bValue = b.costPerCycle || 0;
           break;
         case 'purchaseDate':
-          aValue = a.purchaseDate ? new Date(a.purchaseDate).getTime() : 0;
-          bValue = b.purchaseDate ? new Date(b.purchaseDate).getTime() : 0;
+          // Use Infinity for null dates so they always sort to the end
+          aValue = a.purchaseDate ? new Date(a.purchaseDate).getTime() : Infinity;
+          bValue = b.purchaseDate ? new Date(b.purchaseDate).getTime() : Infinity;
           break;
         case 'renewalDate':
-          aValue = a.renewalDate ? new Date(a.renewalDate).getTime() : 0;
-          bValue = b.renewalDate ? new Date(b.renewalDate).getTime() : 0;
+          // Use Infinity for null dates so they always sort to the end
+          aValue = a.renewalDate ? new Date(a.renewalDate).getTime() : Infinity;
+          bValue = b.renewalDate ? new Date(b.renewalDate).getTime() : Infinity;
           break;
         case 'assignedUser':
           aValue = a.assignedUser?.name || a.assignedUser?.email || 'zzz';
