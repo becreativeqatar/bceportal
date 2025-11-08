@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { updateAssetSchema } from '@/lib/validations/assets';
 import { logAction, ActivityActions } from '@/lib/activity';
 import { recordAssetUpdate } from '@/lib/asset-history';
+import { USD_TO_QAR_RATE } from '@/lib/constants';
 
 // Helper to convert field names to human-readable labels
 const fieldLabels: Record<string, string> = {
@@ -58,6 +59,11 @@ export async function GET(
 
     if (!asset) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
+    }
+
+    // Authorization check: Only admins or the assigned user can view the asset
+    if (session.user.role !== Role.ADMIN && asset.assignedUserId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     return NextResponse.json(asset);
@@ -130,7 +136,6 @@ export async function PUT(
     }
 
     // SAFEGUARD: Always calculate priceQAR to prevent data loss
-    const USD_TO_QAR = 3.64;
     let priceQAR = data.priceQAR;
 
     // If price is being updated, ensure priceQAR is calculated
@@ -142,7 +147,7 @@ export async function PUT(
         if (currency === 'USD') {
           priceQAR = price;
         } else {
-          priceQAR = price / USD_TO_QAR;
+          priceQAR = price / USD_TO_QAR_RATE;
         }
       }
     }
@@ -154,7 +159,7 @@ export async function PUT(
         if (data.priceCurrency === 'USD') {
           priceQAR = currentPrice;
         } else {
-          priceQAR = currentPrice / USD_TO_QAR;
+          priceQAR = currentPrice / USD_TO_QAR_RATE;
         }
       }
     }

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { formatError } from './errors';
 import { logRequest, generateRequestId } from '@/lib/log';
+import { checkRateLimit } from '@/lib/security/rateLimit';
 
 export type APIHandler = (
   request: NextRequest,
@@ -13,6 +14,7 @@ export interface HandlerOptions {
   requireAuth?: boolean;
   requireAdmin?: boolean;
   skipLogging?: boolean;
+  rateLimit?: boolean; // Enable rate limiting for this endpoint
 }
 
 export function withErrorHandler(
@@ -22,12 +24,46 @@ export function withErrorHandler(
   return async (request: NextRequest, context?: { params?: any }) => {
     const startTime = Date.now();
     const requestId = request.headers.get('x-request-id') || generateRequestId();
-    
+
     try {
+      // Rate limiting check
+      if (options.rateLimit) {
+        const { allowed } = checkRateLimit(request);
+        if (!allowed) {
+          const response = NextResponse.json(
+            {
+              error: 'Rate limit exceeded',
+              message: 'Too many requests. Please try again later.',
+              requestId
+            },
+            {
+              status: 429,
+              headers: {
+                'Retry-After': '60',
+                'X-RateLimit-Limit': process.env.RATE_LIMIT_MAX || '60',
+                'X-RateLimit-Window': process.env.RATE_LIMIT_WINDOW_MS || '60000',
+              }
+            }
+          );
+
+          if (!options.skipLogging) {
+            logRequest(
+              request.method,
+              request.url,
+              429,
+              Date.now() - startTime,
+              requestId
+            );
+          }
+
+          return response;
+        }
+      }
+
       // Add request ID to headers for tracing
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set('x-request-id', requestId);
-      
+
       // Create new request with updated headers
       const enhancedRequest = new NextRequest(request.url, {
         method: request.method,

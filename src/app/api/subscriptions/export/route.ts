@@ -1,18 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { arrayToCSV, formatDateForCSV, formatCurrencyForCSV } from '@/lib/csv-utils';
+import { withErrorHandler } from '@/lib/http/handler';
 
-export async function GET() {
-  try {
-    console.log('Starting subscription export...');
-    // Check authentication
-    const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.log('Authentication passed');
+async function exportSubscriptionsHandler(request: NextRequest) {
+  console.log('Starting subscription export...');
+  // Check authentication
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  console.log('Authentication passed');
 
     // Fetch all subscriptions with related data including history
     const subscriptions = await prisma.subscription.findMany({
@@ -157,12 +157,6 @@ export async function GET() {
         'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
-  } catch (error) {
-    console.error('Subscription export error:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    return NextResponse.json({
-      error: 'Failed to export subscriptions',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
-  }
 }
+
+export const GET = withErrorHandler(exportSubscriptionsHandler, { requireAdmin: true, rateLimit: true });

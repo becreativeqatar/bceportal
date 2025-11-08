@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { updateSubscriptionSchema } from '@/lib/validations/subscriptions';
 import { logAction, ActivityActions } from '@/lib/activity';
 import { parseInputDateString } from '@/lib/date-format';
+import { USD_TO_QAR_RATE } from '@/lib/constants';
 
 export async function GET(
   request: NextRequest,
@@ -34,6 +35,11 @@ export async function GET(
 
     if (!subscription) {
       return NextResponse.json({ error: 'Subscription not found' }, { status: 404 });
+    }
+
+    // Authorization check: Only admins or the assigned user can view the subscription
+    if (session.user.role !== Role.ADMIN && subscription.assignedUserId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     return NextResponse.json(subscription);
@@ -80,7 +86,6 @@ export async function PUT(
     }
 
     // SAFEGUARD: Always calculate costQAR to prevent data loss
-    const USD_TO_QAR = 3.64;
     let costQAR = data.costQAR;
 
     // If costPerCycle is being updated, ensure costQAR is calculated
@@ -90,9 +95,9 @@ export async function PUT(
 
       if (costPerCycle && !costQAR) {
         if (currency === 'USD') {
-          costQAR = costPerCycle;
+          costQAR = costPerCycle * USD_TO_QAR_RATE;
         } else {
-          costQAR = costPerCycle / USD_TO_QAR;
+          costQAR = costPerCycle;
         }
       }
     }
@@ -102,9 +107,9 @@ export async function PUT(
       const currentCost = currentSubscription.costPerCycle ? Number(currentSubscription.costPerCycle) : 0;
       if (currentCost > 0) {
         if (data.costCurrency === 'USD') {
-          costQAR = currentCost;
+          costQAR = currentCost * USD_TO_QAR_RATE;
         } else {
-          costQAR = currentCost / USD_TO_QAR;
+          costQAR = currentCost;
         }
       }
     }

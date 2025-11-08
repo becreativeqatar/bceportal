@@ -6,24 +6,15 @@ export default withAuth(
     const token = req.nextauth.token;
     const { pathname } = req.nextUrl;
 
-    // LOCALHOST BYPASS: Skip all auth checks for localhost in development
-    const isLocalhost = req.nextUrl.hostname === 'localhost' || req.nextUrl.hostname === '127.0.0.1';
-    if (isLocalhost && process.env.NODE_ENV === 'development') {
-      const response = NextResponse.next();
-      response.headers.set('X-Frame-Options', 'DENY');
-      response.headers.set('X-Content-Type-Options', 'nosniff');
-      response.headers.set('Referrer-Policy', 'origin-when-cross-origin');
-      return response;
-    }
-
     // Simple security headers (Edge Runtime compatible)
     let response = NextResponse.next();
 
-    // Protect admin routes
+    // Protect admin routes - only check authentication, let page component handle authorization
     if (pathname.startsWith('/admin')) {
-      if (!token || token.role !== 'ADMIN') {
+      if (!token) {
         response = NextResponse.redirect(new URL('/login', req.url));
       }
+      // If authenticated but not admin, let the page component redirect to /forbidden
     }
 
     // Protect validator routes
@@ -54,12 +45,6 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl;
-
-        // LOCALHOST BYPASS: Skip authentication for localhost (development only)
-        const isLocalhost = req.nextUrl.hostname === 'localhost' || req.nextUrl.hostname === '127.0.0.1';
-        if (isLocalhost && process.env.NODE_ENV === 'development') {
-          return true;
-        }
 
         // Allow static files (images, fonts, etc.)
         if (
