@@ -141,6 +141,16 @@ export default function EditAccreditationPage({ params }: { params: Promise<{ id
     fetchProjects();
   }, []);
 
+  // Set selected project when projects are loaded and projectId is available
+  useEffect(() => {
+    if (projectId && projects.length > 0) {
+      const project = projects.find((p) => p.id === projectId);
+      if (project) {
+        setSelectedProject(project);
+      }
+    }
+  }, [projectId, projects]);
+
   const fetchProjects = async () => {
     try {
       const response = await fetch('/api/accreditation/projects?isActive=true');
@@ -164,12 +174,6 @@ export default function EditAccreditationPage({ params }: { params: Promise<{ id
         // Save current status and project ID
         setCurrentStatus(record.status);
         setProjectId(record.projectId);
-
-        // Find and set the selected project
-        const project = projects.find((p) => p.id === record.projectId);
-        if (project) {
-          setSelectedProject(project);
-        }
 
         // Populate form with existing data using reset()
         reset({
