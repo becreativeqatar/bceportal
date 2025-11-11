@@ -136,8 +136,10 @@ export default function ValidatorDashboard() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-lg">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      {/* Mobile-sized container - centered on desktop, full width on mobile */}
+      <div className="w-full max-w-md mx-auto">
+        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
           {/* Welcome Section */}
           <div className="text-center mb-6 lg:mb-10">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-4">
@@ -213,6 +215,7 @@ export default function ValidatorDashboard() {
             </div>
           </div>
         </div>
+      </div>
 
       {/* QR Scanner Modal */}
       {isScanning && (
