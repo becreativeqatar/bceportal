@@ -45,6 +45,8 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
   const [accreditation, setAccreditation] = useState<AccreditationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<{ name?: string; accreditationNumber?: string } | null>(null);
   const [unwrappedParams, setUnwrappedParams] = useState<{ token: string } | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
@@ -69,13 +71,25 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
 
         if (response.status === 404) {
           setError(errorData.message || 'Invalid QR Code - This code does not exist in our system');
+          setErrorType('NOT_FOUND');
         } else if (response.status === 403) {
           // Specific errors for revoked, rejected, or pending
           setError(errorData.message || errorData.error || 'Access Denied');
+          setErrorType(errorData.errorType || 'DENIED');
+
+          // Store additional details for revoked accreditations
+          if (errorData.errorType === 'REVOKED' && (errorData.name || errorData.accreditationNumber)) {
+            setErrorDetails({
+              name: errorData.name,
+              accreditationNumber: errorData.accreditationNumber
+            });
+          }
         } else if (response.status === 401) {
           setError('Authentication Required - Please log in to verify accreditations');
+          setErrorType('AUTH_REQUIRED');
         } else {
           setError(errorData.message || 'Verification Failed - Unable to process this accreditation');
+          setErrorType('UNKNOWN');
         }
         return;
       }
@@ -117,10 +131,37 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
           <Card className="shadow-xl border-0 rounded-2xl">
             <CardContent className="pt-12 pb-10 px-6 text-center">
               <div className="mb-6">
-                <XCircle className="h-14 w-14 text-gray-400 mx-auto" strokeWidth={1.5} />
+                <XCircle className={`h-14 w-14 mx-auto ${
+                  errorType === 'REVOKED' ? 'text-red-500' : 'text-gray-400'
+                }`} strokeWidth={1.5} />
               </div>
-              <h1 className="text-2xl font-semibold text-gray-900 mb-3">Verification Failed</h1>
+              <h1 className="text-2xl font-semibold text-gray-900 mb-3">
+                {errorType === 'REVOKED' ? 'Access Revoked' :
+                 errorType === 'REJECTED' ? 'Application Rejected' :
+                 errorType === 'PENDING' ? 'Pending Approval' :
+                 'Verification Failed'}
+              </h1>
+
+              {/* Show name and number for revoked accreditations */}
+              {errorType === 'REVOKED' && errorDetails && (
+                <div className="mb-4 p-4 bg-red-50 rounded-lg border border-red-200">
+                  {errorDetails.name && (
+                    <p className="text-lg font-bold text-red-900 mb-1">{errorDetails.name}</p>
+                  )}
+                  {errorDetails.accreditationNumber && (
+                    <p className="text-sm text-red-700 font-mono">#{errorDetails.accreditationNumber}</p>
+                  )}
+                </div>
+              )}
+
               <p className="text-gray-600 text-base leading-relaxed mb-8">{error}</p>
+
+              {errorType === 'REVOKED' && (
+                <p className="text-sm text-red-600 font-medium mb-6">
+                  Please contact administration for more information.
+                </p>
+              )}
+
               <Button
                 onClick={() => router.push('/validator?autoScan=true')}
                 className="bg-gray-900 hover:bg-gray-800 text-white font-medium"
