@@ -103,17 +103,18 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
   };
 
   return (
-    <div>
-      {isLoading ? (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-3 border-gray-300 border-t-gray-900 mx-auto mb-4"></div>
-            <p className="text-gray-600 text-base font-medium">Verifying accreditation...</p>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      {/* Mobile-sized container - centered on desktop, full width on mobile */}
+      <div className="w-full max-w-md mx-auto">
+        {isLoading ? (
+          <div className="min-h-[600px] flex items-center justify-center bg-white rounded-2xl shadow-xl">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-3 border-gray-300 border-t-gray-900 mx-auto mb-4"></div>
+              <p className="text-gray-600 text-base font-medium">Verifying accreditation...</p>
+            </div>
           </div>
-        </div>
-      ) : error ? (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-          <Card className="max-w-md w-full shadow-sm border border-gray-200">
+        ) : error ? (
+          <Card className="shadow-xl border-0 rounded-2xl">
             <CardContent className="pt-12 pb-10 px-6 text-center">
               <div className="mb-6">
                 <XCircle className="h-14 w-14 text-gray-400 mx-auto" strokeWidth={1.5} />
@@ -129,39 +130,29 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
               </Button>
             </CardContent>
           </Card>
-        </div>
-      ) : !accreditation ? null : (
-        <div className={`min-h-screen ${
-          accreditation.isValidToday
-            ? 'bg-gradient-to-br from-green-500 to-emerald-600'
-            : 'bg-gradient-to-br from-red-500 to-pink-600'
-        }`}>
-          {/* Scan Next Button */}
-          <Button
-            onClick={() => router.push('/validator?autoScan=true')}
-            className="fixed top-3 right-3 z-50 bg-white text-gray-900 hover:bg-gray-100 shadow-lg font-semibold"
-          >
-            Scan Next
-            <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
-
-          <div className="min-h-screen flex flex-col p-3 pt-16">
+        ) : !accreditation ? null : (
+          <div className={`min-h-[600px] rounded-2xl shadow-xl overflow-hidden ${
+            accreditation.isValidToday
+              ? 'bg-gradient-to-br from-green-500 to-emerald-600'
+              : 'bg-gradient-to-br from-red-500 to-pink-600'
+          }`}>
+            <div className="min-h-[600px] flex flex-col p-4 pt-6">
             {/* Status Icon */}
             <div className="text-center mb-4">
-              <div className="inline-flex items-center justify-center rounded-full w-20 h-20 bg-white mb-3 shadow-xl">
+              <div className="inline-flex items-center justify-center rounded-full w-16 h-16 bg-white mb-2 shadow-xl">
                 {accreditation.isValidToday ? (
-                  <CheckCircle className="h-12 w-12 text-green-600 stroke-[3]" />
+                  <CheckCircle className="h-10 w-10 text-green-600 stroke-[3]" />
                 ) : (
-                  <XCircle className="h-12 w-12 text-red-600 stroke-[3]" />
+                  <XCircle className="h-10 w-10 text-red-600 stroke-[3]" />
                 )}
               </div>
-              <h1 className="text-3xl font-black text-white mb-1">
+              <h1 className="text-2xl font-black text-white mb-1">
                 {accreditation.isValidToday ? 'VALID ACCESS' : 'ACCESS DENIED'}
               </h1>
             </div>
 
             {/* Main Card */}
-            <Card className="flex-1 shadow-2xl border-0 overflow-auto">
+            <Card className="flex-1 shadow-2xl border-0 overflow-auto mb-4">
               <CardContent className="p-4 bg-white">
 
                 {/* Profile Section */}
@@ -249,6 +240,17 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
               </CardContent>
             </Card>
 
+            {/* Scan Next Button */}
+            <div className="text-center">
+              <Button
+                onClick={() => router.push('/validator?autoScan=true')}
+                className="bg-white text-gray-900 hover:bg-gray-100 shadow-lg font-semibold w-full max-w-xs"
+              >
+                Scan Next
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+
             {/* Full-Size Photo Modal */}
             {showPhotoModal && accreditation.profilePhotoUrl && (
               <div
@@ -276,9 +278,10 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
                 </div>
               </div>
             )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
