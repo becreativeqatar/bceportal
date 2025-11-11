@@ -36,7 +36,6 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [name, setName] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -65,7 +64,6 @@ export default function ProfilePage() {
       const data = await response.json();
       setProfile(data);
       setName(data.name || '');
-      setImageUrl(data.image || '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load profile');
     } finally {
@@ -99,8 +97,6 @@ export default function ProfilePage() {
       };
       reader.readAsDataURL(file);
 
-      // Clear any URL input
-      setImageUrl('');
       setError(null);
     }
   };
@@ -140,7 +136,7 @@ export default function ProfilePage() {
       setSuccess(null);
 
       // Upload image if a new one is present
-      let finalImageUrl = imageUrl; // Use URL if provided
+      let finalImageUrl = profile?.image || null; // Keep existing image by default
       if (imageFile) {
         const uploadedUrl = await uploadImage();
         if (!uploadedUrl) {
@@ -156,7 +152,7 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({
           name,
-          image: finalImageUrl || null,
+          image: finalImageUrl,
         }),
       });
 
@@ -183,7 +179,6 @@ export default function ProfilePage() {
 
   const handleCancel = () => {
     setName(profile?.name || '');
-    setImageUrl(profile?.image || '');
     setImageFile(null);
     setImagePreview(null);
     setIsEditing(false);
@@ -291,9 +286,9 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div className="flex items-center space-x-4">
                     <div className="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                      {(imagePreview || (isEditing ? imageUrl : profile.image)) ? (
+                      {(imagePreview || profile.image) ? (
                         <img
-                          src={imagePreview || (isEditing ? imageUrl : profile.image!)}
+                          src={imagePreview || profile.image!}
                           alt="Profile"
                           className="h-full w-full object-cover"
                           onError={(e) => {
@@ -306,48 +301,19 @@ export default function ProfilePage() {
                       )}
                     </div>
                     {isEditing && (
-                      <div className="flex-1 space-y-3">
-                        <div>
-                          <Label htmlFor="imageFile" className="text-sm font-medium">Upload Profile Picture</Label>
-                          <Input
-                            id="imageFile"
-                            type="file"
-                            accept="image/jpeg,image/png"
-                            onChange={handleImageChange}
-                            className="mt-1"
-                            disabled={isSaving || isUploading}
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            JPG or PNG, max 5MB
-                          </p>
-                        </div>
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                          </div>
-                          <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-white px-2 text-gray-500">Or</span>
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="imageUrl" className="text-sm font-medium">Profile Image URL</Label>
-                          <Input
-                            id="imageUrl"
-                            type="url"
-                            value={imageUrl}
-                            onChange={(e) => {
-                              setImageUrl(e.target.value);
-                              setImageFile(null);
-                              setImagePreview(null);
-                            }}
-                            placeholder="https://example.com/image.jpg"
-                            className="mt-1"
-                            disabled={isSaving || isUploading}
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            Or enter a URL to an image
-                          </p>
-                        </div>
+                      <div className="flex-1">
+                        <Label htmlFor="imageFile" className="text-sm font-medium">Upload Profile Picture</Label>
+                        <Input
+                          id="imageFile"
+                          type="file"
+                          accept="image/jpeg,image/png"
+                          onChange={handleImageChange}
+                          className="mt-1"
+                          disabled={isSaving || isUploading}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          JPG or PNG, max 5MB
+                        </p>
                       </div>
                     )}
                   </div>
