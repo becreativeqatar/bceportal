@@ -19,14 +19,14 @@ export const createAssetSchema = z.object({
   status: z.nativeEnum(AssetStatus).default(AssetStatus.IN_USE),
   acquisitionType: z.nativeEnum(AcquisitionType).default(AcquisitionType.NEW_PURCHASE),
   transferNotes: z.string().optional().nullable().or(z.literal('')),
-  assignedUserId: z.string().optional().nullable().or(z.literal('')),
+  assignedUserId: z.string().optional().nullable().or(z.literal('')).transform(val => val === '' ? null : val),
   assignmentDate: z.string().optional().nullable().or(z.literal('')),
   notes: z.string().optional().nullable().or(z.literal('')),
   location: z.string().optional().nullable().or(z.literal('')),
 }).refine((data) => {
   // If status is IN_USE, assignment must be provided
   if (data.status === AssetStatus.IN_USE) {
-    if (!data.assignedUserId || data.assignedUserId === '') {
+    if (!data.assignedUserId) {
       return false;
     }
     if (!data.assignmentDate || data.assignmentDate === '') {
@@ -71,7 +71,7 @@ const baseAssetSchema = z.object({
   status: z.nativeEnum(AssetStatus).optional(),
   acquisitionType: z.nativeEnum(AcquisitionType).optional(),
   transferNotes: z.string().optional().nullable().or(z.literal('')),
-  assignedUserId: z.string().optional().nullable().or(z.literal('')),
+  assignedUserId: z.string().optional().nullable().or(z.literal('')).transform(val => val === '' ? null : val),
   assignmentDate: z.string().optional().nullable().or(z.literal('')),
   notes: z.string().optional().nullable().or(z.literal('')),
   location: z.string().optional().nullable().or(z.literal('')),
@@ -82,7 +82,7 @@ export const updateAssetSchema = baseAssetSchema
   .refine((data) => {
     // Only validate assignment if status is being set to IN_USE
     if (data.status === AssetStatus.IN_USE) {
-      if (!data.assignedUserId || data.assignedUserId === '') {
+      if (!data.assignedUserId) {
         return false;
       }
       if (!data.assignmentDate || data.assignmentDate === '') {
