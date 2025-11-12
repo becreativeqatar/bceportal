@@ -64,7 +64,13 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
     if (!unwrappedParams) return;
 
     try {
-      const response = await fetch(`/api/accreditation/verify/${unwrappedParams.token}`);
+      const response = await fetch(`/api/accreditation/verify/${unwrappedParams.token}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

@@ -8,7 +8,6 @@ import { QrCode, Search, X, Camera, ShieldCheck } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import Image from 'next/image';
-import { PWAInstaller } from '@/components/validator/pwa-installer';
 
 export default function ValidatorDashboard() {
   const { data: session } = useSession();
@@ -241,8 +240,6 @@ export default function ValidatorDashboard() {
         </div>
       )}
 
-      {/* PWA Installer */}
-      <PWAInstaller />
     </div>
   );
 }

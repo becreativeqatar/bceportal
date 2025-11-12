@@ -15,6 +15,13 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Add no-cache headers to ensure fresh data
+    const headers = {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    };
+
     const { token } = await params;
 
     // Find accreditation by QR token or accreditation number (case insensitive)
@@ -97,7 +104,7 @@ export async function GET(
           message: 'This QR code or accreditation number does not exist in our system.',
           errorType: 'NOT_FOUND'
         },
-        { status: 404 }
+        { status: 404, headers }
       );
     }
 
@@ -111,7 +118,7 @@ export async function GET(
           accreditationNumber: accreditation.accreditationNumber,
           name: `${accreditation.firstName} ${accreditation.lastName}`,
         },
-        { status: 403 }
+        { status: 403, headers }
       );
     }
 
@@ -123,7 +130,7 @@ export async function GET(
           message: 'This accreditation application was rejected and is not valid for access.',
           errorType: 'REJECTED',
         },
-        { status: 403 }
+        { status: 403, headers }
       );
     }
 
@@ -135,7 +142,7 @@ export async function GET(
           message: 'This accreditation is still pending approval and cannot be used for access yet.',
           errorType: 'PENDING',
         },
-        { status: 403 }
+        { status: 403, headers }
       );
     }
 
@@ -196,7 +203,7 @@ export async function GET(
             accreditationNumber: accreditation.accreditationNumber,
             name: `${accreditation.firstName} ${accreditation.lastName}`,
           },
-          { status: 403 }
+          { status: 403, headers }
         );
       }
 
@@ -228,7 +235,7 @@ export async function GET(
               : null,
           },
         },
-        { status: 403 }
+        { status: 403, headers }
       );
     }
 
@@ -288,7 +295,7 @@ export async function GET(
         status: accreditation.status,
         isValidToday: isValid,
       },
-    });
+    }, { headers });
   } catch (error) {
     console.error('Verify accreditation error:', error);
     return NextResponse.json(
