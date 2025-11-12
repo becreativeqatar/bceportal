@@ -104,6 +104,11 @@ export async function PUT(
 
     const data = validation.data;
 
+    // Ensure asset tag is always uppercase if provided
+    if (data.assetTag) {
+      data.assetTag = data.assetTag.toUpperCase();
+    }
+
     // Get current asset state to check for changes
     const currentAsset = await prisma.asset.findUnique({
       where: { id },
@@ -144,10 +149,12 @@ export async function PUT(
       const currency = data.priceCurrency !== undefined ? data.priceCurrency : currentAsset.priceCurrency;
 
       if (price && !priceQAR) {
-        if (currency === 'USD') {
+        if (currency === 'QAR') {
+          // QAR is base currency, no conversion needed
           priceQAR = price;
-        } else {
-          priceQAR = price / USD_TO_QAR_RATE;
+        } else if (currency === 'USD') {
+          // Convert USD to QAR
+          priceQAR = price * USD_TO_QAR_RATE;
         }
       }
     }
@@ -156,10 +163,12 @@ export async function PUT(
     if (data.priceCurrency !== undefined && data.price === undefined) {
       const currentPrice = currentAsset.price ? Number(currentAsset.price) : 0;
       if (currentPrice > 0) {
-        if (data.priceCurrency === 'USD') {
+        if (data.priceCurrency === 'QAR') {
+          // QAR is base currency, no conversion needed
           priceQAR = currentPrice;
-        } else {
-          priceQAR = currentPrice / USD_TO_QAR_RATE;
+        } else if (data.priceCurrency === 'USD') {
+          // Convert USD to QAR
+          priceQAR = currentPrice * USD_TO_QAR_RATE;
         }
       }
     }

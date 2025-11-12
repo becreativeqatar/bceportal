@@ -96,8 +96,11 @@ async function createAssetHandler(request: NextRequest) {
 
   const data = validation.data;
 
-  // Generate asset tag if not provided
-  const assetTag = data.assetTag || await generateAssetTag(data.type);
+  // Generate asset tag if not provided, and ensure it's always uppercase
+  let assetTag = data.assetTag || await generateAssetTag(data.type);
+  if (assetTag) {
+    assetTag = assetTag.toUpperCase();
+  }
 
   // Check if asset tag already exists
   if (assetTag) {

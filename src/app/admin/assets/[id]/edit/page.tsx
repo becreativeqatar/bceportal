@@ -15,9 +15,8 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { toInputDateString } from '@/lib/date-format';
 import { updateAssetSchema, type UpdateAssetRequest } from '@/lib/validations/assets';
 import { AssetStatus, AcquisitionType } from '@prisma/client';
-
-// USD to QAR exchange rate
-const USD_TO_QAR_RATE = 3.64;
+import { USD_TO_QAR_RATE } from '@/lib/constants';
+import { getQatarEndOfDay } from '@/lib/qatar-timezone';
 
 interface Asset {
   id: string;
@@ -138,9 +137,9 @@ export default function EditAssetPage() {
     }
   }, [watchedLocation]);
 
-  // Clear assignment when status is SPARE
+  // Clear assignment when status is not IN_USE
   useEffect(() => {
-    if (watchedStatus === AssetStatus.SPARE && watchedAssignedUserId) {
+    if (watchedStatus !== AssetStatus.IN_USE && watchedAssignedUserId) {
       setValue('assignedUserId', '');
       setValue('assignmentDate', '');
     }
@@ -214,12 +213,12 @@ export default function EditAssetPage() {
         // Fetch maintenance records
         fetchMaintenanceRecords(id);
       } else {
-        toast.error('Asset not found');
+        toast.error('Asset not found', { duration: 10000 });
         router.push('/admin/assets');
       }
     } catch (error) {
       console.error('Error fetching asset:', error);
-      toast.error('Error loading asset');
+      toast.error('Error loading asset', { duration: 10000 });
     }
   };
 
@@ -255,11 +254,11 @@ export default function EditAssetPage() {
         setNewMaintenance({ date: toInputDateString(new Date()), notes: '' });
         setShowMaintenanceForm(false);
       } else {
-        toast.error('Failed to add maintenance record');
+        toast.error('Failed to add maintenance record', { duration: 10000 });
       }
     } catch (error) {
       console.error('Error adding maintenance:', error);
-      toast.error('Error adding maintenance record');
+      toast.error('Error adding maintenance record', { duration: 10000 });
     }
   };
 
@@ -299,11 +298,11 @@ export default function EditAssetPage() {
         }, 2000);
       } else {
         const errorData = await response.json();
-        toast.error(`Failed to update asset: ${errorData.error || 'Unknown error'}`);
+        toast.error(`Failed to update asset: ${errorData.error || 'Unknown error'}`, { duration: 10000 });
       }
     } catch (error) {
       console.error('Error updating asset:', error);
-      toast.error('Error updating asset. Please try again.');
+      toast.error('Error updating asset. Please try again.', { duration: 10000 });
     }
   };
 
@@ -312,7 +311,7 @@ export default function EditAssetPage() {
 
     if (newUserId) {
       setValue('assignedUserId', newUserId);
-      setValue('assignmentDate', toInputDateString(new Date()));
+      // Don't auto-set assignment date - let user provide it
       setValue('status', AssetStatus.IN_USE);
     } else {
       setValue('assignedUserId', '');
@@ -468,6 +467,11 @@ export default function EditAssetPage() {
                       id="assetTag"
                       {...register('assetTag')}
                       placeholder="Auto-generated if empty"
+                      onChange={(e) => {
+                        e.target.value = e.target.value.toUpperCase();
+                        register('assetTag').onChange(e);
+                      }}
+                      style={{ textTransform: 'uppercase' }}
                     />
                   </div>
                 </div>
@@ -501,7 +505,7 @@ export default function EditAssetPage() {
                         id="purchaseDate"
                         value={watch('purchaseDate') || ''}
                         onChange={(value) => setValue('purchaseDate', value)}
-                        maxDate={new Date()} // Only allow today and past dates
+                        maxDate={getQatarEndOfDay()} // Only allow today and past dates
                       />
                     </div>
                     <div className="space-y-2">
@@ -563,12 +567,24 @@ export default function EditAssetPage() {
 
                 {watchedAcquisitionType !== 'TRANSFERRED' && (
                   <div className="space-y-2">
-                    <Label htmlFor="warrantyExpiry">Warranty Expiry</Label>
+                    <Label htmlFor="warrantyExpiry">
+                      Warranty Expiry
+                      <span className="text-gray-500 text-sm ml-2">(Optional)</span>
+                    </Label>
                     <DatePicker
                       id="warrantyExpiry"
                       value={watch('warrantyExpiry') || ''}
                       onChange={(value) => setValue('warrantyExpiry', value)}
+                      required={false}
+                      placeholder="No warranty or unknown"
+                      minDate={watchedPurchaseDate || undefined}
                     />
+                    <p className="text-xs text-gray-500">
+                      {watchedPurchaseDate
+                        ? 'Must be on or after purchase date.'
+                        : 'Enter a purchase date first to set warranty expiry.'
+                      } Click × to clear for items without warranty.
+                    </p>
                   </div>
                 )}
               </div>
@@ -594,20 +610,20 @@ export default function EditAssetPage() {
                 </div>
               </div>
 
-              {/* Assignment Section - Hidden when status is SPARE */}
-              {watchedStatus !== AssetStatus.SPARE && (
+              {/* Assignment Section - Only show when status is IN_USE */}
+              {watchedStatus === AssetStatus.IN_USE && (
                 <div className="space-y-4 pt-4 border-t">
                   <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">5. Assignment</h3>
                   <p className="text-xs text-gray-600">Who is using this asset?</p>
 
                   <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="assignedUserId">Assign to User (optional)</Label>
+                    <Label htmlFor="assignedUserId">Assign to User *</Label>
                     <Select
                       value={watchedAssignedUserId || "__none__"}
                       onValueChange={handleAssignedUserChange}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={errors.assignedUserId ? 'border-red-500' : ''}>
                         <SelectValue placeholder="Select user..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -619,21 +635,26 @@ export default function EditAssetPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.assignedUserId && (
+                      <p className="text-sm text-red-500">{errors.assignedUserId.message}</p>
+                    )}
                   </div>
-                  {watchedAssignedUserId && (
-                    <div className="space-y-2">
-                      <Label htmlFor="assignmentDate">Assignment Date</Label>
-                      <DatePicker
-                        id="assignmentDate"
-                        value={watch('assignmentDate') || ''}
-                        onChange={(value) => setValue('assignmentDate', value)}
-                        maxDate={new Date()}
-                      />
-                      <p className="text-xs text-gray-500">
-                        When was this asset assigned? (Defaults to today)
-                      </p>
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="assignmentDate">Assignment Date *</Label>
+                    <DatePicker
+                      id="assignmentDate"
+                      value={watch('assignmentDate') || ''}
+                      onChange={(value) => setValue('assignmentDate', value)}
+                      maxDate={getQatarEndOfDay()}
+                      minDate={watchedPurchaseDate || undefined}
+                    />
+                    {errors.assignmentDate && (
+                      <p className="text-sm text-red-500">{errors.assignmentDate.message}</p>
+                    )}
+                    <p className="text-xs text-gray-500">
+                      When was this asset assigned?
+                    </p>
+                  </div>
                   </div>
                 </div>
               )}

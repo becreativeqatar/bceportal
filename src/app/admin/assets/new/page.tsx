@@ -16,9 +16,8 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { toInputDateString } from '@/lib/date-format';
 import { createAssetSchema, type CreateAssetRequest } from '@/lib/validations/assets';
 import { AssetStatus, AcquisitionType } from '@prisma/client';
-
-// USD to QAR exchange rate (typically around 3.64)
-const USD_TO_QAR_RATE = 3.64;
+import { USD_TO_QAR_RATE } from '@/lib/constants';
+import { getQatarEndOfDay } from '@/lib/qatar-timezone';
 
 export default function NewAssetPage() {
   const router = useRouter();
@@ -157,9 +156,9 @@ export default function NewAssetPage() {
     }
   }, [watchedPurchaseDate, watchedWarrantyExpiry, setValue]);
 
-  // Clear assignment when status is SPARE
+  // Clear assignment when status is not IN_USE
   useEffect(() => {
-    if (watchedStatus === AssetStatus.SPARE && watchedAssignedUserId) {
+    if (watchedStatus !== AssetStatus.IN_USE && watchedAssignedUserId) {
       setValue('assignedUserId', '');
       setValue('assignmentDate', '');
     }
@@ -197,19 +196,19 @@ export default function NewAssetPage() {
         router.push('/admin/assets');
       } else {
         const errorData = await response.json();
-        toast.error(`Failed to create asset: ${errorData.error || 'Unknown error'}`);
+        toast.error(`Failed to create asset: ${errorData.error || 'Unknown error'}`, { duration: 10000 });
       }
     } catch (error) {
       console.error('Error creating asset:', error);
-      toast.error('Error creating asset. Please try again.');
+      toast.error('Error creating asset. Please try again.', { duration: 10000 });
     }
   };
 
   const handleUserAssignment = (userId: string) => {
     if (userId) {
-      // When assigning to a user, set assignment date to today and status to IN_USE
+      // When assigning to a user, set status to IN_USE
       setValue('assignedUserId', userId);
-      setValue('assignmentDate', toInputDateString(new Date()));
+      // Don't auto-set assignment date - let user provide it
       setValue('status', AssetStatus.IN_USE);
     } else {
       // When unassigning, clear both user and assignment date, set status to SPARE
@@ -354,6 +353,11 @@ export default function NewAssetPage() {
                       id="assetTag"
                       {...register('assetTag')}
                       placeholder="Auto-generated if empty"
+                      onChange={(e) => {
+                        e.target.value = e.target.value.toUpperCase();
+                        register('assetTag').onChange(e);
+                      }}
+                      style={{ textTransform: 'uppercase' }}
                     />
                     <p className="text-xs text-muted-foreground">
                       Leave empty to auto-generate (e.g., LAP-2024-001)
@@ -390,7 +394,7 @@ export default function NewAssetPage() {
                         id="purchaseDate"
                         value={watchedPurchaseDate || ''}
                         onChange={(value) => setValue('purchaseDate', value)}
-                        maxDate={new Date()} // Only allow today and past dates
+                        maxDate={getQatarEndOfDay()} // Only allow today and past dates (Qatar timezone)
                       />
                     </div>
                     <div className="space-y-2">
@@ -452,12 +456,24 @@ export default function NewAssetPage() {
 
                 {watchedAcquisitionType !== 'TRANSFERRED' && (
                   <div className="space-y-2">
-                    <Label htmlFor="warrantyExpiry">Warranty Expiry</Label>
+                    <Label htmlFor="warrantyExpiry">
+                      Warranty Expiry
+                      <span className="text-gray-500 text-sm ml-2">(Optional)</span>
+                    </Label>
                     <DatePicker
                       id="warrantyExpiry"
                       value={watchedWarrantyExpiry || ''}
                       onChange={(value) => setValue('warrantyExpiry', value)}
+                      required={false}
+                      placeholder="No warranty or unknown"
+                      minDate={watchedPurchaseDate || undefined}
                     />
+                    <p className="text-xs text-gray-500">
+                      {watchedPurchaseDate
+                        ? 'Auto-filled to 1 year from purchase date. Must be on or after purchase date.'
+                        : 'Enter a purchase date first to set warranty expiry.'
+                      } Click × to clear for items without warranty.
+                    </p>
                   </div>
                 )}
               </div>
@@ -486,19 +502,19 @@ export default function NewAssetPage() {
                 </div>
               </div>
 
-              {/* Assignment Section - Hidden when status is SPARE */}
-              {watchedStatus !== AssetStatus.SPARE && (
+              {/* Assignment Section - Only show when status is IN_USE */}
+              {watchedStatus === AssetStatus.IN_USE && (
                 <div className="space-y-4 pt-4 border-t">
                   <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">5. Assignment</h3>
                   <p className="text-xs text-gray-600">Who is using this asset?</p>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="assignedUserId">Assign to User (optional)</Label>
+                      <Label htmlFor="assignedUserId">Assign to User *</Label>
                       <Select
                         value={watchedAssignedUserId || "__none__"}
                         onValueChange={(value) => handleUserAssignment(value === "__none__" ? '' : value)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className={errors.assignedUserId ? 'border-red-500' : ''}>
                           <SelectValue placeholder="Select user..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -510,21 +526,26 @@ export default function NewAssetPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {errors.assignedUserId && (
+                        <p className="text-sm text-red-500">{errors.assignedUserId.message}</p>
+                      )}
                     </div>
-                    {watchedAssignedUserId && (
-                      <div className="space-y-2">
-                        <Label htmlFor="assignmentDate">Assignment Date</Label>
-                        <DatePicker
-                          id="assignmentDate"
-                          value={watch('assignmentDate') || ''}
-                          onChange={(value) => setValue('assignmentDate', value)}
-                          maxDate={new Date()}
-                        />
-                        <p className="text-xs text-gray-500">
-                          When was this asset assigned? (Defaults to today)
-                        </p>
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      <Label htmlFor="assignmentDate">Assignment Date *</Label>
+                      <DatePicker
+                        id="assignmentDate"
+                        value={watch('assignmentDate') || ''}
+                        onChange={(value) => setValue('assignmentDate', value)}
+                        maxDate={getQatarEndOfDay()}
+                        minDate={watchedPurchaseDate || undefined}
+                      />
+                      {errors.assignmentDate && (
+                        <p className="text-sm text-red-500">{errors.assignmentDate.message}</p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        When was this asset assigned?
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
