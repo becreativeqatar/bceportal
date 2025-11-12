@@ -90,11 +90,42 @@ export default function ValidatorDashboard() {
         },
         (decodedText) => {
           // Extract token from URL or use as-is
-          const urlPattern = /\/verify\/([a-zA-Z0-9]+)$/;
+          const urlPattern = /\/verify\/([a-zA-Z0-9-]+)$/;
           const match = decodedText.match(urlPattern);
-          const token = match ? match[1] : decodedText;
+          let token = match ? match[1] : decodedText;
 
-          // Stop scanning
+          // Validate token format - should be alphanumeric with optional hyphens, max 50 chars
+          // This prevents scanning random external QR codes
+          token = token.trim();
+
+          // If it looks like a full URL (not our verify URL), reject it
+          if (token.startsWith('http://') || token.startsWith('https://')) {
+            html5QrCode.stop().then(() => {
+              setIsScanning(false);
+              setScanError('Invalid QR Code - This appears to be an external link, not an accreditation code.');
+            }).catch(console.error);
+            return;
+          }
+
+          // Limit token length to prevent abuse
+          if (token.length > 50) {
+            html5QrCode.stop().then(() => {
+              setIsScanning(false);
+              setScanError('Invalid QR Code - The scanned code is too long to be a valid accreditation.');
+            }).catch(console.error);
+            return;
+          }
+
+          // Only allow alphanumeric and hyphens (accreditation format: ACC-0001 or UUID)
+          if (!/^[a-zA-Z0-9-]+$/.test(token)) {
+            html5QrCode.stop().then(() => {
+              setIsScanning(false);
+              setScanError('Invalid QR Code - This does not appear to be a valid accreditation code.');
+            }).catch(console.error);
+            return;
+          }
+
+          // Stop scanning and verify
           html5QrCode.stop().then(() => {
             setIsScanning(false);
             router.push(`/verify/${token}`);
