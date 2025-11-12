@@ -46,7 +46,7 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<string | null>(null);
-  const [errorDetails, setErrorDetails] = useState<{ name?: string; accreditationNumber?: string } | null>(null);
+  const [errorDetails, setErrorDetails] = useState<{ name?: string; accreditationNumber?: string; phases?: any } | null>(null);
   const [unwrappedParams, setUnwrappedParams] = useState<{ token: string } | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
@@ -73,15 +73,16 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
           setError(errorData.message || 'Invalid QR Code - This code does not exist in our system');
           setErrorType('NOT_FOUND');
         } else if (response.status === 403) {
-          // Specific errors for revoked, rejected, or pending
+          // Specific errors for revoked, rejected, pending, or not valid today
           setError(errorData.message || errorData.error || 'Access Denied');
           setErrorType(errorData.errorType || 'DENIED');
 
-          // Store additional details for revoked accreditations
-          if (errorData.errorType === 'REVOKED' && (errorData.name || errorData.accreditationNumber)) {
+          // Store additional details (name, accreditation number, phases)
+          if (errorData.name || errorData.accreditationNumber || errorData.phases) {
             setErrorDetails({
               name: errorData.name,
-              accreditationNumber: errorData.accreditationNumber
+              accreditationNumber: errorData.accreditationNumber,
+              phases: errorData.phases
             });
           }
         } else if (response.status === 401) {
@@ -136,27 +137,72 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
                 }`} strokeWidth={1.5} />
               </div>
               <h1 className="text-2xl font-semibold text-gray-900 mb-3">
-                {errorType === 'REVOKED' ? 'Access Revoked' :
+                {errorType === 'NOT_FOUND' ? 'Record Not Found' :
+                 errorType === 'REVOKED' ? 'Access Revoked' :
                  errorType === 'REJECTED' ? 'Application Rejected' :
                  errorType === 'PENDING' ? 'Pending Approval' :
+                 errorType === 'NOT_VALID_TODAY' ? 'Not Valid Today' :
+                 errorType === 'NO_ACCESS_DATES' ? 'No Access Dates' :
                  'Verification Failed'}
               </h1>
 
-              {/* Show name and number for revoked accreditations */}
-              {errorType === 'REVOKED' && errorDetails && (
-                <div className="mb-4 p-4 bg-red-50 rounded-lg border border-red-200">
+              {/* Show name and number for specific error types */}
+              {errorDetails && (errorDetails.name || errorDetails.accreditationNumber) && (
+                <div className={`mb-4 p-4 rounded-lg border ${
+                  errorType === 'REVOKED' ? 'bg-red-50 border-red-200' :
+                  errorType === 'NOT_VALID_TODAY' ? 'bg-orange-50 border-orange-200' :
+                  errorType === 'NO_ACCESS_DATES' ? 'bg-yellow-50 border-yellow-200' :
+                  'bg-gray-50 border-gray-200'
+                }`}>
                   {errorDetails.name && (
-                    <p className="text-lg font-bold text-red-900 mb-1">{errorDetails.name}</p>
+                    <p className={`text-lg font-bold mb-1 ${
+                      errorType === 'REVOKED' ? 'text-red-900' :
+                      errorType === 'NOT_VALID_TODAY' ? 'text-orange-900' :
+                      errorType === 'NO_ACCESS_DATES' ? 'text-yellow-900' :
+                      'text-gray-900'
+                    }`}>{errorDetails.name}</p>
                   )}
                   {errorDetails.accreditationNumber && (
-                    <p className="text-sm text-red-700 font-mono">#{errorDetails.accreditationNumber}</p>
+                    <p className={`text-sm font-mono ${
+                      errorType === 'REVOKED' ? 'text-red-700' :
+                      errorType === 'NOT_VALID_TODAY' ? 'text-orange-700' :
+                      errorType === 'NO_ACCESS_DATES' ? 'text-yellow-700' :
+                      'text-gray-700'
+                    }`}>#{errorDetails.accreditationNumber}</p>
                   )}
                 </div>
               )}
 
-              <p className="text-gray-600 text-base leading-relaxed mb-8">{error}</p>
+              <p className="text-gray-600 text-base leading-relaxed mb-4">{error}</p>
 
-              {errorType === 'REVOKED' && (
+              {/* Show access periods for NOT_VALID_TODAY */}
+              {errorType === 'NOT_VALID_TODAY' && errorDetails?.phases && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200 text-left">
+                  <p className="text-sm font-semibold text-blue-900 mb-2">Valid Access Periods:</p>
+                  <div className="space-y-1 text-sm text-blue-800">
+                    {errorDetails.phases.bumpIn && (
+                      <div>
+                        <span className="font-semibold">Bump-In:</span>{' '}
+                        {formatDate(errorDetails.phases.bumpIn.start)} - {formatDate(errorDetails.phases.bumpIn.end)}
+                      </div>
+                    )}
+                    {errorDetails.phases.live && (
+                      <div>
+                        <span className="font-semibold">Live:</span>{' '}
+                        {formatDate(errorDetails.phases.live.start)} - {formatDate(errorDetails.phases.live.end)}
+                      </div>
+                    )}
+                    {errorDetails.phases.bumpOut && (
+                      <div>
+                        <span className="font-semibold">Bump-Out:</span>{' '}
+                        {formatDate(errorDetails.phases.bumpOut.start)} - {formatDate(errorDetails.phases.bumpOut.end)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {(errorType === 'REVOKED' || errorType === 'NO_ACCESS_DATES') && (
                 <p className="text-sm text-red-600 font-medium mb-6">
                   Please contact administration for more information.
                 </p>

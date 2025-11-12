@@ -145,6 +145,7 @@ export async function GET(
 
     // Check each access phase and track which phases are active
     const validPhases: string[] = [];
+    const hasAnyAccessDates = accreditation.hasBumpInAccess || accreditation.hasLiveAccess || accreditation.hasBumpOutAccess;
 
     if (accreditation.hasBumpInAccess && accreditation.bumpInStart && accreditation.bumpInEnd) {
       if (now >= accreditation.bumpInStart && now <= accreditation.bumpInEnd) {
@@ -167,7 +168,71 @@ export async function GET(
       }
     }
 
-    // Log the scan
+    // If approved but not valid today, return access denied with specific message
+    if (!isValid) {
+      // Log the failed scan
+      try {
+        await prisma.accreditationScan.create({
+          data: {
+            accreditationId: accreditation.id,
+            scannedById: session.user.id,
+            scannedAt: now,
+            wasValid: false,
+            validPhases: [],
+            device: request.headers.get('user-agent'),
+            ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+          },
+        });
+      } catch (error) {
+        console.error('Failed to log scan:', error);
+      }
+
+      if (!hasAnyAccessDates) {
+        return NextResponse.json(
+          {
+            error: 'No Access Dates',
+            message: 'This accreditation has been approved but no access dates have been configured yet. Please contact administration.',
+            errorType: 'NO_ACCESS_DATES',
+            accreditationNumber: accreditation.accreditationNumber,
+            name: `${accreditation.firstName} ${accreditation.lastName}`,
+          },
+          { status: 403 }
+        );
+      }
+
+      return NextResponse.json(
+        {
+          error: 'Not Valid Today',
+          message: 'This accreditation is not valid for today\'s date. Access is only permitted during the configured access periods.',
+          errorType: 'NOT_VALID_TODAY',
+          accreditationNumber: accreditation.accreditationNumber,
+          name: `${accreditation.firstName} ${accreditation.lastName}`,
+          phases: {
+            bumpIn: accreditation.hasBumpInAccess
+              ? {
+                  start: accreditation.bumpInStart,
+                  end: accreditation.bumpInEnd,
+                }
+              : null,
+            live: accreditation.hasLiveAccess
+              ? {
+                  start: accreditation.liveStart,
+                  end: accreditation.liveEnd,
+                }
+              : null,
+            bumpOut: accreditation.hasBumpOutAccess
+              ? {
+                  start: accreditation.bumpOutStart,
+                  end: accreditation.bumpOutEnd,
+                }
+              : null,
+          },
+        },
+        { status: 403 }
+      );
+    }
+
+    // Log the successful scan
     try {
       await prisma.accreditationScan.create({
         data: {
