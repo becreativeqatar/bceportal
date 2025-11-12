@@ -135,91 +135,128 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
             </div>
           </div>
         ) : error ? (
-          <Card className="shadow-xl border-0 rounded-2xl">
-            <CardContent className="pt-12 pb-10 px-6 text-center">
-              <div className="mb-6">
-                <XCircle className={`h-14 w-14 mx-auto ${
-                  errorType === 'REVOKED' || errorType === 'NOT_VALID_TODAY' ? 'text-red-500' : 'text-gray-400'
-                }`} strokeWidth={1.5} />
-              </div>
-              <h1 className="text-2xl font-semibold text-gray-900 mb-3">
-                {errorType === 'NOT_FOUND' ? 'Record Not Found' :
-                 errorType === 'REVOKED' ? 'Access Revoked' :
-                 errorType === 'REJECTED' ? 'Application Rejected' :
-                 errorType === 'PENDING' ? 'Pending Approval' :
-                 errorType === 'NOT_VALID_TODAY' ? 'Not Valid Today' :
-                 errorType === 'NO_ACCESS_DATES' ? 'No Access Dates' :
-                 'Verification Failed'}
-              </h1>
-
-              {/* Show name and number for specific error types */}
-              {errorDetails && (errorDetails.name || errorDetails.accreditationNumber) && (
-                <div className={`mb-4 p-4 rounded-lg border ${
-                  errorType === 'REVOKED' || errorType === 'NOT_VALID_TODAY' ? 'bg-red-50 border-red-200' :
-                  errorType === 'NO_ACCESS_DATES' ? 'bg-yellow-50 border-yellow-200' :
-                  'bg-gray-50 border-gray-200'
-                }`}>
-                  {errorDetails.name && (
-                    <p className={`text-lg font-bold mb-1 ${
-                      errorType === 'REVOKED' || errorType === 'NOT_VALID_TODAY' ? 'text-red-900' :
-                      errorType === 'NO_ACCESS_DATES' ? 'text-yellow-900' :
-                      'text-gray-900'
-                    }`}>{errorDetails.name}</p>
-                  )}
-                  {errorDetails.accreditationNumber && (
-                    <p className={`text-sm font-mono ${
-                      errorType === 'REVOKED' || errorType === 'NOT_VALID_TODAY' ? 'text-red-700' :
-                      errorType === 'NO_ACCESS_DATES' ? 'text-yellow-700' :
-                      'text-gray-700'
-                    }`}>#{errorDetails.accreditationNumber}</p>
-                  )}
+          errorType === 'NOT_VALID_TODAY' || errorType === 'REVOKED' ? (
+            // Red background for denied access (same style as valid access)
+            <div className="min-h-[600px] rounded-2xl shadow-xl overflow-hidden bg-gradient-to-br from-red-500 to-pink-600">
+              <div className="min-h-[600px] flex flex-col p-4 pt-6">
+                {/* Status Icon */}
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center justify-center rounded-full w-16 h-16 bg-white mb-2 shadow-xl">
+                    <XCircle className="h-10 w-10 text-red-600 stroke-[3]" />
+                  </div>
+                  <h1 className="text-2xl font-black text-white mb-1">
+                    {errorType === 'REVOKED' ? 'ACCESS REVOKED' : 'ACCESS DENIED'}
+                  </h1>
                 </div>
-              )}
 
-              <p className="text-gray-600 text-base leading-relaxed mb-4">{error}</p>
-
-              {/* Show access periods for NOT_VALID_TODAY */}
-              {errorType === 'NOT_VALID_TODAY' && errorDetails?.phases && (
-                <div className="mb-6 p-4 bg-red-50 rounded-lg border border-red-200 text-left">
-                  <p className="text-sm font-semibold text-red-900 mb-2">Valid Access Periods:</p>
-                  <div className="space-y-1 text-sm text-red-800">
-                    {errorDetails.phases.bumpIn && (
-                      <div>
-                        <span className="font-semibold">Bump-In:</span>{' '}
-                        {formatDate(errorDetails.phases.bumpIn.start)} - {formatDate(errorDetails.phases.bumpIn.end)}
+                {/* Main Card */}
+                <Card className="flex-1 shadow-2xl border-0 overflow-auto mb-4">
+                  <CardContent className="p-6 bg-white text-center">
+                    {/* Show name and number */}
+                    {errorDetails && (errorDetails.name || errorDetails.accreditationNumber) && (
+                      <div className="mb-4">
+                        {errorDetails.name && (
+                          <p className="text-2xl font-bold text-gray-900 mb-1">{errorDetails.name}</p>
+                        )}
+                        {errorDetails.accreditationNumber && (
+                          <p className="text-sm text-gray-500 font-mono">#{errorDetails.accreditationNumber}</p>
+                        )}
                       </div>
                     )}
-                    {errorDetails.phases.live && (
-                      <div>
-                        <span className="font-semibold">Live:</span>{' '}
-                        {formatDate(errorDetails.phases.live.start)} - {formatDate(errorDetails.phases.live.end)}
+
+                    <p className="text-gray-600 text-base leading-relaxed mb-4">{error}</p>
+
+                    {/* Show access periods for NOT_VALID_TODAY */}
+                    {errorType === 'NOT_VALID_TODAY' && errorDetails?.phases && (
+                      <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200 text-left">
+                        <p className="text-sm font-semibold text-gray-900 mb-2">Valid Access Periods:</p>
+                        <div className="space-y-1 text-sm text-gray-700">
+                          {errorDetails.phases.bumpIn && (
+                            <div>
+                              <span className="font-semibold">Bump-In:</span>{' '}
+                              {formatDate(errorDetails.phases.bumpIn.start)} - {formatDate(errorDetails.phases.bumpIn.end)}
+                            </div>
+                          )}
+                          {errorDetails.phases.live && (
+                            <div>
+                              <span className="font-semibold">Live:</span>{' '}
+                              {formatDate(errorDetails.phases.live.start)} - {formatDate(errorDetails.phases.live.end)}
+                            </div>
+                          )}
+                          {errorDetails.phases.bumpOut && (
+                            <div>
+                              <span className="font-semibold">Bump-Out:</span>{' '}
+                              {formatDate(errorDetails.phases.bumpOut.start)} - {formatDate(errorDetails.phases.bumpOut.end)}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
-                    {errorDetails.phases.bumpOut && (
-                      <div>
-                        <span className="font-semibold">Bump-Out:</span>{' '}
-                        {formatDate(errorDetails.phases.bumpOut.start)} - {formatDate(errorDetails.phases.bumpOut.end)}
-                      </div>
+
+                    {(errorType === 'REVOKED' || errorType === 'NO_ACCESS_DATES') && (
+                      <p className="text-sm text-red-600 font-medium mb-4">
+                        Please contact administration for more information.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Scan Next Button */}
+                <div className="text-center">
+                  <Button
+                    onClick={() => router.push('/validator?autoScan=true')}
+                    className="bg-white text-gray-900 hover:bg-gray-100 shadow-lg font-semibold w-full max-w-xs"
+                  >
+                    Scan Next
+                    <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // White card for other errors (Not Found, Pending, Rejected, etc.)
+            <Card className="shadow-xl border-0 rounded-2xl">
+              <CardContent className="pt-12 pb-10 px-6 text-center">
+                <div className="mb-6">
+                  <XCircle className="h-14 w-14 mx-auto text-gray-400" strokeWidth={1.5} />
+                </div>
+                <h1 className="text-2xl font-semibold text-gray-900 mb-3">
+                  {errorType === 'NOT_FOUND' ? 'Record Not Found' :
+                   errorType === 'REJECTED' ? 'Application Rejected' :
+                   errorType === 'PENDING' ? 'Pending Approval' :
+                   errorType === 'NO_ACCESS_DATES' ? 'No Access Dates' :
+                   'Verification Failed'}
+                </h1>
+
+                {errorDetails && (errorDetails.name || errorDetails.accreditationNumber) && (
+                  <div className="mb-4 p-4 rounded-lg border bg-yellow-50 border-yellow-200">
+                    {errorDetails.name && (
+                      <p className="text-lg font-bold mb-1 text-yellow-900">{errorDetails.name}</p>
+                    )}
+                    {errorDetails.accreditationNumber && (
+                      <p className="text-sm font-mono text-yellow-700">#{errorDetails.accreditationNumber}</p>
                     )}
                   </div>
-                </div>
-              )}
+                )}
 
-              {(errorType === 'REVOKED' || errorType === 'NO_ACCESS_DATES') && (
-                <p className="text-sm text-red-600 font-medium mb-6">
-                  Please contact administration for more information.
-                </p>
-              )}
+                <p className="text-gray-600 text-base leading-relaxed mb-8">{error}</p>
 
-              <Button
-                onClick={() => router.push('/validator?autoScan=true')}
-                className="bg-gray-900 hover:bg-gray-800 text-white font-medium"
-              >
-                Scan Next
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </CardContent>
-          </Card>
+                {errorType === 'NO_ACCESS_DATES' && (
+                  <p className="text-sm text-red-600 font-medium mb-6">
+                    Please contact administration for more information.
+                  </p>
+                )}
+
+                <Button
+                  onClick={() => router.push('/validator?autoScan=true')}
+                  className="bg-gray-900 hover:bg-gray-800 text-white font-medium"
+                >
+                  Scan Next
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </CardContent>
+            </Card>
+          )
         ) : !accreditation ? null : (
           <div className={`min-h-[600px] rounded-2xl shadow-xl overflow-hidden ${
             accreditation.isValidToday
