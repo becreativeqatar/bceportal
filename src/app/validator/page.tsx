@@ -89,16 +89,26 @@ export default function ValidatorDashboard() {
           qrbox: { width: 250, height: 250 },
         },
         (decodedText) => {
-          // Extract token from URL or use as-is
+          console.log('[Scanner] Decoded QR:', decodedText);
+
+          // First, try to extract token from URL pattern (our accreditation URLs)
           const urlPattern = /\/verify\/([a-zA-Z0-9-]+)$/;
           const match = decodedText.match(urlPattern);
-          let token = match ? match[1] : decodedText;
+          let token = match ? match[1] : decodedText.trim();
 
-          // Validate token format - should be alphanumeric with optional hyphens, max 50 chars
-          // This prevents scanning random external QR codes
-          token = token.trim();
+          console.log('[Scanner] Extracted token:', token);
 
-          // If it looks like a full URL (not our verify URL), reject it
+          // If we extracted a token from our URL pattern, use it directly
+          if (match) {
+            html5QrCode.stop().then(() => {
+              setIsScanning(false);
+              router.push(`/verify/${token}`);
+            }).catch(console.error);
+            return;
+          }
+
+          // If it's not our URL pattern, validate the raw token
+          // Check if it looks like an external URL (not our accreditation)
           if (token.startsWith('http://') || token.startsWith('https://')) {
             html5QrCode.stop().then(() => {
               setIsScanning(false);
