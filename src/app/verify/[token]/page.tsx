@@ -151,52 +151,57 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
 
                 {/* Main Card */}
                 <Card className="flex-1 shadow-2xl border-0 overflow-auto mb-4">
-                  <CardContent className="p-6 bg-white text-center">
-                    {/* Show name and number */}
-                    {errorDetails && (errorDetails.name || errorDetails.accreditationNumber) && (
-                      <div className="mb-4">
-                        {errorDetails.name && (
-                          <p className="text-2xl font-bold text-gray-900 mb-1">{errorDetails.name}</p>
-                        )}
-                        {errorDetails.accreditationNumber && (
-                          <p className="text-sm text-gray-500 font-mono">#{errorDetails.accreditationNumber}</p>
-                        )}
-                      </div>
-                    )}
+                  <CardContent className="p-4 bg-white">
+                    {/* Profile/Name Section */}
+                    <div className="text-center mb-4">
+                      {errorDetails && errorDetails.name && (
+                        <>
+                          <h2 className="text-2xl font-bold text-gray-900 mt-3 mb-1">
+                            {errorDetails.name}
+                          </h2>
+                          {errorDetails.accreditationNumber && (
+                            <p className="text-xs text-gray-500 font-mono mb-1">#{errorDetails.accreditationNumber}</p>
+                          )}
+                        </>
+                      )}
+                    </div>
 
-                    <p className="text-gray-600 text-base leading-relaxed mb-4">{error}</p>
+                    <div className="text-center mb-4">
+                      <p className="text-gray-600 text-base leading-relaxed">{error}</p>
+                    </div>
 
                     {/* Show access periods for NOT_VALID_TODAY */}
                     {errorType === 'NOT_VALID_TODAY' && errorDetails?.phases && (
-                      <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200 text-left">
-                        <p className="text-sm font-semibold text-gray-900 mb-2">Valid Access Periods:</p>
-                        <div className="space-y-1 text-sm text-gray-700">
-                          {errorDetails.phases.bumpIn && (
-                            <div>
-                              <span className="font-semibold">Bump-In:</span>{' '}
-                              {formatDate(errorDetails.phases.bumpIn.start)} - {formatDate(errorDetails.phases.bumpIn.end)}
+                      <div className="space-y-2">
+                        {(errorDetails.phases.bumpIn || errorDetails.phases.live || errorDetails.phases.bumpOut) && (
+                          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Calendar className="h-4 w-4 text-gray-600 flex-shrink-0" />
+                              <span className="text-xs text-gray-500 font-semibold uppercase">Valid Periods</span>
                             </div>
-                          )}
-                          {errorDetails.phases.live && (
-                            <div>
-                              <span className="font-semibold">Live:</span>{' '}
-                              {formatDate(errorDetails.phases.live.start)} - {formatDate(errorDetails.phases.live.end)}
+                            <div className="space-y-1 text-xs">
+                              {errorDetails.phases.bumpIn && (
+                                <div>
+                                  <span className="font-semibold text-gray-700">Bump-In:</span>{' '}
+                                  <span className="text-gray-600">{formatDateRange(errorDetails.phases.bumpIn.start, errorDetails.phases.bumpIn.end)}</span>
+                                </div>
+                              )}
+                              {errorDetails.phases.live && (
+                                <div>
+                                  <span className="font-semibold text-gray-700">Live:</span>{' '}
+                                  <span className="text-gray-600">{formatDateRange(errorDetails.phases.live.start, errorDetails.phases.live.end)}</span>
+                                </div>
+                              )}
+                              {errorDetails.phases.bumpOut && (
+                                <div>
+                                  <span className="font-semibold text-gray-700">Bump-Out:</span>{' '}
+                                  <span className="text-gray-600">{formatDateRange(errorDetails.phases.bumpOut.start, errorDetails.phases.bumpOut.end)}</span>
+                                </div>
+                              )}
                             </div>
-                          )}
-                          {errorDetails.phases.bumpOut && (
-                            <div>
-                              <span className="font-semibold">Bump-Out:</span>{' '}
-                              {formatDate(errorDetails.phases.bumpOut.start)} - {formatDate(errorDetails.phases.bumpOut.end)}
-                            </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-
-                    {(errorType === 'REVOKED' || errorType === 'NO_ACCESS_DATES') && (
-                      <p className="text-sm text-red-600 font-medium mb-4">
-                        Please contact administration for more information.
-                      </p>
                     )}
                   </CardContent>
                 </Card>
