@@ -184,6 +184,11 @@ export async function PUT(
     // Remove assignmentDate as it's only used for history tracking, not stored on the asset
     delete updateData.assignmentDate;
 
+    // Convert empty string to null for assignedUserId (database expects null, not empty string)
+    if (data.assignedUserId !== undefined) {
+      updateData.assignedUserId = data.assignedUserId === '' ? null : data.assignedUserId;
+    }
+
     if (data.purchaseDate !== undefined) {
       updateData.purchaseDate = data.purchaseDate ? new Date(data.purchaseDate) : null;
     }
