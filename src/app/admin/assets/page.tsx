@@ -6,46 +6,35 @@ import { Button } from '@/components/ui/button';
 import { redirect } from 'next/navigation';
 import { Role } from '@prisma/client';
 import Link from 'next/link';
-import { AssetListTable } from '@/components/assets/asset-list-table';
+import { AssetListTableServerSearch } from '@/components/assets/asset-list-table-server-search';
 
 export default async function AdminAssetsPage() {
   const session = await getServerSession(authOptions);
 
-  if (process.env.NODE_ENV !== 'development' && (!session || session.user.role !== Role.ADMIN)) {
+  if (!session) {
     redirect('/login');
   }
 
-  // Fetch all assets with related data and stats
-  const [assetsRaw, totalUsers, assetStats] = await Promise.all([
-    prisma.asset.findMany({
-      include: {
-        assignedUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
+  if (process.env.NODE_ENV !== 'development' && session.user.role !== Role.ADMIN) {
+    redirect('/forbidden');
+  }
+
+  // Fetch stats only (not all assets - the table component fetches its own data)
+  const [totalUsers, assetStats, assignedCount] = await Promise.all([
     prisma.user.count(),
     prisma.asset.aggregate({
       _count: { _all: true },
       _sum: { priceQAR: true },
     }),
+    prisma.asset.count({
+      where: { assignedUserId: { not: null } },
+    }),
   ]);
 
-  // Convert Decimal to string for client component
-  const assets = assetsRaw.map(asset => ({
-    ...asset,
-    price: asset.price ? asset.price.toString() : null,
-    priceQAR: asset.priceQAR ? Number(asset.priceQAR) : null,
-  }));
-
   // Calculate key figures
-  const assignedAssets = assets.filter(a => a.assignedUserId).length;
-  const totalValueQAR = Number(assetStats._sum.priceQAR || 0); // priceQAR is already in QAR
+  const totalAssets = assetStats._count._all;
+  const assignedAssets = assignedCount;
+  const totalValueQAR = Number(assetStats._sum.priceQAR || 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -71,7 +60,7 @@ export default async function AdminAssetsPage() {
                   <CardTitle className="text-xs font-medium text-gray-600">Total Assets</CardTitle>
                 </CardHeader>
                 <CardContent className="pb-3 px-4">
-                  <div className="text-2xl font-bold text-gray-900">{assets.length}</div>
+                  <div className="text-2xl font-bold text-gray-900">{totalAssets}</div>
                   <p className="text-xs text-gray-500">All registered assets</p>
                 </CardContent>
               </Card>
@@ -83,10 +72,10 @@ export default async function AdminAssetsPage() {
                 <CardContent className="pb-3 px-4">
                   <div className="text-2xl font-bold text-gray-900">
                     {assignedAssets}
-                    <span className="text-lg text-gray-500 ml-1">/{assets.length}</span>
+                    <span className="text-lg text-gray-500 ml-1">/{totalAssets}</span>
                   </div>
                   <p className="text-xs text-gray-500">
-                    {assets.length > 0 ? Math.round((assignedAssets / assets.length) * 100) : 0}% assigned to {totalUsers} users
+                    {totalAssets > 0 ? Math.round((assignedAssets / totalAssets) * 100) : 0}% assigned to {totalUsers} users
                   </p>
                 </CardContent>
               </Card>
@@ -107,22 +96,13 @@ export default async function AdminAssetsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>All Assets ({assets.length})</CardTitle>
+              <CardTitle>All Assets</CardTitle>
               <CardDescription>
                 Complete list of registered assets with filters and sorting
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {assets.length > 0 ? (
-                <AssetListTable assets={assets} />
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-600 mb-4">No assets found</p>
-                  <Link href="/admin/assets/new">
-                    <Button>Create your first asset</Button>
-                  </Link>
-                </div>
-              )}
+              <AssetListTableServerSearch />
             </CardContent>
           </Card>
         </div>

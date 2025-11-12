@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     // Get file from request
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const duplicateStrategy = (formData.get('duplicateStrategy') as string) || 'skip';
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
@@ -41,11 +42,15 @@ export async function POST(request: NextRequest) {
 
     const results: {
       success: number;
+      updated: number;
+      skipped: number;
       failed: number;
       errors: { row: number; error: string; data: unknown }[];
       created: { assetTag: string | null; name: string; type: string }[];
     } = {
       success: 0,
+      updated: 0,
+      skipped: 0,
       failed: 0,
       errors: [],
       created: [],
@@ -67,6 +72,8 @@ export async function POST(request: NextRequest) {
         };
 
         // Extract values with flexible column name matching
+        const id = getRowValue(['ID', 'id', 'Asset ID']);
+        const assetTag = getRowValue(['Asset Tag', 'asset_tag', 'assetTag', 'Tag']);
         const type = getRowValue(['Asset Type', 'Type', 'type', 'asset_type']);
         const category = getRowValue(['Category', 'category', 'Category / Department', 'Department']);
         const model = getRowValue(['Model', 'model', 'Model / Version']);
@@ -77,12 +84,13 @@ export async function POST(request: NextRequest) {
         const purchaseDateStr = getRowValue(['Purchase Date', 'purchase_date', 'purchaseDate']);
         const warrantyExpiryStr = getRowValue(['Warranty Expiry', 'warranty_expiry', 'warrantyExpiry', 'Warranty']);
         const supplier = getRowValue(['Supplier', 'supplier', 'Supplier / Vendor', 'Vendor']);
+        const assignedUserId = getRowValue(['Assigned User ID', 'assignedUserId', 'assigned_user_id']);
         const assignedUser = getRowValue(['Assigned User', 'assigned_user', 'Assigned To', 'User']);
+        const assignmentDate = getRowValue(['Assignment Date', 'assignmentDate', 'assignment_date']);
         const statusStr = getRowValue(['Status', 'status']);
         const priceStr = getRowValue(['Price', 'price', 'Cost', 'Cost / Value']);
         const currencyStr = getRowValue(['Currency', 'currency']);
         const acquisitionTypeStr = getRowValue(['Acquisition Type', 'acquisition_type', 'acquisitionType']);
-        const assetTag = getRowValue(['Asset Tag', 'asset_tag', 'assetTag', 'Tag', 'ID']);
 
         // Validate required fields
         if (!type || !model) {
@@ -138,7 +146,103 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Generate or use provided asset tag
+        // Parse dates
+        const purchaseDate = purchaseDateStr ? new Date(purchaseDateStr) : null;
+        const warrantyExpiry = warrantyExpiryStr ? new Date(warrantyExpiryStr) : null;
+
+        // Asset data
+        const assetData: any = {
+          type,
+          category: category || null,
+          brand: brand || null,
+          model,
+          serial: serial || null,
+          configuration: configuration || null,
+          location: location || null,
+          supplier: supplier || null,
+          purchaseDate,
+          warrantyExpiry,
+          price,
+          priceCurrency,
+          priceQAR,
+          status,
+          acquisitionType,
+          assignedUserId: assignedUserId || null,
+          assignmentDate: assignmentDate || null,
+        };
+
+        // If ID is provided, use upsert to preserve relationships
+        if (id) {
+          // Check if asset with this ID exists
+          const existingAssetById = await prisma.asset.findUnique({
+            where: { id },
+          });
+
+          // Check if asset tag is provided and conflicts
+          if (assetTag) {
+            const existingByTag = await prisma.asset.findUnique({
+              where: { assetTag },
+            });
+
+            if (existingByTag && existingByTag.id !== id) {
+              if (duplicateStrategy === 'skip') {
+                results.skipped++;
+                continue;
+              }
+            }
+            assetData.assetTag = assetTag;
+          } else if (!existingAssetById) {
+            // New asset needs a tag
+            assetData.assetTag = await generateAssetTag(type);
+          }
+
+          // Use upsert with ID to preserve relationships
+          const asset = await prisma.asset.upsert({
+            where: { id },
+            create: {
+              id,
+              ...assetData,
+            },
+            update: assetData,
+          });
+
+          // Log activity
+          await logAction(
+            session.user.id,
+            existingAssetById ? ActivityActions.ASSET_UPDATED : ActivityActions.ASSET_CREATED,
+            'Asset',
+            asset.id,
+            {
+              model: asset.model,
+              type: asset.type,
+              assetTag: asset.assetTag,
+              source: 'CSV Import',
+            }
+          );
+
+          if (existingAssetById) {
+            results.updated++;
+          } else {
+            // Record asset creation history
+            const { recordAssetCreation } = await import('@/lib/asset-history');
+            await recordAssetCreation(
+              asset.id,
+              session.user.id,
+              null,
+              null
+            );
+
+            results.created.push({
+              assetTag: asset.assetTag,
+              name: asset.model,
+              type: asset.type,
+            });
+            results.success++;
+          }
+          continue;
+        }
+
+        // No ID provided - use tag-based logic
         const finalAssetTag = assetTag || (await generateAssetTag(type));
 
         // Check if asset tag already exists
@@ -148,40 +252,40 @@ export async function POST(request: NextRequest) {
           });
 
           if (existingAsset) {
-            results.errors.push({
-              row: rowNumber,
-              error: `Asset tag ${finalAssetTag} already exists`,
-              data: row,
-            });
-            results.failed++;
-            continue;
+            if (duplicateStrategy === 'skip') {
+              results.skipped++;
+              continue;
+            } else if (duplicateStrategy === 'update') {
+              // Update existing asset
+              const asset = await prisma.asset.update({
+                where: { assetTag: finalAssetTag },
+                data: assetData,
+              });
+
+              await logAction(
+                session.user.id,
+                ActivityActions.ASSET_UPDATED,
+                'Asset',
+                asset.id,
+                {
+                  model: asset.model,
+                  type: asset.type,
+                  assetTag: asset.assetTag,
+                  source: 'CSV Import',
+                }
+              );
+
+              results.updated++;
+              continue;
+            }
           }
         }
 
-        // Parse dates
-        const purchaseDate = purchaseDateStr ? new Date(purchaseDateStr) : null;
-        const warrantyExpiry = warrantyExpiryStr ? new Date(warrantyExpiryStr) : null;
+        assetData.assetTag = finalAssetTag;
 
-        // Create asset
+        // Create new asset
         const asset = await prisma.asset.create({
-          data: {
-            assetTag: finalAssetTag,
-            type,
-            category: category || null,
-            brand: brand || null,
-            model,
-            serial: serial || null,
-            configuration: configuration || null,
-            location: location || null,
-            supplier: supplier || null,
-            purchaseDate,
-            warrantyExpiry,
-            price,
-            priceCurrency,
-            priceQAR,
-            status,
-            acquisitionType,
-          },
+          data: assetData,
         });
 
         // Log activity
@@ -225,7 +329,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: `Import completed: ${results.success} successful, ${results.failed} failed`,
+        message: `Import completed: ${results.success} created, ${results.updated} updated, ${results.skipped} skipped, ${results.failed} failed`,
         results,
       },
       { status: 200 }

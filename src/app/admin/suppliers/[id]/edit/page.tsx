@@ -217,7 +217,7 @@ export default function EditSupplierPage() {
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update supplier');
-      toast.error('Failed to update supplier');
+      toast.error('Failed to update supplier', { duration: 10000 });
     }
   };
 

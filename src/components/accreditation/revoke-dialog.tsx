@@ -35,7 +35,7 @@ export function RevokeDialog({
 
   const handleRevoke = async () => {
     if (!reason.trim()) {
-      toast.error('Please provide a reason for revocation');
+      toast.error('Please provide a reason for revocation', { duration: 10000 });
       return;
     }
 
@@ -61,7 +61,7 @@ export function RevokeDialog({
       router.refresh();
     } catch (error) {
       console.error('Error revoking accreditation:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to revoke accreditation');
+      toast.error(error instanceof Error ? error.message : 'Failed to revoke accreditation', { duration: 10000 });
     } finally {
       setIsLoading(false);
     }

@@ -187,17 +187,27 @@ export function SupplierListTable({ suppliers }: SupplierListTableProps) {
           </TableHeader>
           <TableBody>
             {filteredAndSortedSuppliers.map((supplier) => (
-              <TableRow key={supplier.id}>
+              <TableRow
+                key={supplier.id}
+                className={supplier.status === 'PENDING' ? 'bg-yellow-50 hover:bg-yellow-100' : ''}
+              >
                 <TableCell className="font-mono text-sm">
-                  {supplier.suppCode || <span className="text-gray-400 italic">Pending</span>}
+                  {supplier.suppCode || <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">Pending</Badge>}
                 </TableCell>
                 <TableCell className="font-medium">
-                  <Link
-                    href={`/admin/suppliers/${supplier.id}`}
-                    className="text-gray-900 hover:text-blue-600 hover:underline"
-                  >
-                    {supplier.name}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/admin/suppliers/${supplier.id}`}
+                      className="text-gray-900 hover:text-blue-600 hover:underline"
+                    >
+                      {supplier.name}
+                    </Link>
+                    {supplier.status === 'PENDING' && (
+                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                        Awaiting Approval
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>{supplier.category}</TableCell>
                 <TableCell>

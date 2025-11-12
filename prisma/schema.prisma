@@ -18,11 +18,9 @@ enum Role {
   ADMIN
   EMPLOYEE
   VALIDATOR
-}
-
-enum UsageType {
-  PROJECT
-  OFFICE
+  TEMP_STAFF
+  ACCREDITATION_ADDER
+  ACCREDITATION_APPROVER
 }
 
 enum BillingCycle {
@@ -98,7 +96,6 @@ model User {
   emailVerified              DateTime?
   image                      String?
   role                       Role                   @default(EMPLOYEE)
-  isTemporaryStaff           Boolean                @default(false)
   isSystemAccount            Boolean                @default(false)  // For shared assets and system users
   accounts                   Account[]
   sessions                   Session[]
@@ -118,11 +115,7 @@ model User {
   revokedAccreditations      Accreditation[]        @relation("AccreditationRevoker")
   accreditationHistory       AccreditationHistory[] @relation("AccreditationHistoryPerformer")
   accreditationScans         AccreditationScan[]    @relation("AccreditationScans")
-  deletedUsersPerformed      User[]                 @relation("UserDeletion")
-  deletedBy                  User?                  @relation("UserDeletion", fields: [deletedById], references: [id])
-  deletedById                String?
-  deletedAt                  DateTime?
-  deletionNotes              String?
+  systemSettingsUpdated      SystemSettings[]       @relation("SystemSettingsUpdater")
   createdAt                  DateTime               @default(now())
   updatedAt                  DateTime               @updatedAt
 }
@@ -172,6 +165,10 @@ model Asset {
 
   @@index([warrantyExpiry])
   @@index([brand])
+  @@index([model])
+  @@index([type])
+  @@index([serial])
+  @@index([assetTag])
 }
 
 enum AssetHistoryAction {
@@ -220,7 +217,6 @@ model Subscription {
   costCurrency   String?     @default("QAR")
   costQAR        Decimal?
   vendor         String?
-  usageType      UsageType
   status         SubscriptionStatus @default(ACTIVE)
   assignedUserId String?
   assignedUser   User?       @relation(fields: [assignedUserId], references: [id])
@@ -237,6 +233,9 @@ model Subscription {
   @@index([renewalDate])
   @@index([status])
   @@index([category])
+  @@index([serviceName])
+  @@index([vendor])
+  @@index([accountId])
 }
 
 enum SubscriptionHistoryAction {
@@ -331,6 +330,8 @@ model Supplier {
   @@index([status])
   @@index([suppCode])
   @@index([createdAt])
+  @@index([name])
+  @@index([category])
 }
 
 model SupplierEngagement {
@@ -498,4 +499,16 @@ model AccreditationScan {
   @@index([scannedById])
   @@index([scannedAt])
   @@index([wasValid])
+}
+
+model SystemSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedBy String?
+  updater   User?    @relation("SystemSettingsUpdater", fields: [updatedBy], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
 }

@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
-import { Checkbox } from '@/components/ui/checkbox';
 import { createUserSchema, type CreateUserInput } from '@/lib/validations/users';
 
 export default function NewUserPage() {
@@ -30,12 +29,11 @@ export default function NewUserPage() {
       name: '',
       email: '',
       role: 'EMPLOYEE',
-      isTemporaryStaff: false,
     },
     mode: 'onChange', // Enable real-time validation
   });
 
-  const isTemporaryStaff = watch('isTemporaryStaff');
+  const role = watch('role');
 
   const onSubmit = async (data: CreateUserInput) => {
     setError(null);
@@ -126,56 +124,40 @@ export default function NewUserPage() {
                 </p>
               </div>
 
-              {/* Temporary Staff Checkbox */}
-              <div className="space-y-3 p-4 border rounded-lg bg-blue-50 border-blue-200">
-                <div className="flex items-start space-x-3">
-                  <Checkbox
-                    id="isTemporaryStaff"
-                    checked={isTemporaryStaff}
-                    onCheckedChange={(checked) => setValue('isTemporaryStaff', checked === true)}
-                  />
-                  <div className="space-y-1">
-                    <Label htmlFor="isTemporaryStaff" className="cursor-pointer font-semibold text-blue-900">
-                      Temporary Staff Member
-                    </Label>
-                    <p className="text-sm text-blue-800">
-                      Check this box if this person is a temporary staff member who doesn&apos;t need login access.
-                      They will only appear in assignment dropdowns for assets and subscriptions.
-                    </p>
-                  </div>
+              {/* Role */}
+              <div className="space-y-2">
+                <Label htmlFor="role">Role *</Label>
+                <Select
+                  value={watch('role') || ''}
+                  onValueChange={(value) => setValue('role', value as any)}
+                >
+                  <SelectTrigger id="role" className={errors.role ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                    <SelectItem value="VALIDATOR">Validator</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="TEMP_STAFF">Temporary Staff</SelectItem>
+                    <SelectItem value="ACCREDITATION_ADDER">Accreditation Adder</SelectItem>
+                    <SelectItem value="ACCREDITATION_APPROVER">Accreditation Approver</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.role && (
+                  <p className="text-sm text-red-500">{errors.role.message}</p>
+                )}
+                <div className="text-sm text-gray-500 space-y-1">
+                  <div><strong>Employee:</strong> Can view and manage their own assigned assets/subscriptions</div>
+                  <div><strong>Validator:</strong> Can verify accreditation QR codes only</div>
+                  <div><strong>Admin:</strong> Full access to all features and user management</div>
+                  <div><strong>Temporary Staff:</strong> No login access, only appears in assignment dropdowns</div>
+                  <div><strong>Accreditation Adder:</strong> Can create and manage accreditations (external freelancer)</div>
+                  <div><strong>Accreditation Approver:</strong> Can approve/reject accreditations (external freelancer)</div>
                 </div>
               </div>
 
-              {/* Role - Only show if not temporary staff */}
-              {!isTemporaryStaff && (
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role *</Label>
-                  <Select
-                    value={watch('role') || ''}
-                    onValueChange={(value) => setValue('role', value as 'ADMIN' | 'EMPLOYEE' | 'VALIDATOR')}
-                  >
-                    <SelectTrigger id="role" className={errors.role ? 'border-red-500' : ''}>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                      <SelectItem value="VALIDATOR">Validator</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.role && (
-                    <p className="text-sm text-red-500">{errors.role.message}</p>
-                  )}
-                  <p className="text-sm text-gray-500">
-                    <strong>Employee:</strong> Can view and manage their own assigned assets/subscriptions<br />
-                    <strong>Validator:</strong> Can verify accreditation QR codes only<br />
-                    <strong>Admin:</strong> Full access to all features and user management
-                  </p>
-                </div>
-              )}
-
               {/* Info Alert */}
-              {!isTemporaryStaff && (
+              {role !== 'TEMP_STAFF' && role !== 'ACCREDITATION_ADDER' && role !== 'ACCREDITATION_APPROVER' && (
                 <Alert>
                   <AlertDescription>
                     <strong>Note:</strong> Users will authenticate using Azure AD or the configured OAuth provider.
@@ -184,11 +166,21 @@ export default function NewUserPage() {
                 </Alert>
               )}
 
-              {isTemporaryStaff && (
+              {role === 'TEMP_STAFF' && (
                 <Alert>
                   <AlertDescription>
                     <strong>Temporary Staff:</strong> This user will appear in assignment dropdowns but will not be able to log in to the system.
                     Use a placeholder email (e.g., temp.name@company.local) if they don&apos;t have an actual company email.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {(role === 'ACCREDITATION_ADDER' || role === 'ACCREDITATION_APPROVER') && (
+                <Alert>
+                  <AlertDescription>
+                    <strong>Accreditation Role:</strong> This user will only have access to the accreditation module.
+                    They are treated as external freelancers and have no access to other system features like assets or subscriptions.
+                    {role === 'ACCREDITATION_ADDER' && ' They cannot approve accreditations.'}
                   </AlertDescription>
                 </Alert>
               )}

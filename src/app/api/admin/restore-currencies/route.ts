@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { USD_TO_QAR_RATE } from '@/lib/constants';
 
 export async function GET() {
   try {
@@ -69,7 +70,6 @@ export async function POST() {
     });
 
     const updated = [];
-    const USD_TO_QAR = 3.64;
 
     for (const sub of subscriptions) {
       if (!sub.costPerCycle) continue;
@@ -84,7 +84,7 @@ export async function POST() {
         correctCurrency = 'USD';
       }
       // If costQAR exists and is about 3.64x less than cost, original was QAR
-      else if (costQAR && Math.abs((cost / USD_TO_QAR) - costQAR) < 0.5) {
+      else if (costQAR && Math.abs((cost / USD_TO_QAR_RATE) - costQAR) < 0.5) {
         correctCurrency = 'QAR';
       }
 

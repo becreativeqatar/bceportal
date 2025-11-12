@@ -48,7 +48,7 @@ export function SubscriptionLifecycleActions({
       router.refresh();
     } catch (error) {
       console.error('Error reactivating subscription:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to reactivate subscription');
+      toast.error(error instanceof Error ? error.message : 'Failed to reactivate subscription', { duration: 10000 });
       throw error;
     }
   };
@@ -72,7 +72,7 @@ export function SubscriptionLifecycleActions({
       router.refresh();
     } catch (error) {
       console.error('Error cancelling subscription:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to cancel subscription');
+      toast.error(error instanceof Error ? error.message : 'Failed to cancel subscription', { duration: 10000 });
       throw error;
     }
   };

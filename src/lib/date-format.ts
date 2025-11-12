@@ -71,52 +71,57 @@ export function formatDateTime(date: Date | string | null | undefined, fallback:
 
 /**
  * Convert a Date to yyyy-MM-dd format for HTML date inputs
- * Parses date strings WITHOUT timezone conversion to prevent date shifting
+ * Simple extraction without timezone conversions
  * @param date - Date object, string, or null
  * @returns ISO date string (yyyy-MM-dd) or empty string
  */
 export function toInputDateString(date: Date | string | null | undefined): string {
   if (!date) return '';
 
-  // If it's already a yyyy-mm-dd string, return it as-is
+  // If it's already yyyy-mm-dd, return as-is
   if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
     return date;
   }
 
-  // If it's an ISO string with time, extract just the date part
-  if (typeof date === 'string' && date.includes('T')) {
-    return date.split('T')[0];
+  // If it's ISO string, extract date part before 'T'
+  if (typeof date === 'string') {
+    if (date.includes('T')) {
+      return date.split('T')[0];
+    }
+    // Try to parse other string formats
+    const parsed = new Date(date + 'T12:00:00'); // Parse at noon to avoid timezone issues
+    if (!isNaN(parsed.getTime())) {
+      const y = parsed.getFullYear();
+      const m = String(parsed.getMonth() + 1).padStart(2, '0');
+      const d = String(parsed.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return '';
   }
 
-  // For Date objects or other string formats
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  // For Date objects
+  if (isNaN(date.getTime())) return '';
 
-  if (isNaN(dateObj.getTime())) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
 
-  // Use UTC methods to avoid timezone shifts
-  const year = dateObj.getUTCFullYear();
-  const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(dateObj.getUTCDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
+  return `${y}-${m}-${d}`;
 }
 
 /**
- * Parse a yyyy-mm-dd string to a Date object at UTC midnight
- * This prevents timezone shifts when storing dates
+ * Parse a yyyy-mm-dd string to a Date object
+ * Uses local time construction to avoid timezone shifts
  * @param dateString - Date string in yyyy-mm-dd format
- * @returns Date object at UTC midnight or null
+ * @returns Date object or null
  */
 export function parseInputDateString(dateString: string | null | undefined): Date | null {
   if (!dateString) return null;
-
-  // Check if it's yyyy-mm-dd format
   if (!dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return null;
 
-  // Parse as UTC midnight to avoid timezone shifts
-  // Add 'T00:00:00.000Z' to force UTC parsing
-  const isoString = `${dateString}T00:00:00.000Z`;
-  const date = new Date(isoString);
+  // Parse using local time construction to avoid timezone conversions
+  const [y, m, d] = dateString.split('-').map(Number);
+  const date = new Date(y, m - 1, d, 12, 0, 0);
 
   return isNaN(date.getTime()) ? null : date;
 }

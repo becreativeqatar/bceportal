@@ -118,7 +118,7 @@ export default function ProjectRecordsClient({ projectId }: ProjectRecordsClient
       }
     } catch (error) {
       console.error('Error fetching accreditations:', error);
-      toast.error('Failed to load accreditations');
+      toast.error('Failed to load accreditations', { duration: 10000 });
     } finally {
       setIsLoading(false);
     }
@@ -201,7 +201,7 @@ export default function ProjectRecordsClient({ projectId }: ProjectRecordsClient
       toast.success('QR codes exported successfully', { id: 'export-qr' });
     } catch (error) {
       console.error('Error exporting QR codes:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to export QR codes', { id: 'export-qr' });
+      toast.error(error instanceof Error ? error.message : 'Failed to export QR codes', { id: 'export-qr', duration: 10000 });
     }
   };
 

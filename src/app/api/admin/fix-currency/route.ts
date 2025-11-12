@@ -3,8 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-
-const USD_TO_QAR = 3.64;
+import { USD_TO_QAR_RATE } from '@/lib/constants';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +35,7 @@ export async function POST(request: NextRequest) {
       costQAR = cost;
     } else {
       // If setting to QAR, calculate USD equivalent
-      costQAR = cost / USD_TO_QAR;
+      costQAR = cost / USD_TO_QAR_RATE;
     }
 
     await prisma.subscription.update({

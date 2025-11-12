@@ -160,7 +160,7 @@ export default function EditAccreditationPage({ params }: { params: Promise<{ id
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
-      toast.error('Failed to load projects');
+      toast.error('Failed to load projects', { duration: 10000 });
     }
   };
 
@@ -205,12 +205,12 @@ export default function EditAccreditationPage({ params }: { params: Promise<{ id
           setPhotoPreview(record.profilePhotoUrl);
         }
       } else {
-        toast.error('Failed to load accreditation');
+        toast.error('Failed to load accreditation', { duration: 10000 });
         router.push('/admin/accreditation');
       }
     } catch (error) {
       console.error('Error fetching accreditation:', error);
-      toast.error('Failed to load accreditation');
+      toast.error('Failed to load accreditation', { duration: 10000 });
       router.push('/admin/accreditation');
     } finally {
       setIsLoading(false);
@@ -248,14 +248,14 @@ export default function EditAccreditationPage({ params }: { params: Promise<{ id
     if (file) {
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size must be less than 5MB');
+        toast.error('File size must be less than 5MB', { duration: 10000 });
         e.target.value = ''; // Clear the input
         return;
       }
 
       // Validate file type (only JPEG/PNG)
       if (!['image/jpeg', 'image/png'].includes(file.type)) {
-        toast.error('Only JPG and PNG files are allowed');
+        toast.error('Only JPG and PNG files are allowed', { duration: 10000 });
         e.target.value = ''; // Clear the input
         return;
       }
@@ -268,7 +268,7 @@ export default function EditAccreditationPage({ params }: { params: Promise<{ id
         URL.revokeObjectURL(objectUrl); // Clean up
 
         if (img.width < 300 || img.height < 300) {
-          toast.error('Image dimensions must be at least 300x300 pixels');
+          toast.error('Image dimensions must be at least 300x300 pixels', { duration: 10000 });
           e.target.value = ''; // Clear the input
           return;
         }
@@ -284,7 +284,7 @@ export default function EditAccreditationPage({ params }: { params: Promise<{ id
 
       img.onerror = () => {
         URL.revokeObjectURL(objectUrl);
-        toast.error('Failed to load image. Please try another file.');
+        toast.error('Failed to load image. Please try another file.', { duration: 10000 });
         e.target.value = ''; // Clear the input
       };
 
@@ -312,7 +312,7 @@ export default function EditAccreditationPage({ params }: { params: Promise<{ id
       return data.url;
     } catch (error) {
       console.error('Error uploading photo:', error);
-      toast.error('Failed to upload photo');
+      toast.error('Failed to upload photo', { duration: 10000 });
       return null;
     }
   };
@@ -368,7 +368,7 @@ export default function EditAccreditationPage({ params }: { params: Promise<{ id
             `${detail.path?.join('.')}: ${detail.message}`
           ).join('\n');
           console.error('Validation errors:', errorMessages);
-          toast.error(`Validation failed:\n${errorMessages}`);
+          toast.error(`Validation failed:\n${errorMessages}`, { duration: 10000 });
           throw new Error(data.error || 'Validation failed');
         }
 
@@ -399,7 +399,7 @@ export default function EditAccreditationPage({ params }: { params: Promise<{ id
         router.back();
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update accreditation');
+      toast.error(error instanceof Error ? error.message : 'Failed to update accreditation', { duration: 10000 });
     }
   };
 

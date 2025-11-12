@@ -55,34 +55,31 @@ export async function PATCH(
       );
     }
 
-    // Reject supplier
-    const supplier = await prisma.supplier.update({
-      where: { id },
-      data: {
-        status: 'REJECTED',
-        rejectionReason,
-        approvedAt: null,
-        approvedById: null,
-      },
-    });
-
-    // Log the rejection activity
+    // Log the rejection activity before deleting
     await logAction(
       session.user.id,
       'SUPPLIER_REJECTED',
       'supplier',
-      supplier.id,
+      existingSupplier.id,
       {
-        suppCode: supplier.suppCode,
-        name: supplier.name,
+        suppCode: existingSupplier.suppCode,
+        name: existingSupplier.name,
         rejectedBy: session.user.name || session.user.email,
         rejectionReason,
       }
     );
 
+    // Delete supplier instead of marking as rejected
+    await prisma.supplier.delete({
+      where: { id },
+    });
+
     return NextResponse.json({
-      message: 'Supplier rejected',
-      supplier,
+      message: 'Supplier rejected and deleted',
+      deletedSupplier: {
+        id: existingSupplier.id,
+        name: existingSupplier.name,
+      },
     });
 
   } catch (error) {

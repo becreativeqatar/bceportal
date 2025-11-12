@@ -6,8 +6,12 @@ import { Role } from '@prisma/client';
 export default async function AccreditationPage() {
   const session = await getServerSession(authOptions);
 
-  if (process.env.NODE_ENV !== 'development' && (!session || session.user.role !== Role.ADMIN)) {
+  if (!session) {
     redirect('/login');
+  }
+
+  if (process.env.NODE_ENV !== 'development' && session.user.role !== Role.ADMIN) {
+    redirect('/forbidden');
   }
 
   // Redirect to projects page as it's now the main accreditation view

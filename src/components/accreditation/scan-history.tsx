@@ -81,11 +81,11 @@ export function ScanHistory({
         setScans(data.scans);
         setPagination(data.pagination);
       } else {
-        toast.error('Failed to load scan history');
+        toast.error('Failed to load scan history', { duration: 10000 });
       }
     } catch (error) {
       console.error('Error fetching scans:', error);
-      toast.error('Failed to load scan history');
+      toast.error('Failed to load scan history', { duration: 10000 });
     } finally {
       setIsLoading(false);
     }

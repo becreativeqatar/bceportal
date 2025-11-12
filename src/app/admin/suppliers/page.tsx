@@ -6,37 +6,30 @@ import { Button } from '@/components/ui/button';
 import { redirect } from 'next/navigation';
 import { Role } from '@prisma/client';
 import Link from 'next/link';
-import { SupplierListTable } from '@/components/suppliers/supplier-list-table';
+import { SupplierListTableServerSearch } from '@/components/suppliers/supplier-list-table-server-search';
 
 export default async function AdminSuppliersPage() {
   const session = await getServerSession(authOptions);
 
-  if (process.env.NODE_ENV !== 'development' && (!session || session.user.role !== Role.ADMIN)) {
+  if (!session) {
     redirect('/login');
   }
 
-  // Fetch all suppliers with related data and stats
-  const suppliers = await prisma.supplier.findMany({
-    include: {
-      approvedBy: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-      _count: {
-        select: {
-          engagements: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  if (process.env.NODE_ENV !== 'development' && session.user.role !== Role.ADMIN) {
+    redirect('/forbidden');
+  }
 
-  // Calculate key figures
-  const uniqueCategories = new Set(suppliers.map(s => s.category)).size;
-  const totalEngagements = suppliers.reduce((sum, s) => sum + s._count.engagements, 0);
+  // Fetch only statistics (not all suppliers - table component fetches its own data)
+  const [totalSuppliers, categories, totalEngagements] = await Promise.all([
+    prisma.supplier.count(),
+    prisma.supplier.findMany({
+      select: { category: true },
+      distinct: ['category'],
+    }),
+    prisma.supplierEngagement.count(),
+  ]);
+
+  const uniqueCategories = categories.length;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -61,7 +54,7 @@ export default async function AdminSuppliersPage() {
                 <CardTitle className="text-xs font-medium text-gray-600">Total Suppliers</CardTitle>
               </CardHeader>
               <CardContent className="pb-3 px-4">
-                <div className="text-2xl font-bold text-gray-900">{suppliers.length}</div>
+                <div className="text-2xl font-bold text-gray-900">{totalSuppliers}</div>
                 <p className="text-xs text-gray-500">Registered in database</p>
               </CardContent>
             </Card>
@@ -90,22 +83,13 @@ export default async function AdminSuppliersPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>All Suppliers ({suppliers.length})</CardTitle>
+            <CardTitle>All Suppliers</CardTitle>
             <CardDescription>
               Complete list of registered suppliers with status and contact information
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {suppliers.length > 0 ? (
-              <SupplierListTable suppliers={suppliers} />
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500 mb-4">No suppliers found</p>
-                <Link href="/suppliers/register" target="_blank">
-                  <Button>Register your first supplier</Button>
-                </Link>
-              </div>
-            )}
+            <SupplierListTableServerSearch />
           </CardContent>
         </Card>
       </div>

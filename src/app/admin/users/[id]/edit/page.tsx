@@ -47,12 +47,12 @@ export default function EditUserPage() {
           role: userData.role || 'EMPLOYEE'
         });
       } else {
-        toast.error('User not found');
+        toast.error('User not found', { duration: 10000 });
         router.push('/admin/users');
       }
     } catch (error) {
       console.error('Error fetching user:', error);
-      toast.error('Error loading user');
+      toast.error('Error loading user', { duration: 10000 });
     }
   };
 
@@ -81,11 +81,11 @@ export default function EditUserPage() {
         }, 5000);
       } else {
         const errorData = await response.json();
-        toast.error(`Failed to update user: ${errorData.error || 'Unknown error'}`);
+        toast.error(`Failed to update user: ${errorData.error || 'Unknown error'}`, { duration: 10000 });
       }
     } catch (error) {
       console.error('Error updating user:', error);
-      toast.error('Error updating user. Please try again.');
+      toast.error('Error updating user. Please try again.', { duration: 10000 });
     }
 
     setIsLoading(false);

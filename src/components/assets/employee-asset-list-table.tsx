@@ -321,7 +321,7 @@ export function EmployeeAssetListTable({ assets, currentUserId }: EmployeeAssetL
                     {asset.purchaseDate ? formatDate(asset.purchaseDate) : '-'}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Link href={`/admin/assets/${asset.id}`}>
+                    <Link href={`/employee/assets/${asset.id}`}>
                       <Button variant="outline" size="sm">
                         View
                       </Button>

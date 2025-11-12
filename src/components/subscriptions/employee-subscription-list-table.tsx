@@ -357,7 +357,7 @@ export function EmployeeSubscriptionListTable({ subscriptions, currentUserId }: 
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Link href={`/admin/subscriptions/${subscription.id}`}>
+                    <Link href={`/employee/subscriptions/${subscription.id}`}>
                       <Button variant="outline" size="sm">
                         View
                       </Button>

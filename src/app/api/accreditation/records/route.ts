@@ -214,8 +214,17 @@ export async function POST(request: NextRequest) {
       hasQidNumber: !!body.qidNumber,
       hasPassportNumber: !!body.passportNumber,
       projectId: body.projectId,
+      projectIdType: typeof body.projectId,
       status: body.status,
     });
+
+    // Validate projectId exists
+    if (!body.projectId) {
+      return NextResponse.json(
+        { error: 'Project ID is required' },
+        { status: 400 }
+      );
+    }
 
     // Convert empty strings to null for optional date fields
     const cleanedBody = {
@@ -252,16 +261,25 @@ export async function POST(request: NextRequest) {
     const data = validation.data;
 
     // Check if accreditation project exists
+    console.log('Looking for project with ID:', data.projectId);
     const accreditationProject = await prisma.accreditationProject.findUnique({
       where: { id: data.projectId },
     });
 
     if (!accreditationProject) {
+      console.log('Project not found! Searching for all projects...');
+      const allProjects = await prisma.accreditationProject.findMany({
+        select: { id: true, name: true, code: true },
+      });
+      console.log('Available projects:', allProjects);
+
       return NextResponse.json(
-        { error: 'Accreditation project not found' },
+        { error: `Accreditation project not found. Looking for ID: ${data.projectId}` },
         { status: 404 }
       );
     }
+
+    console.log('Project found:', { id: accreditationProject.id, name: accreditationProject.name });
 
     // Validate access group is in project's access groups
     const accessGroups = accreditationProject.accessGroups as string[];
@@ -524,10 +542,23 @@ export async function POST(request: NextRequest) {
       code: (error as any)?.code,
       meta: (error as any)?.meta,
     });
+
+    // Extract meaningful error message
+    let errorMessage = 'Unknown error occurred';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    // Check for specific Prisma errors
+    if ((error as any)?.code === 'P2002') {
+      errorMessage = 'A record with this information already exists';
+    } else if ((error as any)?.code === 'P2003') {
+      errorMessage = 'Invalid reference: The project or user does not exist';
+    }
+
     return NextResponse.json(
       {
-        error: 'Failed to create accreditation',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
       },
       { status: 500 }
     );

@@ -34,6 +34,24 @@ export default withAuth(
       }
     }
 
+    // Block ACCREDITATION_ADDER and ACCREDITATION_APPROVER from accessing non-accreditation routes
+    // They are external freelancers and should only access the accreditation module
+    if (token && (token.role === 'ACCREDITATION_ADDER' || token.role === 'ACCREDITATION_APPROVER')) {
+      const allowedPaths = [
+        '/admin/accreditation',
+        '/api/auth',
+        '/api/accreditation',
+        '/api/admin/projects',
+        '/api/admin/accreditations',
+        '/api/upload'
+      ];
+      const isAllowedPath = allowedPaths.some(path => pathname.startsWith(path));
+
+      if (!isAllowedPath && pathname !== '/' && pathname !== '/admin') {
+        response = NextResponse.redirect(new URL('/admin/accreditation', req.url));
+      }
+    }
+
     // Add basic security headers
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-Content-Type-Options', 'nosniff');

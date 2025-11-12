@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserActions } from './user-actions';
-import { formatDate, formatDateTime } from '@/lib/date-format';
+import { formatDate } from '@/lib/date-format';
 
 interface User {
   id: string;
@@ -14,15 +12,7 @@ interface User {
   role: string;
   image: string | null;
   isSystemAccount: boolean;
-  isTemporaryStaff: boolean;
   createdAt: Date;
-  deletedAt: Date | null;
-  deletionNotes: string | null;
-  deletedBy: {
-    id: string;
-    name: string | null;
-    email: string;
-  } | null;
   _count: {
     assets: number;
     subscriptions: number;
@@ -35,23 +25,24 @@ interface UserListClientProps {
 }
 
 export function UserListClient({ users, currentUserId }: UserListClientProps) {
-  const activeUsers = users.filter(u => !u.deletedAt);
-  const deletedUsers = users.filter(u => u.deletedAt);
-
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
       case 'ADMIN':
         return 'default';
       case 'VALIDATOR':
+      case 'ACCREDITATION_APPROVER':
         return 'destructive';
       case 'EMPLOYEE':
+      case 'TEMP_STAFF':
         return 'secondary';
+      case 'ACCREDITATION_ADDER':
+        return 'outline';
       default:
         return 'outline';
     }
   };
 
-  const renderUserTable = (userList: User[], showDeletionInfo = false) => (
+  const renderUserTable = (userList: User[]) => (
     <Table>
       <TableHeader>
         <TableRow>
@@ -61,20 +52,13 @@ export function UserListClient({ users, currentUserId }: UserListClientProps) {
           <TableHead>Type</TableHead>
           <TableHead>Assets</TableHead>
           <TableHead>Subscriptions</TableHead>
-          {showDeletionInfo ? (
-            <>
-              <TableHead>Deleted On</TableHead>
-              <TableHead>Deleted By</TableHead>
-            </>
-          ) : (
-            <TableHead>Created</TableHead>
-          )}
+          <TableHead>Created</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {userList.map((user) => (
-          <TableRow key={user.id} className={showDeletionInfo ? 'bg-red-50' : ''}>
+          <TableRow key={user.id}>
             <TableCell className="font-medium">
               <div className="flex items-center gap-2">
                 {user.image && (
@@ -108,7 +92,7 @@ export function UserListClient({ users, currentUserId }: UserListClientProps) {
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
                   🏢 System Account
                 </Badge>
-              ) : user.isTemporaryStaff ? (
+              ) : user.role === 'TEMP_STAFF' ? (
                 <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300">
                   Temporary Staff
                 </Badge>
@@ -128,20 +112,9 @@ export function UserListClient({ users, currentUserId }: UserListClientProps) {
                 {user._count.subscriptions} subscriptions
               </Badge>
             </TableCell>
-            {showDeletionInfo ? (
-              <>
-                <TableCell>
-                  {user.deletedAt && formatDateTime(user.deletedAt)}
-                </TableCell>
-                <TableCell>
-                  {user.deletedBy ? (user.deletedBy.name || user.deletedBy.email) : 'Unknown'}
-                </TableCell>
-              </>
-            ) : (
-              <TableCell>
-                {formatDate(user.createdAt)}
-              </TableCell>
-            )}
+            <TableCell>
+              {formatDate(user.createdAt)}
+            </TableCell>
             <TableCell>
               <UserActions
                 userId={user.id}
@@ -149,8 +122,6 @@ export function UserListClient({ users, currentUserId }: UserListClientProps) {
                 userEmail={user.email}
                 currentUserId={currentUserId}
                 isSystemAccount={user.isSystemAccount}
-                isDeleted={!!user.deletedAt}
-                deletionNotes={user.deletionNotes}
               />
             </TableCell>
           </TableRow>
@@ -160,33 +131,14 @@ export function UserListClient({ users, currentUserId }: UserListClientProps) {
   );
 
   return (
-    <Tabs defaultValue="active" className="w-full">
-      <TabsList>
-        <TabsTrigger value="active">
-          Active Users ({activeUsers.length})
-        </TabsTrigger>
-        <TabsTrigger value="deleted">
-          Deleted Users ({deletedUsers.length})
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="active" className="mt-4">
-        {activeUsers.length > 0 ? (
-          renderUserTable(activeUsers, false)
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-600">No active users found</p>
-          </div>
-        )}
-      </TabsContent>
-      <TabsContent value="deleted" className="mt-4">
-        {deletedUsers.length > 0 ? (
-          renderUserTable(deletedUsers, true)
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-600">No deleted users found</p>
-          </div>
-        )}
-      </TabsContent>
-    </Tabs>
+    <div className="w-full">
+      {users.length > 0 ? (
+        renderUserTable(users)
+      ) : (
+        <div className="text-center py-8">
+          <p className="text-gray-600">No users found</p>
+        </div>
+      )}
+    </div>
   );
 }

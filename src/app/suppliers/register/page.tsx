@@ -162,6 +162,12 @@ export default function SupplierRegistrationPage() {
                   Thank you! Your supplier registration is pending approval.
                   Our team will review your information and get back to you soon.
                 </p>
+                <Button
+                  onClick={() => window.location.href = 'https://becreative.qa'}
+                  className="mt-4"
+                >
+                  Visit our website
+                </Button>
               </div>
             </CardContent>
           </Card>

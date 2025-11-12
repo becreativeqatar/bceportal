@@ -115,7 +115,7 @@ export default function ProjectApprovalsPage({ params }: ProjectApprovalsPagePro
       }
     } catch (error) {
       console.error('Error fetching pending accreditations:', error);
-      toast.error('Failed to load pending accreditations');
+      toast.error('Failed to load pending accreditations', { duration: 10000 });
     } finally {
       setIsLoading(false);
     }
@@ -183,7 +183,7 @@ export default function ProjectApprovalsPage({ params }: ProjectApprovalsPagePro
       setActionDialog({ open: false, type: null, accreditation: null, notes: '', isSubmitting: false });
       fetchPendingAccreditations(projectId);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to approve accreditation');
+      toast.error(error instanceof Error ? error.message : 'Failed to approve accreditation', { duration: 10000 });
     } finally {
       setActionDialog((prev) => ({ ...prev, isSubmitting: false }));
     }
@@ -193,7 +193,7 @@ export default function ProjectApprovalsPage({ params }: ProjectApprovalsPagePro
     if (!actionDialog.accreditation) return;
 
     if (!actionDialog.notes.trim()) {
-      toast.error('Please provide a reason for rejection');
+      toast.error('Please provide a reason for rejection', { duration: 10000 });
       return;
     }
 
@@ -215,7 +215,7 @@ export default function ProjectApprovalsPage({ params }: ProjectApprovalsPagePro
       setActionDialog({ open: false, type: null, accreditation: null, notes: '', isSubmitting: false });
       fetchPendingAccreditations(projectId);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to reject accreditation');
+      toast.error(error instanceof Error ? error.message : 'Failed to reject accreditation', { duration: 10000 });
     } finally {
       setActionDialog((prev) => ({ ...prev, isSubmitting: false }));
     }

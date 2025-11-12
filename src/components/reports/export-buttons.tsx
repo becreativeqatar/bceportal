@@ -25,11 +25,11 @@ export function ExportButtons() {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       } else {
-        toast.error('Failed to export assets');
+        toast.error('Failed to export assets', { duration: 10000 });
       }
     } catch (error) {
       console.error('Export error:', error);
-      toast.error('Error exporting assets');
+      toast.error('Error exporting assets', { duration: 10000 });
     }
   };
 
@@ -47,11 +47,11 @@ export function ExportButtons() {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       } else {
-        toast.error('Failed to export subscriptions');
+        toast.error('Failed to export subscriptions', { duration: 10000 });
       }
     } catch (error) {
       console.error('Export error:', error);
-      toast.error('Error exporting subscriptions');
+      toast.error('Error exporting subscriptions', { duration: 10000 });
     }
   };
 
@@ -69,11 +69,11 @@ export function ExportButtons() {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       } else {
-        toast.error('Failed to export users');
+        toast.error('Failed to export users', { duration: 10000 });
       }
     } catch (error) {
       console.error('Export error:', error);
-      toast.error('Error exporting users');
+      toast.error('Error exporting users', { duration: 10000 });
     }
   };
 
@@ -91,11 +91,11 @@ export function ExportButtons() {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       } else {
-        toast.error('Failed to create full backup');
+        toast.error('Failed to create full backup', { duration: 10000 });
       }
     } catch (error) {
       console.error('Backup error:', error);
-      toast.error('Error creating backup');
+      toast.error('Error creating backup', { duration: 10000 });
     }
   };
 

@@ -14,8 +14,13 @@ export async function PATCH(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user || session.user.role !== Role.ADMIN) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    // Only ADMIN and ACCREDITATION_APPROVER can reject
+    if (session.user.role !== Role.ADMIN && session.user.role !== Role.ACCREDITATION_APPROVER) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const { id } = await params;

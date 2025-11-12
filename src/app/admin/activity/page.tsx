@@ -11,8 +11,12 @@ import { formatDate, formatDateTime } from '@/lib/date-format';
 export default async function ActivityLogPage() {
   const session = await getServerSession(authOptions);
 
-  if (process.env.NODE_ENV !== 'development' && (!session || session.user.role !== Role.ADMIN)) {
+  if (!session) {
     redirect('/login');
+  }
+
+  if (process.env.NODE_ENV !== 'development' && session.user.role !== Role.ADMIN) {
+    redirect('/forbidden');
   }
 
   // Fetch recent activity logs

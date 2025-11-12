@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { supplierQuerySchema } from '@/lib/validations/suppliers';
 import { Role } from '@prisma/client';
+import { buildFilterWithSearch } from '@/lib/db/search-filter';
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,33 +28,28 @@ export async function GET(request: NextRequest) {
 
     const { q, status, category, p, ps, sort, order } = validation.data;
 
-    // Build where clause based on role
-    const where: any = {};
+    // Build where clause using reusable search filter
+    const filters: Record<string, any> = {};
 
     // EMPLOYEE can only see APPROVED suppliers
     // ADMIN can see all suppliers
     if (session.user.role === Role.EMPLOYEE) {
-      where.status = 'APPROVED';
+      filters.status = 'APPROVED';
     } else if (status) {
       // Admin can filter by status
-      where.status = status;
-    }
-
-    // Apply search filter
-    if (q) {
-      where.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { suppCode: { contains: q, mode: 'insensitive' } },
-        { category: { contains: q, mode: 'insensitive' } },
-        { city: { contains: q, mode: 'insensitive' } },
-        { country: { contains: q, mode: 'insensitive' } },
-      ];
+      filters.status = status;
     }
 
     // Apply category filter
     if (category) {
-      where.category = category;
+      filters.category = category;
     }
+
+    const where = buildFilterWithSearch({
+      searchTerm: q,
+      searchFields: ['name', 'suppCode', 'category', 'city', 'country'],
+      filters,
+    });
 
     // Calculate pagination
     const skip = (p - 1) * ps;
@@ -90,6 +86,7 @@ export async function GET(request: NextRequest) {
         pageSize: ps,
         total,
         totalPages: Math.ceil(total / ps),
+        hasMore: skip + ps < total,
       },
     });
 

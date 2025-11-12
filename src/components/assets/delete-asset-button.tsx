@@ -38,12 +38,12 @@ export function DeleteAssetButton({ assetId, assetModel }: DeleteAssetButtonProp
         router.push('/admin/assets');
       } else {
         const errorData = await response.json();
-        toast.error(`Failed to delete asset: ${errorData.error || 'Unknown error'}`);
+        toast.error(`Failed to delete asset: ${errorData.error || 'Unknown error'}`, { duration: 10000 });
         setIsDeleting(false);
       }
     } catch (error) {
       console.error('Error deleting asset:', error);
-      toast.error('Error deleting asset. Please try again.');
+      toast.error('Error deleting asset. Please try again.', { duration: 10000 });
       setIsDeleting(false);
     }
   };

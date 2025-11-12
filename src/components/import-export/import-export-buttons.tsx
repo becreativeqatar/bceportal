@@ -34,11 +34,11 @@ export function ImportExportButtons({ entityType }: ImportExportButtonsProps) {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       } else {
-        toast.error('Failed to export data');
+        toast.error('Failed to export data', { duration: 10000 });
       }
     } catch (error) {
       console.error('Export error:', error);
-      toast.error('Error exporting data');
+      toast.error('Error exporting data', { duration: 10000 });
     }
   };
 
@@ -56,11 +56,11 @@ export function ImportExportButtons({ entityType }: ImportExportButtonsProps) {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       } else {
-        toast.error('Failed to download template');
+        toast.error('Failed to download template', { duration: 10000 });
       }
     } catch (error) {
       console.error('Template download error:', error);
-      toast.error('Error downloading template');
+      toast.error('Error downloading template', { duration: 10000 });
     }
   };
 
@@ -89,11 +89,11 @@ export function ImportExportButtons({ entityType }: ImportExportButtonsProps) {
           window.location.reload();
         }, 3000);
       } else {
-        toast.error(`Import failed: ${result.error || 'Unknown error'}`);
+        toast.error(`Import failed: ${result.error || 'Unknown error'}`, { duration: 10000 });
       }
     } catch (error) {
       console.error('Import error:', error);
-      toast.error('Error importing data');
+      toast.error('Error importing data', { duration: 10000 });
     } finally {
       setIsImporting(false);
       event.target.value = ''; // Reset file input

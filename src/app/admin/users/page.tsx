@@ -11,20 +11,17 @@ import { UserListClient } from '@/components/users/user-list-client';
 export default async function AdminUsersPage() {
   const session = await getServerSession(authOptions);
 
-  if (process.env.NODE_ENV !== 'development' && (!session || !session.user || session.user.role !== Role.ADMIN)) {
+  if (!session) {
     redirect('/login');
   }
 
-  // Fetch all users (including deleted) with their asset and subscription counts
+  if (process.env.NODE_ENV !== 'development' && session.user.role !== Role.ADMIN) {
+    redirect('/forbidden');
+  }
+
+  // Fetch all users with their asset and subscription counts
   const users = await prisma.user.findMany({
     include: {
-      deletedBy: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
       _count: {
         select: {
           assets: true,
@@ -34,9 +31,6 @@ export default async function AdminUsersPage() {
     },
     orderBy: { createdAt: 'desc' },
   });
-
-  const activeUsers = users.filter(u => !u.deletedAt);
-  const deletedUsers = users.filter(u => u.deletedAt);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -56,13 +50,13 @@ export default async function AdminUsersPage() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-5 gap-6 mb-8">
+          <div className="grid md:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardHeader>
-                <CardTitle>Active Users</CardTitle>
+                <CardTitle>Total Users</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{activeUsers.length}</div>
+                <div className="text-2xl font-bold">{users.length}</div>
               </CardContent>
             </Card>
             <Card>
@@ -71,17 +65,7 @@ export default async function AdminUsersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {activeUsers.filter(u => u.role === 'ADMIN').length}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Validators</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {activeUsers.filter(u => u.role === 'VALIDATOR').length}
+                  {users.filter(u => u.role === 'ADMIN').length}
                 </div>
               </CardContent>
             </Card>
@@ -91,16 +75,18 @@ export default async function AdminUsersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {activeUsers.filter(u => u.role === 'EMPLOYEE' && !u.isTemporaryStaff && !u.isSystemAccount).length}
+                  {users.filter(u => (u.role === 'EMPLOYEE' || u.role === 'TEMP_STAFF') && !u.isSystemAccount).length}
                 </div>
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Deleted</CardTitle>
+                <CardTitle>Accreditation</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{deletedUsers.length}</div>
+                <div className="text-2xl font-bold">
+                  {users.filter(u => u.role === 'ACCREDITATION_ADDER' || u.role === 'ACCREDITATION_APPROVER').length}
+                </div>
               </CardContent>
             </Card>
           </div>

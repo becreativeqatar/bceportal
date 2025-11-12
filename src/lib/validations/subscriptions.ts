@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BillingCycle, UsageType, SubscriptionStatus } from '@prisma/client';
+import { BillingCycle, SubscriptionStatus } from '@prisma/client';
 import { getQatarNow, getQatarEndOfDay, dateInputToQatarDate } from '@/lib/qatar-timezone';
 
 // Helper to validate date strings
@@ -35,7 +35,6 @@ export const createSubscriptionSchema = z.object({
   costCurrency: z.string().optional().nullable(),
   costQAR: z.number().positive('QAR cost must be a positive number').optional().nullable(),
   vendor: z.string().max(255, 'Vendor name is too long').optional().nullable(),
-  usageType: z.nativeEnum(UsageType),
   status: z.nativeEnum(SubscriptionStatus).default('ACTIVE'),
   projectId: z.string().optional().nullable(),
   assignedUserId: z.string().optional().nullable(),
@@ -85,10 +84,12 @@ export const updateSubscriptionSchema = createSubscriptionSchema
 export const subscriptionQuerySchema = z.object({
   q: z.string().optional(),
   projectId: z.string().optional(),
+  status: z.nativeEnum(SubscriptionStatus).optional(),
+  category: z.string().optional(),
   billingCycle: z.nativeEnum(BillingCycle).optional(),
   renewalWindowDays: z.coerce.number().min(0).max(365).optional(),
   p: z.coerce.number().min(1).default(1),
-  ps: z.coerce.number().min(1).max(100).default(20),
+  ps: z.coerce.number().min(1).max(100).default(50),
   sort: z.enum(['serviceName', 'renewalDate', 'costPerCycle', 'createdAt']).default('createdAt'),
   order: z.enum(['asc', 'desc']).default('desc'),
 });

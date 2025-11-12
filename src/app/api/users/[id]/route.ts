@@ -129,10 +129,6 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Parse request body for deletion notes
-    const body = await request.json().catch(() => ({}));
-    const deletionNotes = body.deletionNotes || '';
-
     // Prevent self-deletion
     if (session.user.id === id) {
       return NextResponse.json(
@@ -149,7 +145,6 @@ export async function DELETE(
         name: true,
         email: true,
         isSystemAccount: true,
-        deletedAt: true,
         _count: {
           select: {
             assets: true,
@@ -161,14 +156,6 @@ export async function DELETE(
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Check if already deleted
-    if (user.deletedAt) {
-      return NextResponse.json(
-        { error: 'User already deleted' },
-        { status: 400 }
-      );
     }
 
     // Prevent deletion of system accounts
@@ -196,14 +183,9 @@ export async function DELETE(
       );
     }
 
-    // Soft delete user (set deletedAt, deletedBy, deletionNotes)
-    const deletedUser = await prisma.user.update({
+    // Permanently delete user
+    await prisma.user.delete({
       where: { id },
-      data: {
-        deletedAt: new Date(),
-        deletedById: session.user.id,
-        deletionNotes: deletionNotes,
-      },
     });
 
     // Log activity
@@ -212,22 +194,21 @@ export async function DELETE(
       ActivityActions.USER_DELETED,
       'User',
       user.id,
-      { userName: user.name, userEmail: user.email, deletionNotes }
+      { userName: user.name, userEmail: user.email }
     );
 
     return NextResponse.json({
       message: 'User deleted successfully',
       user: {
-        id: deletedUser.id,
-        name: deletedUser.name,
-        email: deletedUser.email,
-        deletedAt: deletedUser.deletedAt,
+        id: user.id,
+        name: user.name,
+        email: user.email,
       }
     });
 
   } catch (error) {
     console.error('User DELETE error:', error);
-    if (error instanceof Error && error.message.includes('Record to update not found')) {
+    if (error instanceof Error && error.message.includes('Record to delete not found')) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     return NextResponse.json(

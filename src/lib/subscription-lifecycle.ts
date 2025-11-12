@@ -508,7 +508,6 @@ export async function getUserSubscriptionHistory(userId: string) {
         costCurrency: subscription.costCurrency,
         costQAR: subscription.costQAR ? Number(subscription.costQAR) : null,
         vendor: subscription.vendor,
-        usageType: subscription.usageType,
         status: subscription.status,
         assignedUserId: subscription.assignedUserId,
         autoRenew: subscription.autoRenew,

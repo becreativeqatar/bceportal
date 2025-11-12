@@ -5,14 +5,20 @@ import { Role } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataExportImport } from '@/components/settings/data-export-import';
+import { ExchangeRateSettings } from '@/components/settings/exchange-rate-settings';
 import { DatabaseStats } from '@/components/settings/database-stats';
+import { DataDeletion } from '@/components/settings/data-deletion';
 import { prisma } from '@/lib/prisma';
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
 
-  if (process.env.NODE_ENV !== 'development' && (!session || session.user.role !== Role.ADMIN)) {
+  if (!session) {
     redirect('/login');
+  }
+
+  if (process.env.NODE_ENV !== 'development' && session.user.role !== Role.ADMIN) {
+    redirect('/forbidden');
   }
 
   // Get database statistics
@@ -58,9 +64,10 @@ export default async function SettingsPage() {
           </div>
 
           <Tabs defaultValue="export" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
               <TabsTrigger value="export">Data Export/Import</TabsTrigger>
               <TabsTrigger value="database">Database</TabsTrigger>
+              <TabsTrigger value="testing" className="text-red-600">Testing/Deletion</TabsTrigger>
               <TabsTrigger value="organization">Organization</TabsTrigger>
               <TabsTrigger value="system">System Config</TabsTrigger>
             </TabsList>
@@ -73,6 +80,11 @@ export default async function SettingsPage() {
             {/* Database Tab */}
             <TabsContent value="database" className="space-y-6">
               <DatabaseStats stats={dbStats} />
+            </TabsContent>
+
+            {/* Testing/Deletion Tab */}
+            <TabsContent value="testing" className="space-y-6">
+              <DataDeletion />
             </TabsContent>
 
             {/* Organization Tab */}
@@ -94,19 +106,7 @@ export default async function SettingsPage() {
 
             {/* System Config Tab */}
             <TabsContent value="system" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>System Configuration</CardTitle>
-                  <CardDescription>
-                    Configure system-wide settings and preferences
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-gray-500">
-                    Coming soon - System configuration will be available here
-                  </div>
-                </CardContent>
-              </Card>
+              <ExchangeRateSettings />
             </TabsContent>
           </Tabs>
         </div>

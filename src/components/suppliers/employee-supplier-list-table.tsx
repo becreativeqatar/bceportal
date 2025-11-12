@@ -239,7 +239,7 @@ export function EmployeeSupplierListTable({ suppliers }: EmployeeSupplierListTab
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Link href={`/admin/suppliers/${supplier.id}`}>
+                    <Link href={`/employee/suppliers/${supplier.id}`}>
                       <Button variant="outline" size="sm">
                         View
                       </Button>

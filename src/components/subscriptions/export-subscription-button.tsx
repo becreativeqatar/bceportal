@@ -32,7 +32,7 @@ export function ExportSubscriptionButton({ subscriptionId }: ExportSubscriptionB
       document.body.removeChild(a);
     } catch (error) {
       console.error('Export error:', error);
-      toast.error('Failed to export subscription');
+      toast.error('Failed to export subscription', { duration: 10000 });
     } finally {
       setIsExporting(false);
     }

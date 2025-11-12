@@ -72,11 +72,11 @@ export default function ProjectOverviewPage({ params }: ProjectOverviewProps) {
         router.push('/admin/accreditation/projects');
       } else {
         const data = await response.json();
-        toast.error(data.error || 'Failed to delete project');
+        toast.error(data.error || 'Failed to delete project', { duration: 10000 });
       }
     } catch (error) {
       console.error('Error deleting project:', error);
-      toast.error('Failed to delete project');
+      toast.error('Failed to delete project', { duration: 10000 });
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);

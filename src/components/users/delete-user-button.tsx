@@ -12,8 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,14 +24,8 @@ export function DeleteUserButton({ userId, userName }: DeleteUserButtonProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deletionNotes, setDeletionNotes] = useState('');
 
   const handleDelete = async () => {
-    if (!deletionNotes.trim()) {
-      toast.error('Please provide deletion notes');
-      return;
-    }
-
     setIsDeleting(true);
     try {
       const response = await fetch(`/api/users/${userId}`, {
@@ -41,7 +33,6 @@ export function DeleteUserButton({ userId, userName }: DeleteUserButtonProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ deletionNotes: deletionNotes.trim() }),
       });
 
       const data = await response.json();
@@ -50,13 +41,13 @@ export function DeleteUserButton({ userId, userName }: DeleteUserButtonProps) {
         throw new Error(data.error || 'Failed to delete user');
       }
 
-      toast.success('User deleted successfully');
+      toast.success('User deleted permanently');
       setIsOpen(false);
       router.push('/admin/users');
       router.refresh();
     } catch (error) {
       console.error('Delete error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete user');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete user', { duration: 10000 });
     } finally {
       setIsDeleting(false);
     }
@@ -72,30 +63,12 @@ export function DeleteUserButton({ userId, userName }: DeleteUserButtonProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Delete User</DialogTitle>
+          <DialogTitle>Delete User Permanently</DialogTitle>
           <DialogDescription>
-            This will soft-delete <strong>{userName}</strong>. The user will be marked as deleted but their history
-            will be preserved for records. This action can be viewed in the user list under &quot;Deleted Users&quot;.
+            This will permanently delete <strong>{userName}</strong>. This action cannot be undone.
+            Make sure the user has no assigned assets or subscriptions before deleting.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="deletion-notes">
-              Deletion Notes <span className="text-red-500">*</span>
-            </Label>
-            <Textarea
-              id="deletion-notes"
-              placeholder="Please provide reason for deletion (e.g., Employee left on [date], Exit process completed, Assets returned and verified)"
-              value={deletionNotes}
-              onChange={(e) => setDeletionNotes(e.target.value)}
-              rows={5}
-              className="resize-none"
-            />
-            <p className="text-xs text-gray-500">
-              These notes will be saved in the deletion history and can be viewed later.
-            </p>
-          </div>
-        </div>
         <DialogFooter>
           <Button
             type="button"
@@ -109,7 +82,7 @@ export function DeleteUserButton({ userId, userName }: DeleteUserButtonProps) {
             type="button"
             variant="destructive"
             onClick={handleDelete}
-            disabled={isDeleting || !deletionNotes.trim()}
+            disabled={isDeleting}
           >
             {isDeleting ? (
               <>
@@ -117,7 +90,7 @@ export function DeleteUserButton({ userId, userName }: DeleteUserButtonProps) {
                 Deleting...
               </>
             ) : (
-              'Delete User'
+              'Delete Permanently'
             )}
           </Button>
         </DialogFooter>

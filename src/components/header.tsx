@@ -40,6 +40,15 @@ export default function Header() {
                     </span>
                   )}
                 </span>
+                <Link href="/profile">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border border-slate-400 bg-white/10 text-white hover:bg-white/20 hover:border-slate-300 transition-colors"
+                  >
+                    Profile
+                  </Button>
+                </Link>
                 <Button
                   size="sm"
                   onClick={() => signOut()}

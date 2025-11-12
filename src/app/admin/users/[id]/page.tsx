@@ -21,23 +21,18 @@ interface Props {
 export default async function UserDetailPage({ params }: Props) {
   const session = await getServerSession(authOptions);
 
-  if (process.env.NODE_ENV !== 'development' && (!session || session.user.role !== Role.ADMIN)) {
+  if (!session) {
     redirect('/login');
+  }
+
+  if (process.env.NODE_ENV !== 'development' && session.user.role !== Role.ADMIN) {
+    redirect('/forbidden');
   }
 
   const { id } = await params;
 
   const user = await prisma.user.findUnique({
     where: { id },
-    include: {
-      deletedBy: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
   });
 
   if (!user) {
@@ -54,8 +49,14 @@ export default async function UserDetailPage({ params }: Props) {
     switch (role) {
       case 'ADMIN':
         return 'destructive';
+      case 'VALIDATOR':
+      case 'ACCREDITATION_APPROVER':
+        return 'destructive';
       case 'EMPLOYEE':
+      case 'TEMP_STAFF':
         return 'default';
+      case 'ACCREDITATION_ADDER':
+        return 'secondary';
       default:
         return 'secondary';
     }
@@ -83,42 +84,6 @@ export default async function UserDetailPage({ params }: Props) {
         </div>
 
         <div className="grid gap-6">
-          {/* Deletion Information - Show if user is deleted */}
-          {user.deletedAt && (
-            <Card className="border-red-200 bg-red-50">
-              <CardHeader>
-                <CardTitle className="text-red-900">User Deleted</CardTitle>
-                <CardDescription className="text-red-700">
-                  This user has been soft-deleted and can no longer access the system
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <Label>Deleted On</Label>
-                    <div className="text-base font-semibold text-red-900">
-                      {formatDateTime(user.deletedAt)}
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Deleted By</Label>
-                    <div className="text-base font-semibold text-red-900">
-                      {user.deletedBy ? (user.deletedBy.name || user.deletedBy.email) : 'Unknown'}
-                    </div>
-                  </div>
-                  {user.deletionNotes && (
-                    <div className="md:col-span-2">
-                      <Label>Deletion Notes</Label>
-                      <div className="mt-2 whitespace-pre-wrap text-sm text-gray-700 bg-white p-4 rounded border border-red-200">
-                        {user.deletionNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Basic Information */}
           <Card>
             <CardHeader>
@@ -157,7 +122,7 @@ export default async function UserDetailPage({ params }: Props) {
                         <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
                           🏢 System Account
                         </Badge>
-                      ) : user.isTemporaryStaff ? (
+                      ) : user.role === 'TEMP_STAFF' ? (
                         <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300">
                           Temporary Staff
                         </Badge>

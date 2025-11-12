@@ -7,6 +7,8 @@ import { createSubscriptionSchema, subscriptionQuerySchema } from '@/lib/validat
 import { logAction, ActivityActions } from '@/lib/activity';
 import { getQatarNow, getQatarStartOfDay } from '@/lib/qatar-timezone';
 import { parseInputDateString } from '@/lib/date-format';
+import { USD_TO_QAR_RATE } from '@/lib/constants';
+import { buildFilterWithSearch } from '@/lib/db/search-filter';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,32 +30,32 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { q, projectId, billingCycle, renewalWindowDays, p, ps, sort, order } = validation.data;
+    const { q, projectId, status, category, billingCycle, renewalWindowDays, p, ps, sort, order } = validation.data;
 
-    // Build where clause
-    const where: any = {};
-    
-    if (q) {
-      where.OR = [
-        { serviceName: { contains: q, mode: 'insensitive' } },
-        { accountId: { contains: q, mode: 'insensitive' } },
-        { vendor: { contains: q, mode: 'insensitive' } },
-      ];
-    }
-    
-    if (projectId) where.projectId = projectId;
-    if (billingCycle) where.billingCycle = billingCycle;
-    
+    // Build where clause using reusable search filter
+    const filters: Record<string, any> = {};
+
+    if (projectId) filters.projectId = projectId;
+    if (status) filters.status = status;
+    if (category) filters.category = category;
+    if (billingCycle) filters.billingCycle = billingCycle;
+
     if (renewalWindowDays !== undefined) {
       // Calculate renewal window using Qatar timezone
       const now = getQatarStartOfDay(getQatarNow());
       const targetDate = new Date(now);
       targetDate.setDate(targetDate.getDate() + renewalWindowDays);
-      where.renewalDate = {
+      filters.renewalDate = {
         lte: targetDate,
         gte: now,
       };
     }
+
+    const where = buildFilterWithSearch({
+      searchTerm: q,
+      searchFields: ['serviceName', 'accountId', 'vendor', 'category'],
+      filters,
+    });
 
     // Calculate pagination
     const skip = (p - 1) * ps;
@@ -120,7 +122,6 @@ export async function POST(request: NextRequest) {
     const data = validation.data;
 
     // SAFEGUARD: Always calculate costQAR to prevent data loss
-    const USD_TO_QAR = 3.64;
     let costQAR = data.costQAR;
 
     // Default currency to QAR if not specified
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
         costQAR = data.costPerCycle;
       } else {
         // USD - convert to QAR
-        costQAR = data.costPerCycle * USD_TO_QAR;
+        costQAR = data.costPerCycle * USD_TO_QAR_RATE;
       }
     }
 

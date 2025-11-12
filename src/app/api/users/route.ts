@@ -47,7 +47,7 @@ async function createUserHandler(request: NextRequest) {
     }, { status: 400 });
   }
 
-  const { name, email, role, isTemporaryStaff } = validation.data;
+  const { name, email, role } = validation.data;
 
   // Check if user with this email already exists
   const existingUser = await prisma.user.findUnique({
@@ -64,14 +64,12 @@ async function createUserHandler(request: NextRequest) {
   // Create user
   // Note: Password is not stored as users authenticate via Azure AD or OAuth
   // emailVerified is set to null - they'll verify on first login
-  // Temporary staff don't need email verification or login access and default to EMPLOYEE role
   const user = await prisma.user.create({
     data: {
       name,
       email,
-      role: role || Role.EMPLOYEE,
-      isTemporaryStaff: isTemporaryStaff || false,
-      emailVerified: isTemporaryStaff ? null : null,
+      role,
+      emailVerified: null,
     },
     include: {
       _count: {

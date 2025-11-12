@@ -71,11 +71,11 @@ export function AssetMaintenanceRecords({ assetId, readOnly = false }: AssetMain
         // Refresh records
         fetchRecords();
       } else {
-        toast.error('Failed to add maintenance record');
+        toast.error('Failed to add maintenance record', { duration: 10000 });
       }
     } catch (error) {
       console.error('Error adding maintenance record:', error);
-      toast.error('Failed to add maintenance record');
+      toast.error('Failed to add maintenance record', { duration: 10000 });
     } finally {
       setSubmitting(false);
     }

@@ -68,7 +68,7 @@ export default function ImportAccreditationsPage({ params }: ImportAccreditation
       }
     } catch (error) {
       console.error('Error fetching project:', error);
-      toast.error('Failed to load project details');
+      toast.error('Failed to load project details', { duration: 10000 });
     }
   };
 
@@ -95,7 +95,7 @@ export default function ImportAccreditationsPage({ params }: ImportAccreditation
     if (!selectedFile) return;
 
     if (!selectedFile.name.endsWith('.csv')) {
-      toast.error('Please upload a CSV file');
+      toast.error('Please upload a CSV file', { duration: 10000 });
       e.target.value = '';
       return;
     }
@@ -105,12 +105,12 @@ export default function ImportAccreditationsPage({ params }: ImportAccreditation
 
   const parseCSV = async () => {
     if (!file) {
-      toast.error('Please select a file');
+      toast.error('Please select a file', { duration: 10000 });
       return;
     }
 
     if (!projectId) {
-      toast.error('Please select a project');
+      toast.error('Please select a project', { duration: 10000 });
       return;
     }
 
@@ -121,7 +121,7 @@ export default function ImportAccreditationsPage({ params }: ImportAccreditation
       const lines = text.split('\n').filter((line) => line.trim());
 
       if (lines.length < 2) {
-        toast.error('CSV file is empty or has no data rows');
+        toast.error('CSV file is empty or has no data rows', { duration: 10000 });
         setIsProcessing(false);
         return;
       }
@@ -215,7 +215,7 @@ export default function ImportAccreditationsPage({ params }: ImportAccreditation
       toast.success(`Parsed ${records.length} records from CSV`);
     } catch (error) {
       console.error('Error parsing CSV:', error);
-      toast.error('Failed to parse CSV file');
+      toast.error('Failed to parse CSV file', { duration: 10000 });
     } finally {
       setIsProcessing(false);
     }
@@ -223,13 +223,13 @@ export default function ImportAccreditationsPage({ params }: ImportAccreditation
 
   const handleImport = async () => {
     if (parsedRecords.length === 0) {
-      toast.error('No records to import');
+      toast.error('No records to import', { duration: 10000 });
       return;
     }
 
     const validRecords = parsedRecords.filter((r) => r.errors.length === 0);
     if (validRecords.length === 0) {
-      toast.error('No valid records to import. Please fix errors first.');
+      toast.error('No valid records to import. Please fix errors first.', { duration: 10000 });
       return;
     }
 
@@ -264,7 +264,7 @@ export default function ImportAccreditationsPage({ params }: ImportAccreditation
       router.push(`/admin/accreditation/projects/${projectId}/records`);
     } catch (error) {
       console.error('Import error:', error);
-      toast.error(error instanceof Error ? error.message : 'Import failed', { id: 'import-progress' });
+      toast.error(error instanceof Error ? error.message : 'Import failed', { id: 'import-progress', duration: 10000 });
     } finally {
       setIsImporting(false);
     }

@@ -24,6 +24,7 @@ async function exportAssetsHandler(request: NextRequest) {
 
   // Transform data for CSV
   const csvData = assets.map(asset => ({
+    id: asset.id,
     assetTag: asset.assetTag || '',
     type: asset.type,
     category: asset.category || '',
@@ -42,7 +43,9 @@ async function exportAssetsHandler(request: NextRequest) {
     status: asset.status,
     acquisitionType: asset.acquisitionType,
     transferNotes: asset.transferNotes || '',
+    assignmentDate: asset.assignmentDate || '',
     notes: asset.notes || '',
+    assignedUserId: asset.assignedUserId || '',
     assignedUserName: asset.assignedUser?.name || '',
     assignedUserEmail: asset.assignedUser?.email || '',
     createdAt: formatDateForCSV(asset.createdAt),
@@ -51,6 +54,7 @@ async function exportAssetsHandler(request: NextRequest) {
 
   // Define CSV headers
   const headers = [
+    { key: 'id' as const, header: 'ID' },
     { key: 'assetTag' as const, header: 'Asset Tag' },
     { key: 'type' as const, header: 'Type' },
     { key: 'category' as const, header: 'Category' },
@@ -69,7 +73,9 @@ async function exportAssetsHandler(request: NextRequest) {
     { key: 'status' as const, header: 'Status' },
     { key: 'acquisitionType' as const, header: 'Acquisition Type' },
     { key: 'transferNotes' as const, header: 'Transfer Notes' },
+    { key: 'assignmentDate' as const, header: 'Assignment Date' },
     { key: 'notes' as const, header: 'Notes' },
+    { key: 'assignedUserId' as const, header: 'Assigned User ID' },
     { key: 'assignedUserName' as const, header: 'Assigned User Name' },
     { key: 'assignedUserEmail' as const, header: 'Assigned User Email' },
     { key: 'createdAt' as const, header: 'Created At' },

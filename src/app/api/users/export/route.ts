@@ -21,29 +21,20 @@ export async function GET() {
             subscriptions: true,
           },
         },
-        deletedBy: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
       },
       orderBy: { createdAt: 'desc' },
     });
 
     // Transform data for CSV
     const csvData = users.map(user => ({
+      id: user.id,
       name: user.name || '',
       email: user.email,
       role: user.role,
-      isTemporaryStaff: user.isTemporaryStaff ? 'Yes' : 'No',
       isSystemAccount: user.isSystemAccount ? 'Yes' : 'No',
       emailVerified: user.emailVerified ? 'Yes' : 'No',
       assignedAssets: user._count.assets,
       assignedSubscriptions: user._count.subscriptions,
-      deletedAt: user.deletedAt ? user.deletedAt.toISOString().split('T')[0] : '',
-      deletedBy: user.deletedBy ? (user.deletedBy.name || user.deletedBy.email) : '',
-      deletionNotes: user.deletionNotes || '',
       image: user.image || '',
       createdAt: user.createdAt.toISOString().split('T')[0],
       updatedAt: user.updatedAt.toISOString().split('T')[0],
@@ -51,17 +42,14 @@ export async function GET() {
 
     // Define CSV headers
     const headers = [
+      { key: 'id', header: 'ID' },
       { key: 'name', header: 'Name' },
       { key: 'email', header: 'Email' },
       { key: 'role', header: 'Role' },
-      { key: 'isTemporaryStaff', header: 'Temporary Staff' },
       { key: 'isSystemAccount', header: 'System Account' },
       { key: 'emailVerified', header: 'Email Verified' },
       { key: 'assignedAssets', header: 'Assigned Assets' },
       { key: 'assignedSubscriptions', header: 'Assigned Subscriptions' },
-      { key: 'deletedAt', header: 'Deleted At' },
-      { key: 'deletedBy', header: 'Deleted By' },
-      { key: 'deletionNotes', header: 'Deletion Notes' },
       { key: 'image', header: 'Profile Image URL' },
       { key: 'createdAt', header: 'Created At' },
       { key: 'updatedAt', header: 'Updated At' },

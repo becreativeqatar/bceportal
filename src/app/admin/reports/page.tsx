@@ -12,8 +12,12 @@ import { Activity, TrendingUp, Users, Package, CreditCard, Building2, IdCard } f
 export default async function AdminReportsPage() {
   const session = await getServerSession(authOptions);
 
-  if (process.env.NODE_ENV !== 'development' && (!session || session.user.role !== Role.ADMIN)) {
+  if (!session) {
     redirect('/login');
+  }
+
+  if (process.env.NODE_ENV !== 'development' && session.user.role !== Role.ADMIN) {
+    redirect('/forbidden');
   }
 
   // Get comprehensive stats from ALL modules
@@ -114,11 +118,7 @@ export default async function AdminReportsPage() {
       by: ['role'],
       _count: { role: true },
     }),
-    prisma.user.count({
-      where: {
-        deletedAt: null,
-      },
-    }),
+    prisma.user.count(),
 
     // Accreditations queries
     prisma.accreditation.count(),

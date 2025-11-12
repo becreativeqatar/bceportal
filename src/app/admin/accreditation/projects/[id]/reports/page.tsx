@@ -76,11 +76,11 @@ export default function ProjectReportsPage() {
         const data = await response.json();
         setReportData(data);
       } else {
-        toast.error('Failed to load report data');
+        toast.error('Failed to load report data', { duration: 10000 });
       }
     } catch (error) {
       console.error('Error fetching report data:', error);
-      toast.error('Failed to load report data');
+      toast.error('Failed to load report data', { duration: 10000 });
     } finally {
       setIsLoading(false);
     }

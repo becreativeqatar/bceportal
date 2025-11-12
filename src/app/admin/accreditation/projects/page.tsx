@@ -64,7 +64,7 @@ export default function AccreditationProjectsPage() {
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
-      toast.error('Failed to load projects');
+      toast.error('Failed to load projects', { duration: 10000 });
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +107,7 @@ export default function AccreditationProjectsPage() {
       fetchProjects();
       resetForm();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `Failed to ${isEditMode ? 'update' : 'create'} accreditation project`);
+      toast.error(error instanceof Error ? error.message : `Failed to ${isEditMode ? 'update' : 'create'} accreditation project`, { duration: 10000 });
     } finally {
       setIsSubmitting(false);
     }

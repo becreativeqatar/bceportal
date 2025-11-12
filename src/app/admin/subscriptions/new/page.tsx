@@ -45,7 +45,6 @@ export default function NewSubscriptionPage() {
       costCurrency: 'QAR',
       costQAR: null,
       vendor: null,
-      usageType: 'OFFICE',
       status: 'ACTIVE',
       autoRenew: true,
       paymentMethod: null,
@@ -202,11 +201,11 @@ export default function NewSubscriptionPage() {
         router.push('/admin/subscriptions');
       } else {
         const errorData = await response.json();
-        toast.error(`Failed to create subscription: ${errorData.error || 'Unknown error'}`);
+        toast.error(`Failed to create subscription: ${errorData.error || 'Unknown error'}`, { duration: 10000 });
       }
     } catch (error) {
       console.error('Error creating subscription:', error);
-      toast.error('Error creating subscription. Please try again.');
+      toast.error('Error creating subscription. Please try again.', { duration: 10000 });
     }
   };
 

@@ -73,14 +73,14 @@ export function SupplierActions({
       setApproveDialog(false);
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to approve supplier');
+      toast.error(err instanceof Error ? err.message : 'Failed to approve supplier', { duration: 10000 });
       setApproveDialog(false);
     }
   };
 
   const handleRejectSubmit = async () => {
     if (!rejectDialog.rejectionReason.trim()) {
-      toast.error('Please provide a rejection reason');
+      toast.error('Please provide a rejection reason', { duration: 10000 });
       return;
     }
 
@@ -96,10 +96,11 @@ export function SupplierActions({
         throw new Error(data.error || 'Failed to reject supplier');
       }
 
+      toast.success('Supplier rejected and removed');
       setRejectDialog({ open: false, rejectionReason: '' });
-      router.refresh();
+      router.push('/admin/suppliers');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to reject supplier');
+      toast.error(err instanceof Error ? err.message : 'Failed to reject supplier', { duration: 10000 });
     }
   };
 
@@ -117,14 +118,14 @@ export function SupplierActions({
       setDeleteDialog(false);
       router.push('/admin/suppliers');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete supplier');
+      toast.error(err instanceof Error ? err.message : 'Failed to delete supplier', { duration: 10000 });
       setDeleteDialog(false);
     }
   };
 
   const handleAddEngagement = async () => {
     if (!engagementDialog.notes.trim()) {
-      toast.error('Please enter notes for the engagement');
+      toast.error('Please enter notes for the engagement', { duration: 10000 });
       return;
     }
 
@@ -155,7 +156,7 @@ export function SupplierActions({
       });
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to add engagement');
+      toast.error(err instanceof Error ? err.message : 'Failed to add engagement', { duration: 10000 });
       setEngagementDialog(prev => ({ ...prev, isSubmitting: false }));
     }
   };

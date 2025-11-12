@@ -184,7 +184,7 @@ function NewAccreditationContent({ projectId }: { projectId: string }) {
       }
     } catch (error) {
       console.error('Error fetching project:', error);
-      toast.error('Failed to load project details');
+      toast.error('Failed to load project details', { duration: 10000 });
     }
   };
 
@@ -219,14 +219,14 @@ function NewAccreditationContent({ projectId }: { projectId: string }) {
     if (file) {
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size must be less than 5MB');
+        toast.error('File size must be less than 5MB', { duration: 10000 });
         e.target.value = ''; // Clear the input
         return;
       }
 
       // Validate file type (only JPEG/PNG)
       if (!['image/jpeg', 'image/png'].includes(file.type)) {
-        toast.error('Only JPG and PNG files are allowed');
+        toast.error('Only JPG and PNG files are allowed', { duration: 10000 });
         e.target.value = ''; // Clear the input
         return;
       }
@@ -239,7 +239,7 @@ function NewAccreditationContent({ projectId }: { projectId: string }) {
         URL.revokeObjectURL(objectUrl); // Clean up
 
         if (img.width < 300 || img.height < 300) {
-          toast.error('Image dimensions must be at least 300x300 pixels');
+          toast.error('Image dimensions must be at least 300x300 pixels', { duration: 10000 });
           e.target.value = ''; // Clear the input
           return;
         }
@@ -255,7 +255,7 @@ function NewAccreditationContent({ projectId }: { projectId: string }) {
 
       img.onerror = () => {
         URL.revokeObjectURL(objectUrl);
-        toast.error('Failed to load image. Please try another file.');
+        toast.error('Failed to load image. Please try another file.', { duration: 10000 });
         e.target.value = ''; // Clear the input
       };
 
@@ -283,13 +283,22 @@ function NewAccreditationContent({ projectId }: { projectId: string }) {
       return data.url;
     } catch (error) {
       console.error('Error uploading photo:', error);
-      toast.error('Failed to upload photo');
+      toast.error('Failed to upload photo', { duration: 10000 });
       return null;
     }
   };
 
   const onSubmit = async (formData: FormData, status: 'DRAFT' | 'PENDING') => {
     try {
+      // Validate project ID exists
+      if (!projectId || !formData.projectId) {
+        toast.error('Project not loaded', {
+          description: 'Please wait for the project to load before submitting',
+          duration: 10000,
+        });
+        return;
+      }
+
       // Upload photo if present
       let photoUrl = null;
       if (photoFile) {
@@ -302,9 +311,13 @@ function NewAccreditationContent({ projectId }: { projectId: string }) {
       // Prepare data - only include relevant identification fields
       const submitData: any = {
         ...formData,
+        projectId: projectId, // Ensure projectId is explicitly set
         profilePhotoUrl: photoUrl,
         status: AccreditationStatus.DRAFT,
       };
+
+      console.log('Submitting accreditation with projectId:', projectId);
+      console.log('Full submit data:', JSON.stringify(submitData, null, 2));
 
       // Add identification fields based on type
       if (formData.identificationType === 'qid') {
@@ -341,13 +354,27 @@ function NewAccreditationContent({ projectId }: { projectId: string }) {
         if (responseData.details && Array.isArray(responseData.details)) {
           const errorMessages = responseData.details.map((detail: any) =>
             `${detail.path?.join('.')}: ${detail.message}`
-          ).join('\n');
+          ).join('; ');
           console.error('Validation errors:', errorMessages);
-          toast.error(`Validation failed:\n${errorMessages}`);
-          throw new Error(responseData.error || 'Validation failed');
+          toast.error('Validation failed', {
+            description: errorMessages,
+            duration: 10000,
+          });
+          return;
         }
 
-        throw new Error(responseData.error || 'Failed to create accreditation');
+        // Show specific error from API
+        // Check both 'details' and 'error' fields
+        const errorMessage = responseData.details || responseData.error;
+        console.error('Create accreditation error:', errorMessage);
+        console.error('Full error response:', responseData);
+
+        // Show error with description (the actual reason)
+        toast.error('Failed to create accreditation', {
+          description: errorMessage || 'Unknown error occurred',
+          duration: 10000,
+        });
+        return;
       }
 
       const responseData = await response.json();
@@ -363,10 +390,16 @@ function NewAccreditationContent({ projectId }: { projectId: string }) {
         }
       }
 
-      toast.success(status === 'DRAFT' ? 'Draft saved successfully' : 'Submitted for approval');
+      toast.success(status === 'DRAFT' ? 'Draft saved successfully' : 'Submitted for approval', {
+        duration: 5000,
+      });
       router.push(`/admin/accreditation/projects/${projectId}/records`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create accreditation');
+      console.error('Unexpected error creating accreditation:', error);
+      toast.error('An unexpected error occurred', {
+        description: error instanceof Error ? error.message : 'Failed to create accreditation',
+        duration: 10000,
+      });
     }
   };
 

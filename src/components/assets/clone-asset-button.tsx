@@ -39,12 +39,12 @@ export function CloneAssetButton({ assetId, assetModel }: CloneAssetButtonProps)
         router.push(`/admin/assets/${clonedAsset.id}/edit`);
       } else {
         const errorData = await response.json();
-        toast.error(`Failed to clone asset: ${errorData.error || 'Unknown error'}`);
+        toast.error(`Failed to clone asset: ${errorData.error || 'Unknown error'}`, { duration: 10000 });
         setIsCloning(false);
       }
     } catch (error) {
       console.error('Error cloning asset:', error);
-      toast.error('Error cloning asset. Please try again.');
+      toast.error('Error cloning asset. Please try again.', { duration: 10000 });
       setIsCloning(false);
     }
   };

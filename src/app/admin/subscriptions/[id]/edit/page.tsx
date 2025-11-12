@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,7 +30,6 @@ interface Subscription {
   billingCycle: string;
   costPerCycle?: number;
   vendor?: string;
-  usageType: string;
   status: string;
   autoRenew: boolean;
   paymentMethod?: string;
@@ -48,7 +47,7 @@ export default function EditSubscriptionPage() {
   const [categorySuggestions, setCategorySuggestions] = useState<string[]>([]);
   const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
   const [lastAssignmentDate, setLastAssignmentDate] = useState<string>('');
-  const [manualRenewalEdit, setManualRenewalEdit] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const {
     register,
@@ -70,7 +69,6 @@ export default function EditSubscriptionPage() {
       costCurrency: 'QAR',
       costQAR: null,
       vendor: '',
-      usageType: 'OFFICE',
       status: 'ACTIVE',
       autoRenew: true,
       paymentMethod: '',
@@ -110,19 +108,35 @@ export default function EditSubscriptionPage() {
     }
   }, [watchedCostPerCycle, watchedCostCurrency, setValue]);
 
-  // Auto-calculate renewal date based on purchase date and billing cycle
-  // Reset manual edit flag when purchase date or billing cycle changes
-  useEffect(() => {
-    setManualRenewalEdit(false); // Allow auto-calc when these change
-  }, [watchedPurchaseDate, watchedBillingCycle]);
+  // Auto-calculate renewal date ONLY on initial load or when purchase/billing actually changes
+  // Use refs to track previous values to avoid unnecessary recalculations
+  const prevPurchaseDateRef = useRef<string>('');
+  const prevBillingCycleRef = useRef<string>('');
 
   useEffect(() => {
-    if (manualRenewalEdit) return; // Skip if user manually edited
+    // Skip if this is re-render with same values (avoid auto-calc on every render)
+    const purchaseChanged = prevPurchaseDateRef.current !== '' && prevPurchaseDateRef.current !== watchedPurchaseDate;
+    const billingChanged = prevBillingCycleRef.current !== '' && prevBillingCycleRef.current !== watchedBillingCycle;
+
+    // Only auto-calculate if:
+    // 1. Initial load (prevPurchaseDateRef is empty)
+    // 2. Purchase date actually changed
+    // 3. Billing cycle actually changed
+    const shouldAutoCalc = isInitialLoad || purchaseChanged || billingChanged;
+
+    if (!shouldAutoCalc) {
+      // Update refs for next comparison
+      prevPurchaseDateRef.current = watchedPurchaseDate || '';
+      prevBillingCycleRef.current = watchedBillingCycle || '';
+      return;
+    }
 
     if (watchedPurchaseDate && watchedBillingCycle && watchedBillingCycle !== 'ONE_TIME') {
-      const purchaseDate = new Date(watchedPurchaseDate);
-      const renewalDate = new Date(purchaseDate);
+      // Parse the date string properly
+      const [y, m, d] = watchedPurchaseDate.split('-').map(Number);
+      const purchaseDate = new Date(y, m - 1, d);
 
+      let renewalDate = new Date(purchaseDate);
       switch (watchedBillingCycle) {
         case 'MONTHLY':
           renewalDate.setMonth(renewalDate.getMonth() + 1);
@@ -132,14 +146,26 @@ export default function EditSubscriptionPage() {
           break;
       }
 
-      // Format date as YYYY-MM-DD for input type="date"
-      const formattedDate = toInputDateString(renewalDate);
+      const ry = renewalDate.getFullYear();
+      const rm = String(renewalDate.getMonth() + 1).padStart(2, '0');
+      const rd = String(renewalDate.getDate()).padStart(2, '0');
+      const formattedDate = `${ry}-${rm}-${rd}`;
+
       setValue('renewalDate', formattedDate);
     } else if (watchedBillingCycle === 'ONE_TIME') {
       setValue('renewalDate', '');
       setValue('autoRenew', false);
     }
-  }, [watchedPurchaseDate, watchedBillingCycle, setValue, manualRenewalEdit]);
+
+    // Update refs after calculation
+    prevPurchaseDateRef.current = watchedPurchaseDate || '';
+    prevBillingCycleRef.current = watchedBillingCycle || '';
+
+    // Mark initial load as complete
+    if (isInitialLoad) {
+      setIsInitialLoad(false);
+    }
+  }, [watchedPurchaseDate, watchedBillingCycle, setValue, isInitialLoad]);
 
   const fetchUsers = async () => {
     try {
@@ -227,7 +253,6 @@ export default function EditSubscriptionPage() {
           costCurrency: subscriptionData.costCurrency || 'QAR',
           costQAR: subscriptionData.costQAR || null,
           vendor: subscriptionData.vendor || '',
-          usageType: subscriptionData.usageType || 'OFFICE',
           status: (subscriptionData.status || 'ACTIVE') as 'ACTIVE' | 'CANCELLED',
           autoRenew: subscriptionData.autoRenew ?? true,
           paymentMethod: subscriptionData.paymentMethod || '',
@@ -236,12 +261,12 @@ export default function EditSubscriptionPage() {
           assignmentDate: assignmentDateValue
         });
       } else {
-        toast.error('Subscription not found');
+        toast.error('Subscription not found', { duration: 10000 });
         router.push('/admin/subscriptions');
       }
     } catch (error) {
       console.error('Error fetching subscription:', error);
-      toast.error('Error loading subscription');
+      toast.error('Error loading subscription', { duration: 10000 });
     }
   };
 
@@ -299,11 +324,11 @@ export default function EditSubscriptionPage() {
         }, 2000);
       } else {
         const errorData = await response.json();
-        toast.error(`Failed to update subscription: ${errorData.error || 'Unknown error'}`);
+        toast.error(`Failed to update subscription: ${errorData.error || 'Unknown error'}`, { duration: 10000 });
       }
     } catch (error) {
       console.error('Error updating subscription:', error);
-      toast.error('Error updating subscription. Please try again.');
+      toast.error('Error updating subscription. Please try again.', { duration: 10000 });
     }
   };
 
@@ -487,10 +512,11 @@ export default function EditSubscriptionPage() {
                     <DatePicker
                       id="renewalDate"
                       value={watchedRenewalDate || ''}
-                      onChange={(value) => {
-                        setValue('renewalDate', value);
-                        setManualRenewalEdit(true); // Mark as manually edited
-                      }}
+                      onChange={(value) => setValue('renewalDate', value)}
+                      minDate={watchedPurchaseDate ? (() => {
+                        const [y, m, d] = watchedPurchaseDate.split('-').map(Number);
+                        return new Date(y, m - 1, d);
+                      })() : undefined}
                     />
                     {errors.renewalDate && (
                       <p className="text-sm text-red-500">{errors.renewalDate.message}</p>

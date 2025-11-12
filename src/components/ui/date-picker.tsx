@@ -48,39 +48,37 @@ export function DatePicker({
 
   // Update internal state when value prop changes
   React.useEffect(() => {
-    if (value) {
-      // Parse yyyy-mm-dd string as local date to avoid timezone shifts
-      // Split the date parts and create a date at midnight local time
-      if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        const [year, month, day] = value.split('-').map(Number);
-        const localDate = new Date(year, month - 1, day);
-        if (!isNaN(localDate.getTime())) {
-          setDate(localDate);
-        }
-      } else {
-        // Fallback to normal parsing for other formats
-        const parsed = new Date(value);
-        if (!isNaN(parsed.getTime())) {
-          setDate(parsed);
-        }
+    if (value && value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Parse yyyy-mm-dd: create Date using year, month-1, day directly
+      // This ensures the date is interpreted in local timezone without shifts
+      const [y, m, d] = value.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d, 12, 0, 0); // Use noon to avoid DST issues
+      if (!isNaN(dateObj.getTime())) {
+        setDate(dateObj);
       }
-    } else {
+    } else if (!value) {
       setDate(undefined);
     }
   }, [value]);
 
   const handleSelect = (selectedDate: Date | undefined) => {
-    setDate(selectedDate);
-    if (selectedDate) {
-      // Convert to yyyy-mm-dd format using UTC to avoid timezone issues
-      // The calendar gives us a date at midnight local time, we want to preserve that exact date
-      const year = selectedDate.getFullYear();
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const day = String(selectedDate.getDate()).padStart(2, '0');
-      onChange?.(`${year}-${month}-${day}`);
-    } else {
+    if (!selectedDate) {
+      setDate(undefined);
       onChange?.('');
+      setOpen(false);
+      return;
     }
+
+    setDate(selectedDate);
+
+    // Extract year, month, day directly from the selected date object
+    // The calendar component gives us the exact date the user clicked
+    const y = selectedDate.getFullYear();
+    const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const d = String(selectedDate.getDate()).padStart(2, '0');
+    const dateString = `${y}-${m}-${d}`;
+
+    onChange?.(dateString);
     setOpen(false);
   };
 

@@ -38,7 +38,7 @@ export default function LoginPage() {
       await signIn('azure-ad', { callbackUrl: '/' });
     } catch (error) {
       console.error('Azure sign in error:', error);
-      toast.error('Failed to sign in. Please try again.');
+      toast.error('Failed to sign in. Please try again.', { duration: 10000 });
     }
     setIsLoading(false);
   };

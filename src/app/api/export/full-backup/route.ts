@@ -31,17 +31,7 @@ export async function GET() {
       activityLogs,
       maintenanceRecords,
     ] = await Promise.all([
-      prisma.user.findMany({
-        include: {
-          deletedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      }),
+      prisma.user.findMany(),
       prisma.asset.findMany({
         include: {
           assignedUser: {
@@ -259,11 +249,8 @@ export async function GET() {
       name: u.name || '',
       email: u.email,
       role: u.role,
-      isTemporaryStaff: u.isTemporaryStaff ? 'Yes' : 'No',
       isSystemAccount: u.isSystemAccount ? 'Yes' : 'No',
       emailVerified: u.emailVerified ? formatDateForCSV(u.emailVerified) : '',
-      deletedAt: formatDateForCSV(u.deletedAt),
-      deletedBy: u.deletedBy ? (u.deletedBy.name || u.deletedBy.email) : '',
       createdAt: formatDateForCSV(u.createdAt),
       updatedAt: formatDateForCSV(u.updatedAt),
     }));
@@ -306,7 +293,6 @@ export async function GET() {
       costCurrency: s.costCurrency || '',
       costQAR: s.costQAR ? Number(s.costQAR) : '',
       vendor: s.vendor || '',
-      usageType: s.usageType,
       status: s.status,
       assignedUserId: s.assignedUserId || '',
       assignedUser: s.assignedUser ? (s.assignedUser.name || s.assignedUser.email) : '',

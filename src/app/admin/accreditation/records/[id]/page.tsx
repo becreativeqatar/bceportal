@@ -98,12 +98,12 @@ export default function AccreditationDetailPage({ params }: { params: Promise<{ 
         const data = await response.json();
         setAccreditation(data.accreditation);
       } else {
-        toast.error('Failed to load accreditation');
+        toast.error('Failed to load accreditation', { duration: 10000 });
         router.push('/admin/accreditation');
       }
     } catch (error) {
       console.error('Error fetching accreditation:', error);
-      toast.error('Failed to load accreditation');
+      toast.error('Failed to load accreditation', { duration: 10000 });
     } finally {
       setIsLoading(false);
     }
@@ -137,11 +137,11 @@ export default function AccreditationDetailPage({ params }: { params: Promise<{ 
         fetchAccreditation(); // Refresh data
       } else {
         const data = await response.json();
-        toast.error(data.error || 'Failed to approve accreditation');
+        toast.error(data.error || 'Failed to approve accreditation', { duration: 10000 });
       }
     } catch (error) {
       console.error('Error approving accreditation:', error);
-      toast.error('Failed to approve accreditation');
+      toast.error('Failed to approve accreditation', { duration: 10000 });
     } finally {
       setIsSubmitting(false);
     }
@@ -165,11 +165,11 @@ export default function AccreditationDetailPage({ params }: { params: Promise<{ 
         fetchAccreditation(); // Refresh data
       } else {
         const data = await response.json();
-        toast.error(data.error || 'Failed to reject accreditation');
+        toast.error(data.error || 'Failed to reject accreditation', { duration: 10000 });
       }
     } catch (error) {
       console.error('Error rejecting accreditation:', error);
-      toast.error('Failed to reject accreditation');
+      toast.error('Failed to reject accreditation', { duration: 10000 });
     } finally {
       setIsSubmitting(false);
     }
@@ -196,11 +196,11 @@ export default function AccreditationDetailPage({ params }: { params: Promise<{ 
         fetchAccreditation(); // Refresh data
       } else {
         const data = await response.json();
-        toast.error(data.error || 'Failed to return to draft', { id: 'return-to-draft' });
+        toast.error(data.error || 'Failed to return to draft', { id: 'return-to-draft', duration: 10000 });
       }
     } catch (error) {
       console.error('Error returning to draft:', error);
-      toast.error('Failed to return to draft', { id: 'return-to-draft' });
+      toast.error('Failed to return to draft', { id: 'return-to-draft', duration: 10000 });
     }
   };
 

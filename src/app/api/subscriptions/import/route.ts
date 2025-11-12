@@ -4,7 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { csvToArray } from '@/lib/csv-utils';
 import { logAction, ActivityActions } from '@/lib/activity';
-import { BillingCycle, UsageType } from '@prisma/client';
+import { BillingCycle } from '@prisma/client';
+import { USD_TO_QAR_RATE } from '@/lib/constants';
 
 interface ImportRow {
   'ID'?: string;
@@ -19,12 +20,12 @@ interface ImportRow {
   'Cost Currency'?: string;
   'Cost USD'?: string;
   'Status'?: string;
-  'Usage Type'?: string;
   'Auto Renew'?: string;
   'Payment Method'?: string;
   'Notes'?: string;
   'Project Name'?: string;
   'Project Code'?: string;
+  'Assigned User ID'?: string;
   'Assigned User Name'?: string;
   'Assigned User Email'?: string;
   'Cancelled At (dd/mm/yyyy)'?: string;
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
     // Get file from request
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const duplicateStrategy = (formData.get('duplicateStrategy') as string) || 'skip';
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
@@ -134,11 +136,15 @@ export async function POST(request: NextRequest) {
 
     const results: {
       success: number;
+      updated: number;
+      skipped: number;
       failed: number;
       errors: { row: number; error: string; data: unknown }[];
       created: { serviceName: string; billingCycle: string; costPerCycle: number | null }[];
     } = {
       success: 0,
+      updated: 0,
+      skipped: 0,
       failed: 0,
       errors: [],
       created: [],
@@ -178,22 +184,6 @@ export async function POST(request: NextRequest) {
             continue;
           }
           billingCycle = cycleInput as BillingCycle;
-        }
-
-        // Parse and validate usage type
-        let usageType: UsageType = UsageType.OFFICE;
-        if (row['Usage Type']) {
-          const typeInput = row['Usage Type'].toUpperCase();
-          if (!['OFFICE', 'PROJECT'].includes(typeInput)) {
-            results.errors.push({
-              row: rowNumber,
-              error: 'Invalid usage type. Must be OFFICE or PROJECT',
-              data: row,
-            });
-            results.failed++;
-            continue;
-          }
-          usageType = typeInput as UsageType;
         }
 
         // Parse status
@@ -246,11 +236,10 @@ export async function POST(request: NextRequest) {
           }
         } else if (costPerCycle !== null) {
           // Auto-calculate costQAR if not provided in CSV
-          const USD_TO_QAR = 3.64;
           if (costCurrency === 'USD') {
             costQAR = costPerCycle;
           } else {
-            costQAR = costPerCycle / USD_TO_QAR;
+            costQAR = costPerCycle / USD_TO_QAR_RATE;
           }
         }
 
@@ -278,9 +267,14 @@ export async function POST(request: NextRequest) {
         // Project ID handling - keep null if no project found
         const projectId = null;
 
-        // Find user by name or email
+        // Get ID from export if available
+        const id = row['ID'];
+
+        // Find user by ID first (if provided), then by email
         let assignedUserId = null;
-        if (row['Assigned User Email']) {
+        if (row['Assigned User ID']) {
+          assignedUserId = row['Assigned User ID'];
+        } else if (row['Assigned User Email']) {
           const user = await prisma.user.findUnique({
             where: { email: row['Assigned User Email'] },
           });
@@ -300,7 +294,6 @@ export async function POST(request: NextRequest) {
           costCurrency,
           costQAR,
           status,
-          usageType,
           autoRenew,
           paymentMethod: row['Payment Method'] || null,
           notes: row['Notes'] || null,
@@ -316,10 +309,99 @@ export async function POST(request: NextRequest) {
           subscriptionData.createdAt = createdAt;
         }
 
-        // If we have an ID from export, try to use it (helps match with history)
-        const existingId = row['ID'];
+        // If ID is provided, use upsert to preserve relationships
+        if (id) {
+          // Check if subscription with this ID exists
+          const existingById = await prisma.subscription.findUnique({
+            where: { id },
+          });
 
-        // Create subscription and log activity in a transaction
+          // Use upsert with ID to preserve relationships
+          const subscription = await prisma.$transaction(async (tx) => {
+            const sub = await tx.subscription.upsert({
+              where: { id },
+              create: {
+                id,
+                ...subscriptionData,
+              },
+              update: subscriptionData,
+            });
+
+            // Log activity
+            await tx.activityLog.create({
+              data: {
+                actorUserId: session.user.id,
+                action: existingById ? ActivityActions.SUBSCRIPTION_UPDATED : ActivityActions.SUBSCRIPTION_CREATED,
+                entityType: 'Subscription',
+                entityId: sub.id,
+                payload: {
+                  serviceName: sub.serviceName,
+                  billingCycle: sub.billingCycle,
+                  source: 'CSV Import',
+                },
+              },
+            });
+
+            return sub;
+          });
+
+          if (existingById) {
+            results.updated++;
+          } else {
+            results.created.push({
+              serviceName: subscription.serviceName,
+              billingCycle: subscription.billingCycle,
+              costPerCycle: subscription.costPerCycle ? Number(subscription.costPerCycle) : null,
+            });
+            results.success++;
+          }
+          continue;
+        }
+
+        // No ID provided - check for duplicates by service name
+        const existingByName = await prisma.subscription.findFirst({
+          where: {
+            serviceName: row['Service Name'],
+            accountId: row['Account ID/Email'] || null,
+          },
+        });
+
+        if (existingByName) {
+          if (duplicateStrategy === 'skip') {
+            results.skipped++;
+            continue;
+          } else if (duplicateStrategy === 'update') {
+            // Update existing subscription
+            const subscription = await prisma.$transaction(async (tx) => {
+              const sub = await tx.subscription.update({
+                where: { id: existingByName.id },
+                data: subscriptionData,
+              });
+
+              // Log activity
+              await tx.activityLog.create({
+                data: {
+                  actorUserId: session.user.id,
+                  action: ActivityActions.SUBSCRIPTION_UPDATED,
+                  entityType: 'Subscription',
+                  entityId: sub.id,
+                  payload: {
+                    serviceName: sub.serviceName,
+                    billingCycle: sub.billingCycle,
+                    source: 'CSV Import',
+                  },
+                },
+              });
+
+              return sub;
+            });
+
+            results.updated++;
+            continue;
+          }
+        }
+
+        // Create new subscription
         const subscription = await prisma.$transaction(async (tx) => {
           const sub = await tx.subscription.create({
             data: subscriptionData,
@@ -342,11 +424,6 @@ export async function POST(request: NextRequest) {
 
           return sub;
         });
-
-        // Map old ID to new ID if we have an old ID from export
-        if (existingId) {
-          idMap.set(existingId, subscription.id);
-        }
 
         results.created.push({
           serviceName: subscription.serviceName,
@@ -445,7 +522,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: `Import completed: ${results.success} subscriptions successful, ${results.failed} failed${historyImported > 0 ? `, ${historyImported} history entries imported` : ''}`,
+        message: `Import completed: ${results.success} created, ${results.updated} updated, ${results.skipped} skipped, ${results.failed} failed${historyImported > 0 ? `, ${historyImported} history entries imported` : ''}`,
         results,
         historyImported,
         historyFailed,
