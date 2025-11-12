@@ -139,7 +139,7 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
             <CardContent className="pt-12 pb-10 px-6 text-center">
               <div className="mb-6">
                 <XCircle className={`h-14 w-14 mx-auto ${
-                  errorType === 'REVOKED' ? 'text-red-500' : 'text-gray-400'
+                  errorType === 'REVOKED' || errorType === 'NOT_VALID_TODAY' ? 'text-red-500' : 'text-gray-400'
                 }`} strokeWidth={1.5} />
               </div>
               <h1 className="text-2xl font-semibold text-gray-900 mb-3">
@@ -155,23 +155,20 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
               {/* Show name and number for specific error types */}
               {errorDetails && (errorDetails.name || errorDetails.accreditationNumber) && (
                 <div className={`mb-4 p-4 rounded-lg border ${
-                  errorType === 'REVOKED' ? 'bg-red-50 border-red-200' :
-                  errorType === 'NOT_VALID_TODAY' ? 'bg-orange-50 border-orange-200' :
+                  errorType === 'REVOKED' || errorType === 'NOT_VALID_TODAY' ? 'bg-red-50 border-red-200' :
                   errorType === 'NO_ACCESS_DATES' ? 'bg-yellow-50 border-yellow-200' :
                   'bg-gray-50 border-gray-200'
                 }`}>
                   {errorDetails.name && (
                     <p className={`text-lg font-bold mb-1 ${
-                      errorType === 'REVOKED' ? 'text-red-900' :
-                      errorType === 'NOT_VALID_TODAY' ? 'text-orange-900' :
+                      errorType === 'REVOKED' || errorType === 'NOT_VALID_TODAY' ? 'text-red-900' :
                       errorType === 'NO_ACCESS_DATES' ? 'text-yellow-900' :
                       'text-gray-900'
                     }`}>{errorDetails.name}</p>
                   )}
                   {errorDetails.accreditationNumber && (
                     <p className={`text-sm font-mono ${
-                      errorType === 'REVOKED' ? 'text-red-700' :
-                      errorType === 'NOT_VALID_TODAY' ? 'text-orange-700' :
+                      errorType === 'REVOKED' || errorType === 'NOT_VALID_TODAY' ? 'text-red-700' :
                       errorType === 'NO_ACCESS_DATES' ? 'text-yellow-700' :
                       'text-gray-700'
                     }`}>#{errorDetails.accreditationNumber}</p>
@@ -183,9 +180,9 @@ export default function VerifyAccreditationPage({ params }: { params: Promise<{ 
 
               {/* Show access periods for NOT_VALID_TODAY */}
               {errorType === 'NOT_VALID_TODAY' && errorDetails?.phases && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200 text-left">
-                  <p className="text-sm font-semibold text-blue-900 mb-2">Valid Access Periods:</p>
-                  <div className="space-y-1 text-sm text-blue-800">
+                <div className="mb-6 p-4 bg-red-50 rounded-lg border border-red-200 text-left">
+                  <p className="text-sm font-semibold text-red-900 mb-2">Valid Access Periods:</p>
+                  <div className="space-y-1 text-sm text-red-800">
                     {errorDetails.phases.bumpIn && (
                       <div>
                         <span className="font-semibold">Bump-In:</span>{' '}
