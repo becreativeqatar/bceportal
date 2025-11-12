@@ -53,22 +53,12 @@ export async function GET(
     // Generate filename
     const filename = `QR-${accreditation.accreditationNumber}-${accreditation.firstName}_${accreditation.lastName}.png`.replace(/\s+/g, '_');
 
-    // Check if QR code is already cached
-    if (accreditation.qrCodeImage) {
-      // Return cached QR code
-      const buffer = Buffer.from(accreditation.qrCodeImage, 'base64');
-      return new NextResponse(buffer as any, {
-        headers: {
-          'Content-Type': 'image/png',
-          'Content-Disposition': `attachment; filename="${filename}"`,
-          'Cache-Control': 'public, max-age=31536000, immutable', // Cache for 1 year since it's immutable
-        },
-      });
-    }
+    // Generate verification URL - use the current request host for dynamic URL
+    const host = request.headers.get('host') || 'portal.becreative.qa';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const verificationUrl = `${protocol}://${host}/verify/${accreditation.qrCodeToken}`;
 
-    // Generate verification URL
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const verificationUrl = `${baseUrl}/verify/${accreditation.qrCodeToken}`;
+    console.log('[QR] Generating QR code with URL:', verificationUrl);
 
     // Generate QR code as PNG buffer
     const qrCodeBuffer = await QRCode.toBuffer(verificationUrl, {
@@ -78,20 +68,17 @@ export async function GET(
       margin: 2,
     });
 
-    // Cache the QR code in database
-    await prisma.accreditation.update({
-      where: { id },
-      data: {
-        qrCodeImage: qrCodeBuffer.toString('base64'),
-      },
-    });
+    // Don't cache QR codes - always generate fresh to ensure correct URL
+    // This allows the URL to adapt to the current domain (production/staging/local)
 
-    // Return QR code image
+    // Return QR code image with no-cache headers
     return new NextResponse(qrCodeBuffer as any, {
       headers: {
         'Content-Type': 'image/png',
         'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'public, max-age=31536000, immutable', // Cache for 1 year
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
   } catch (error) {
