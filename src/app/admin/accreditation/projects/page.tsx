@@ -75,6 +75,24 @@ export default function AccreditationProjectsPage() {
     setIsSubmitting(true);
 
     try {
+      // Validate date sequences
+      const bumpInEndDate = new Date(formData.bumpInEnd);
+      const liveStartDate = new Date(formData.liveStart);
+      const liveEndDate = new Date(formData.liveEnd);
+      const bumpOutStartDate = new Date(formData.bumpOutStart);
+
+      if (bumpInEndDate >= liveStartDate) {
+        toast.error('Bump-In End must be before Live Start date', { duration: 10000 });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (liveEndDate >= bumpOutStartDate) {
+        toast.error('Live End must be before Bump-Out Start date', { duration: 10000 });
+        setIsSubmitting(false);
+        return;
+      }
+
       const url = isEditMode
         ? `/api/accreditation/projects/${editingProjectId}`
         : '/api/accreditation/projects';
