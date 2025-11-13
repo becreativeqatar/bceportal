@@ -96,7 +96,7 @@ export default async function EmployeeDashboard() {
                       <p className="text-xs text-gray-600 font-medium mb-1">Preview:</p>
                       {activeAssets.slice(0, 2).map((asset: any) => (
                         <p key={asset.id} className="text-xs text-gray-500 truncate">
-                          • {asset.assetTag || asset.model}
+                          • {asset.model || asset.assetTag}
                         </p>
                       ))}
                       {activeAssets.length > 2 && (
