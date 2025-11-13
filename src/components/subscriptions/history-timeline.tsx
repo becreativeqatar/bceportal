@@ -111,8 +111,8 @@ export function HistoryTimeline({ history, purchaseDate, cancelledAt, reactivate
                   </div>
                 )}
 
-                {/* Assignment Date for Reassignments */}
-                {entry.action === 'REASSIGNED' && entry.assignmentDate && (
+                {/* Assignment Date for Reassignments and Initial Assignments */}
+                {(entry.action === 'REASSIGNED' || entry.action === 'CREATED') && entry.assignmentDate && (
                   <div className="text-sm text-gray-600 mb-1">
                     <strong>Assignment Date:</strong> {formatDate(entry.assignmentDate)}
                   </div>

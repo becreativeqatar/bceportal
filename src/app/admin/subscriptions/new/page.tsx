@@ -49,7 +49,7 @@ export default function NewSubscriptionPage() {
       autoRenew: true,
       paymentMethod: null,
       notes: null,
-      assignedUserId: null,
+      assignedUserId: '',
       assignmentDate: null,
     },
     mode: 'onChange',
@@ -62,9 +62,9 @@ export default function NewSubscriptionPage() {
   const watchedCostPerCycle = watch('costPerCycle');
   const watchedCostCurrency = watch('costCurrency');
   const watchedAssignedUserId = watch('assignedUserId');
+  const watchedAssignmentDate = watch('assignmentDate');
   const watchedRenewalDate = watch('renewalDate');
   const watchedAutoRenew = watch('autoRenew');
-  const watchedStatus = watch('status');
 
   // Fetch users on mount
   useEffect(() => {
@@ -211,9 +211,9 @@ export default function NewSubscriptionPage() {
 
   const handleUserAssignment = (userId: string) => {
     if (userId) {
-      // When assigning to a user, set assignment date to today
+      // When assigning to a user, don't auto-set date - user must select manually
       setValue('assignedUserId', userId);
-      setValue('assignmentDate', toInputDateString(new Date()));
+      // Keep existing assignment date if present, otherwise leave empty
     } else {
       // When unassigning, clear both user and assignment date
       setValue('assignedUserId', null);
@@ -348,7 +348,7 @@ export default function NewSubscriptionPage() {
                 <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Billing & Renewal</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="purchaseDate">Purchase/Start Date</Label>
+                    <Label htmlFor="purchaseDate">Purchase/Start Date *</Label>
                     <DatePicker
                       id="purchaseDate"
                       value={watchedPurchaseDate || ''}
@@ -358,7 +358,7 @@ export default function NewSubscriptionPage() {
                       <p className="text-sm text-red-500">{errors.purchaseDate.message}</p>
                     )}
                     <p className="text-xs text-gray-500">
-                      When did this subscription start?
+                      Required - When did this subscription start?
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -476,37 +476,12 @@ export default function NewSubscriptionPage() {
                 </div>
               </div>
 
-              {/* Status & Usage Section */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Status & Usage</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select value={watchedStatus} onValueChange={(value) => setValue('status', value as 'ACTIVE' | 'CANCELLED')}>
-                      <SelectTrigger className={errors.status ? 'border-red-500' : ''}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ACTIVE">Active</SelectItem>
-                        <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {errors.status && (
-                      <p className="text-sm text-red-500">{errors.status.message}</p>
-                    )}
-                    <p className="text-xs text-gray-500">
-                      Active: Currently running. Cancelled: No longer active (can be reactivated if needed)
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               {/* Assignment Section */}
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Assignment</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="assignedUserId">Assign to User (optional)</Label>
+                    <Label htmlFor="assignedUserId">Assign to User *</Label>
                     <Select
                       value={watchedAssignedUserId || "__none__"}
                       onValueChange={(value) => handleUserAssignment(value === "__none__" ? '' : value)}
@@ -526,10 +501,26 @@ export default function NewSubscriptionPage() {
                     {errors.assignedUserId && (
                       <p className="text-sm text-red-500">{errors.assignedUserId.message}</p>
                     )}
-                    {errors.assignmentDate && (
-                      <p className="text-sm text-red-500">{errors.assignmentDate.message}</p>
-                    )}
+                    <p className="text-xs text-gray-500">
+                      Required - Select the user for this subscription
+                    </p>
                   </div>
+                  {watchedAssignedUserId && (
+                    <div className="space-y-2">
+                      <Label htmlFor="assignmentDate">Assignment Date *</Label>
+                      <DatePicker
+                        id="assignmentDate"
+                        value={watchedAssignmentDate || ''}
+                        onChange={(value) => setValue('assignmentDate', value || null)}
+                      />
+                      {errors.assignmentDate && (
+                        <p className="text-sm text-red-500">{errors.assignmentDate.message}</p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        Required when assigning to a user
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

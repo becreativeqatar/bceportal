@@ -158,6 +158,26 @@ export async function PUT(
           performedBy: session.user.id,
         },
       });
+    } else if (data.assignmentDate !== undefined && currentSubscription.assignedUserId) {
+      // If only assignment date changed (user stayed same), update the most recent assignment history
+      const latestAssignment = await prisma.subscriptionHistory.findFirst({
+        where: {
+          subscriptionId: subscription.id,
+          action: { in: ['REASSIGNED', 'CREATED'] },
+          newUserId: currentSubscription.assignedUserId,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (latestAssignment && data.assignmentDate) {
+        // Update the assignment date in the existing history record
+        await prisma.subscriptionHistory.update({
+          where: { id: latestAssignment.id },
+          data: {
+            assignmentDate: new Date(data.assignmentDate),
+          },
+        });
+      }
     }
 
     await logAction(

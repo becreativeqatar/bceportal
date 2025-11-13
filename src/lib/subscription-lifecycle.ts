@@ -12,6 +12,7 @@ export interface ActivePeriod {
 export interface CostBreakdown {
   totalCost: number;
   currency: string;
+  billingCycle: string;
   activePeriods: ActivePeriod[];
 }
 
@@ -391,6 +392,7 @@ export async function calculateTotalCost(subscriptionId: string): Promise<CostBr
   return {
     totalCost,
     currency: subscription.costCurrency || 'QAR',
+    billingCycle: subscription.billingCycle,
     activePeriods: periods
   };
 }

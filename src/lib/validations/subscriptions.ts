@@ -28,7 +28,7 @@ export const createSubscriptionSchema = z.object({
   serviceName: z.string().min(1, 'Service name is required').max(255, 'Service name is too long'),
   category: z.string().max(100, 'Category is too long').optional().nullable(),
   accountId: z.string().max(100, 'Account ID is too long').optional().nullable(),
-  purchaseDate: dateStringSchema.optional().nullable(),
+  purchaseDate: z.string().min(1, 'Purchase date is required'),
   renewalDate: dateStringSchema.optional().nullable(),
   billingCycle: z.nativeEnum(BillingCycle),
   costPerCycle: z.number().positive('Cost must be a positive number').optional().nullable(),
@@ -37,7 +37,7 @@ export const createSubscriptionSchema = z.object({
   vendor: z.string().max(255, 'Vendor name is too long').optional().nullable(),
   status: z.nativeEnum(SubscriptionStatus).default('ACTIVE'),
   projectId: z.string().optional().nullable(),
-  assignedUserId: z.string().optional().nullable(),
+  assignedUserId: z.string().min(1, 'Assigned user is required'),
   assignmentDate: pastOrPresentDateSchema.optional().nullable().or(z.literal('')),
   autoRenew: z.boolean().default(true),
   paymentMethod: z.string().max(100, 'Payment method is too long').optional().nullable(),
@@ -79,7 +79,20 @@ export const updateSubscriptionSchema = createSubscriptionSchema
     assignmentDate: dateStringSchema.optional().nullable().or(z.literal('')),
     // Remove default from status in updates to preserve existing status
     status: z.nativeEnum(SubscriptionStatus).optional(),
-  });
+  })
+  .refine(
+    (data) => {
+      // If assigned to user, assignment date should be provided
+      if (data.assignedUserId && !data.assignmentDate) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Assignment date is required when assigning to a user',
+      path: ['assignmentDate'],
+    }
+  );
 
 export const subscriptionQuerySchema = z.object({
   q: z.string().optional(),

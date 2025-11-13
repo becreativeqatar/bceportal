@@ -87,6 +87,7 @@ export default function EditSubscriptionPage() {
   const watchedBillingCycle = watch('billingCycle');
   const watchedRenewalDate = watch('renewalDate');
   const watchedAssignedUserId = watch('assignedUserId');
+  const watchedAssignmentDate = watch('assignmentDate');
 
   useEffect(() => {
     if (params?.id) {
@@ -224,13 +225,23 @@ export default function EditSubscriptionPage() {
             const historyResponse = await fetch(`/api/subscriptions/${id}`);
             if (historyResponse.ok) {
               const data = await historyResponse.json();
-              // Find the most recent REASSIGNED action for current user
-              const reassignHistory = data.history?.find(
-                (h: any) => h.action === 'REASSIGNED' && h.newUserId === subscriptionData.assignedUserId
-              );
-              if (reassignHistory?.assignmentDate) {
-                assignmentDateValue = toInputDateString(reassignHistory.assignmentDate);
-                setLastAssignmentDate(assignmentDateValue);
+              // Find the most recent REASSIGNED or CREATED action for current user
+              const assignmentHistory = data.history
+                ?.filter((h: any) =>
+                  (h.action === 'REASSIGNED' || h.action === 'CREATED') &&
+                  h.newUserId === subscriptionData.assignedUserId
+                )
+                .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+              if (assignmentHistory && assignmentHistory.length > 0) {
+                const latestAssignment = assignmentHistory[0];
+                if (latestAssignment.assignmentDate) {
+                  assignmentDateValue = toInputDateString(latestAssignment.assignmentDate);
+                  setLastAssignmentDate(assignmentDateValue);
+                } else if (latestAssignment.createdAt) {
+                  assignmentDateValue = toInputDateString(latestAssignment.createdAt);
+                  setLastAssignmentDate(assignmentDateValue);
+                }
               } else if (subscriptionData.purchaseDate) {
                 // If no assignment history, use purchase date
                 assignmentDateValue = toInputDateString(subscriptionData.purchaseDate);
@@ -277,12 +288,12 @@ export default function EditSubscriptionPage() {
       let costInQAR = null;
 
       if (costPerCycle) {
-        if (data.costCurrency === 'USD') {
-          // User entered USD, so store as is and that's also the USD value
+        if (data.costCurrency === 'QAR') {
+          // User entered QAR, store as-is for costQAR
           costInQAR = costPerCycle;
         } else {
-          // User entered QAR, calculate USD equivalent
-          costInQAR = costPerCycle / USD_TO_QAR_RATE;
+          // User entered USD, calculate QAR equivalent
+          costInQAR = costPerCycle * USD_TO_QAR_RATE;
         }
       }
 
@@ -334,19 +345,16 @@ export default function EditSubscriptionPage() {
 
   const handleAssignedUserChange = (value: string) => {
     const newUserId = value === "__none__" ? '' : value;
-    const previousUserId = watchedAssignedUserId;
+    const currentAssignmentDate = watch('assignmentDate');
 
-    // If user is being assigned (changed from previous selection)
-    if (newUserId && newUserId !== previousUserId) {
-      // Set assignment date to today
-      const today = new Date().toISOString().split('T')[0];
-      setValue('assignedUserId', newUserId);
-      setValue('assignmentDate', today);
-    } else {
-      // User is being unassigned, clear assignment date
-      setValue('assignedUserId', newUserId);
+    setValue('assignedUserId', newUserId);
+
+    // If user is being unassigned, clear assignment date
+    if (!newUserId) {
       setValue('assignmentDate', '');
     }
+    // Otherwise, keep the existing assignment date (don't auto-set to today)
+    // User must manually select a date
   };
 
   if (!subscription) {
@@ -477,14 +485,17 @@ export default function EditSubscriptionPage() {
                 <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Billing & Renewal</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="purchaseDate">Purchase/Start Date</Label>
+                    <Label htmlFor="purchaseDate">Purchase/Start Date *</Label>
                     <DatePicker
                       id="purchaseDate"
                       value={watchedPurchaseDate || ''}
                       onChange={(value) => setValue('purchaseDate', value)}
                     />
+                    {errors.purchaseDate && (
+                      <p className="text-sm text-red-500">{errors.purchaseDate.message}</p>
+                    )}
                     <p className="text-xs text-gray-500">
-                      When did this subscription start?
+                      Required - When did this subscription start?
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -593,38 +604,17 @@ export default function EditSubscriptionPage() {
                 </div>
               </div>
 
-              {/* Status & Usage Section */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Status & Usage</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <div className="h-10 px-3 py-2 border rounded-md bg-gray-50 flex items-center">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        watch('status') === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {watch('status') === 'ACTIVE' ? 'Active' : 'Cancelled'}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Use Cancel/Reactivate buttons on detail page to change status
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               {/* Assignment Section */}
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Assignment</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="assignedUserId">Assign to User (optional)</Label>
+                    <Label htmlFor="assignedUserId">Assign to User *</Label>
                     <Select
                       value={watchedAssignedUserId || "__none__"}
                       onValueChange={handleAssignedUserChange}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={errors.assignedUserId ? 'border-red-500' : ''}>
                         <SelectValue placeholder="Select user..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -636,19 +626,29 @@ export default function EditSubscriptionPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="assignmentDate">Assignment Date</Label>
-                    <DatePicker
-                      id="assignmentDate"
-                      value={watch('assignmentDate') || ''}
-                      onChange={(value) => setValue('assignmentDate', value)}
-                      disabled={!watchedAssignedUserId}
-                    />
+                    {errors.assignedUserId && (
+                      <p className="text-sm text-red-500">{errors.assignedUserId.message}</p>
+                    )}
                     <p className="text-xs text-gray-500">
-                      Date when user was assigned (defaults to today)
+                      Required - Select the user for this subscription
                     </p>
                   </div>
+                  {watchedAssignedUserId && (
+                    <div className="space-y-2">
+                      <Label htmlFor="assignmentDate">Assignment Date *</Label>
+                      <DatePicker
+                        id="assignmentDate"
+                        value={watchedAssignmentDate || ''}
+                        onChange={(value) => setValue('assignmentDate', value || '')}
+                      />
+                      {errors.assignmentDate && (
+                        <p className="text-sm text-red-500">{errors.assignmentDate.message}</p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        Required when assigning to a user
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -63,14 +63,18 @@ export default async function SubscriptionDetailPage({ params }: Props) {
   // Find when the current user was assigned
   let currentUserAssignmentDate: Date | null = null;
   if (subscription.assignedUser) {
+    // Check for REASSIGNED or CREATED actions that assigned this user
     const assignmentHistory = subscription.history
-      .filter(h => h.action === 'REASSIGNED' && h.newUserId === subscription.assignedUserId)
+      .filter(h =>
+        (h.action === 'REASSIGNED' || h.action === 'CREATED') &&
+        h.newUserId === subscription.assignedUserId
+      )
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     if (assignmentHistory.length > 0) {
       currentUserAssignmentDate = assignmentHistory[0].assignmentDate || assignmentHistory[0].createdAt;
     } else {
-      // User was assigned from the beginning
+      // Fallback to purchase date or creation date
       currentUserAssignmentDate = subscription.purchaseDate || subscription.createdAt;
     }
   }
@@ -240,27 +244,32 @@ export default async function SubscriptionDetailPage({ params }: Props) {
           {/* Billing & Renewal Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Billing & Renewal</CardTitle>
+              <CardTitle>{subscription.billingCycle === 'ONE_TIME' ? 'Billing' : 'Billing & Renewal'}</CardTitle>
               <CardDescription>
-                Purchase details and renewal information
+                {subscription.billingCycle === 'ONE_TIME'
+                  ? 'Purchase details for one-time subscription'
+                  : 'Purchase details and renewal information'
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className={`grid ${subscription.billingCycle === 'ONE_TIME' ? 'md:grid-cols-1' : 'md:grid-cols-2'} gap-6`}>
                 <div>
                   <Label>Purchase Date</Label>
                   <div>
                     {formatDate(subscription.purchaseDate, 'Not specified')}
                   </div>
                 </div>
-                <div>
-                  <Label>Next Renewal Date</Label>
-                  <SubscriptionRenewalDisplay
-                    renewalDate={subscription.renewalDate}
-                    billingCycle={subscription.billingCycle}
-                    status={subscription.status}
-                  />
-                </div>
+                {subscription.billingCycle !== 'ONE_TIME' && (
+                  <div>
+                    <Label>Next Renewal Date</Label>
+                    <SubscriptionRenewalDisplay
+                      renewalDate={subscription.renewalDate}
+                      billingCycle={subscription.billingCycle}
+                      status={subscription.status}
+                    />
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -279,19 +288,18 @@ export default async function SubscriptionDetailPage({ params }: Props) {
                   <Label>Assigned User</Label>
                   <div>
                     {subscription.assignedUser ? (
-                      <div>
-                        <div className="font-medium">
-                          {subscription.assignedUser.name || 'Unknown User'}
-                        </div>
-                        {currentUserAssignmentDate && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Assigned on: {formatDate(currentUserAssignmentDate)}
-                          </div>
-                        )}
+                      <div className="font-medium">
+                        {subscription.assignedUser.name || 'Unknown User'}
                       </div>
                     ) : (
                       <span className="text-gray-500">Unassigned</span>
                     )}
+                  </div>
+                </div>
+                <div>
+                  <Label>Assignment Date</Label>
+                  <div>
+                    {currentUserAssignmentDate ? formatDate(currentUserAssignmentDate) : 'Not specified'}
                   </div>
                 </div>
               </div>

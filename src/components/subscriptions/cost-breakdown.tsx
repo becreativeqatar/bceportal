@@ -17,6 +17,7 @@ interface ActivePeriod {
 interface CostBreakdown {
   totalCost: number;
   currency: string;
+  billingCycle: string;
   activePeriods: ActivePeriod[];
 }
 
@@ -139,9 +140,11 @@ export function CostBreakdown({ subscriptionId }: CostBreakdownProps) {
                             </>
                           )}
                         </div>
-                        <div className="text-sm text-gray-600">
-                          <strong>Renewal Date:</strong> {formatDate(period.renewalDate)}
-                        </div>
+                        {costData.billingCycle !== 'ONE_TIME' && (
+                          <div className="text-sm text-gray-600">
+                            <strong>Renewal Date:</strong> {formatDate(period.renewalDate)}
+                          </div>
+                        )}
                       </div>
                       <div className="text-right">
                         <div className="text-lg font-semibold text-gray-900">
