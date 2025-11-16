@@ -238,7 +238,11 @@ export async function PUT(
     });
 
     // Track assignment changes with custom date
-    if (data.assignedUserId !== undefined && data.assignedUserId !== currentAsset.assignedUserId) {
+    const userChanged = data.assignedUserId !== undefined && data.assignedUserId !== currentAsset.assignedUserId;
+    const dateChanged = data.assignmentDate !== undefined && currentAsset.assignedUserId;
+
+    if (userChanged) {
+      // User assignment changed - create new history record
       const { recordAssetAssignment } = await import('@/lib/asset-history');
       const assignmentDate = data.assignmentDate ? new Date(data.assignmentDate) : new Date();
 
@@ -250,6 +254,23 @@ export async function PUT(
         undefined,
         assignmentDate
       );
+    } else if (dateChanged && data.assignmentDate) {
+      // Only assignment date changed (user stayed the same) - update most recent history record
+      const mostRecentAssignment = await prisma.assetHistory.findFirst({
+        where: {
+          assetId: id,
+          action: 'ASSIGNED',
+          toUserId: currentAsset.assignedUserId,
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (mostRecentAssignment) {
+        await prisma.assetHistory.update({
+          where: { id: mostRecentAssignment.id },
+          data: { assignmentDate: new Date(data.assignmentDate) }
+        });
+      }
     }
 
     // Detect which fields actually changed and track before/after values

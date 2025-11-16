@@ -23,6 +23,8 @@ export default function NewAssetPage() {
   const router = useRouter();
   const [assetTypeSuggestions, setAssetTypeSuggestions] = useState<string[]>([]);
   const [showTypeSuggestions, setShowTypeSuggestions] = useState(false);
+  const [categorySuggestions, setCategorySuggestions] = useState<string[]>([]);
+  const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const [users, setUsers] = useState<Array<{ id: string; name: string | null; email: string }>>([]);
@@ -64,6 +66,7 @@ export default function NewAssetPage() {
 
   // Watch critical fields for side effects
   const watchedType = watch('type');
+  const watchedCategory = watch('category');
   const watchedLocation = watch('location');
   const watchedPrice = watch('price');
   const watchedCurrency = watch('priceCurrency');
@@ -86,6 +89,15 @@ export default function NewAssetPage() {
       setAssetTypeSuggestions([]);
     }
   }, [watchedType]);
+
+  // Fetch category suggestions
+  useEffect(() => {
+    if (watchedCategory && watchedCategory.length > 0) {
+      fetchCategories(watchedCategory);
+    } else {
+      setCategorySuggestions([]);
+    }
+  }, [watchedCategory]);
 
   // Fetch location suggestions
   useEffect(() => {
@@ -131,6 +143,18 @@ export default function NewAssetPage() {
       }
     } catch (error) {
       console.error('Error fetching asset types:', error);
+    }
+  };
+
+  const fetchCategories = async (query: string) => {
+    try {
+      const response = await fetch(`/api/assets/categories?q=${encodeURIComponent(query)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCategorySuggestions(data.categories || []);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
     }
   };
 
@@ -274,13 +298,32 @@ export default function NewAssetPage() {
                       </div>
                     )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 relative">
                     <Label htmlFor="category">Category / Department</Label>
                     <Input
                       id="category"
                       {...register('category')}
+                      onFocus={() => setShowCategorySuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 200)}
                       placeholder="IT, Marketing, Engineering, etc."
+                      autoComplete="off"
                     />
+                    {showCategorySuggestions && categorySuggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-auto">
+                        {categorySuggestions.map((category, index) => (
+                          <div
+                            key={index}
+                            className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                            onClick={() => {
+                              setValue('category', category);
+                              setShowCategorySuggestions(false);
+                            }}
+                          >
+                            {category}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
