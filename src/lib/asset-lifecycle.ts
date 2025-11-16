@@ -135,7 +135,23 @@ export async function getAssignmentPeriods(assetId: string): Promise<AssignmentP
     }
   }
 
-  return periods;
+  // Deduplicate periods - remove duplicates based on userId, startDate, and endDate
+  const uniquePeriods: AssignmentPeriod[] = [];
+  const seen = new Set<string>();
+
+  for (const period of periods) {
+    // Create a key based on userId and dates (rounded to day)
+    const startKey = period.startDate.toISOString().split('T')[0];
+    const endKey = period.endDate ? period.endDate.toISOString().split('T')[0] : 'current';
+    const key = `${period.userId}-${startKey}-${endKey}`;
+
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniquePeriods.push(period);
+    }
+  }
+
+  return uniquePeriods;
 }
 
 
