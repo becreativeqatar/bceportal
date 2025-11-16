@@ -47,6 +47,8 @@ export function AssetListTableServerSearch() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -80,6 +82,8 @@ export function AssetListTableServerSearch() {
 
       if (debouncedSearch) params.append('q', debouncedSearch);
       if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
+      if (typeFilter && typeFilter !== 'all') params.append('type', typeFilter);
+      if (categoryFilter && categoryFilter !== 'all') params.append('category', categoryFilter);
 
       const response = await fetch(`/api/assets?${params}`);
       if (!response.ok) throw new Error('Failed to fetch assets');
@@ -92,7 +96,7 @@ export function AssetListTableServerSearch() {
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.pageSize, debouncedSearch, statusFilter, sortBy, sortOrder]);
+  }, [pagination.page, pagination.pageSize, debouncedSearch, statusFilter, typeFilter, categoryFilter, sortBy, sortOrder]);
 
   // Fetch on mount and when dependencies change
   useEffect(() => {
@@ -123,10 +127,10 @@ export function AssetListTableServerSearch() {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
           <Input
-            placeholder="Search assets... (model, brand, tag, serial, etc.)"
+            placeholder="Search assets..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full"
@@ -136,8 +140,8 @@ export function AssetListTableServerSearch() {
           )}
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Filter by status" />
+          <SelectTrigger>
+            <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
@@ -145,6 +149,39 @@ export function AssetListTableServerSearch() {
             <SelectItem value="SPARE">Spare</SelectItem>
             <SelectItem value="REPAIR">Repair</SelectItem>
             <SelectItem value="DISPOSED">Disposed</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="All Types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="Laptop">Laptop</SelectItem>
+            <SelectItem value="Desktop">Desktop</SelectItem>
+            <SelectItem value="Monitor">Monitor</SelectItem>
+            <SelectItem value="Keyboard">Keyboard</SelectItem>
+            <SelectItem value="Mouse">Mouse</SelectItem>
+            <SelectItem value="Headset">Headset</SelectItem>
+            <SelectItem value="Phone">Phone</SelectItem>
+            <SelectItem value="Tablet">Tablet</SelectItem>
+            <SelectItem value="Printer">Printer</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="IT">IT</SelectItem>
+            <SelectItem value="Marketing">Marketing</SelectItem>
+            <SelectItem value="Engineering">Engineering</SelectItem>
+            <SelectItem value="Sales">Sales</SelectItem>
+            <SelectItem value="HR">HR</SelectItem>
+            <SelectItem value="Finance">Finance</SelectItem>
+            <SelectItem value="Operations">Operations</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -188,6 +225,12 @@ export function AssetListTableServerSearch() {
               </TableHead>
               <TableHead
                 className="cursor-pointer hover:bg-gray-100"
+                onClick={() => toggleSort('priceQAR')}
+              >
+                Price (QAR) {sortBy === 'priceQAR' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-gray-100"
                 onClick={() => toggleSort('status')}
               >
                 Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -199,15 +242,15 @@ export function AssetListTableServerSearch() {
           <TableBody>
             {loading && assets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
                   <p className="text-gray-500 mt-2">Loading assets...</p>
                 </TableCell>
               </TableRow>
             ) : assets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                  {debouncedSearch || statusFilter !== 'all'
+                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                  {debouncedSearch || statusFilter !== 'all' || typeFilter !== 'all' || categoryFilter !== 'all'
                     ? 'No assets match your filters'
                     : 'No assets found. Create your first asset!'}
                 </TableCell>
@@ -226,6 +269,15 @@ export function AssetListTableServerSearch() {
                   <TableCell>{asset.type}</TableCell>
                   <TableCell>{asset.model}</TableCell>
                   <TableCell>{asset.brand || '-'}</TableCell>
+                  <TableCell>
+                    {asset.priceQAR ? (
+                      <span className="font-medium">
+                        {Number(asset.priceQAR).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </TableCell>
                   <TableCell>{getStatusBadge(asset.status)}</TableCell>
                   <TableCell className="text-sm">
                     {asset.assignedUser ? (

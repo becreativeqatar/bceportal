@@ -116,9 +116,11 @@ export const assignAssetSchema = z.object({
 export const assetQuerySchema = z.object({
   q: z.string().optional(),
   status: z.nativeEnum(AssetStatus).optional(),
+  type: z.string().optional(),
+  category: z.string().optional(),
   p: z.coerce.number().min(1).default(1),
   ps: z.coerce.number().min(1).max(100).default(20),
-  sort: z.enum(['model', 'brand', 'type', 'category', 'purchaseDate', 'warrantyExpiry', 'createdAt']).default('createdAt'),
+  sort: z.enum(['model', 'brand', 'type', 'category', 'purchaseDate', 'warrantyExpiry', 'priceQAR', 'createdAt', 'assetTag']).default('createdAt'),
   order: z.enum(['asc', 'desc']).default('desc'),
 });
 

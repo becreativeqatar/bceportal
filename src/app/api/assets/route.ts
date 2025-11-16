@@ -30,13 +30,19 @@ async function getAssetsHandler(request: NextRequest) {
     }, { status: 400 });
   }
 
-  const { q, status, p, ps, sort, order } = validation.data;
+  const { q, status, type, category, p, ps, sort, order } = validation.data;
+
+  // Build filters object
+  const filters: any = {};
+  if (status) filters.status = status;
+  if (type) filters.type = type;
+  if (category) filters.category = category;
 
   // Build where clause using reusable search filter
   const where = buildFilterWithSearch({
     searchTerm: q,
     searchFields: ['assetTag', 'model', 'brand', 'serial', 'type', 'supplier', 'configuration'],
-    filters: status ? { status } : undefined,
+    filters: Object.keys(filters).length > 0 ? filters : undefined,
   });
 
   // Calculate pagination
