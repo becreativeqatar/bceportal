@@ -49,6 +49,21 @@ export default async function AssetDetailPage({ params }: Props) {
     notFound();
   }
 
+  // Fetch the most recent assignment date from history if asset is assigned
+  let assignmentDate = null;
+  if (asset.assignedUserId) {
+    const mostRecentAssignment = await prisma.assetHistory.findFirst({
+      where: {
+        assetId: id,
+        action: 'ASSIGNED',
+        toUserId: asset.assignedUserId,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { assignmentDate: true },
+    });
+    assignmentDate = mostRecentAssignment?.assignmentDate || null;
+  }
+
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'IN_USE':
@@ -252,22 +267,32 @@ export default async function AssetDetailPage({ params }: Props) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div>
-                <Label>Assigned To (User)</Label>
+              <div className="space-y-4">
                 <div>
-                  {asset.assignedUser ? (
-                    <div>
-                      <div className="font-medium">
-                        {asset.assignedUser.name || 'Unknown User'}
+                  <Label>Assigned To (User)</Label>
+                  <div>
+                    {asset.assignedUser ? (
+                      <div>
+                        <div className="font-medium">
+                          {asset.assignedUser.name || 'Unknown User'}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {asset.assignedUser.email}
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-600">
-                        {asset.assignedUser.email}
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="text-gray-400">Unassigned</span>
-                  )}
+                    ) : (
+                      <span className="text-gray-400">Unassigned</span>
+                    )}
+                  </div>
                 </div>
+                {asset.assignedUser && assignmentDate && (
+                  <div>
+                    <Label>Assignment Date</Label>
+                    <div className="font-medium">
+                      {formatDate(assignmentDate)}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

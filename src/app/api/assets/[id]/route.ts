@@ -66,7 +66,25 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    return NextResponse.json(asset);
+    // Fetch the most recent assignment date from history if asset is assigned
+    let assignmentDate = null;
+    if (asset.assignedUserId) {
+      const mostRecentAssignment = await prisma.assetHistory.findFirst({
+        where: {
+          assetId: id,
+          action: 'ASSIGNED',
+          toUserId: asset.assignedUserId,
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { assignmentDate: true },
+      });
+      assignmentDate = mostRecentAssignment?.assignmentDate || null;
+    }
+
+    return NextResponse.json({
+      ...asset,
+      assignmentDate,
+    });
 
   } catch (error) {
     console.error('Asset GET error:', error);
