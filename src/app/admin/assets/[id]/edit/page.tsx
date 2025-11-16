@@ -310,7 +310,8 @@ export default function EditAssetPage() {
           price: price,
           priceQAR: priceInQAR,
           assetTag: data.assetTag || null,
-          assignmentDate: data.assignedUserId ? data.assignmentDate : null,
+          // Always send assignmentDate if provided (including when just updating the date)
+          assignmentDate: data.assignmentDate || null,
         }),
       });
 

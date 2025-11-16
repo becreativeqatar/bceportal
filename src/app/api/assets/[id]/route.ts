@@ -239,7 +239,6 @@ export async function PUT(
 
     // Track assignment changes with custom date
     const userChanged = data.assignedUserId !== undefined && data.assignedUserId !== currentAsset.assignedUserId;
-    const dateChanged = data.assignmentDate !== undefined && currentAsset.assignedUserId;
 
     if (userChanged) {
       // User assignment changed - create new history record
@@ -254,8 +253,9 @@ export async function PUT(
         undefined,
         assignmentDate
       );
-    } else if (dateChanged && data.assignmentDate) {
-      // Only assignment date changed (user stayed the same) - update most recent history record
+    } else if (data.assignmentDate && currentAsset.assignedUserId && !userChanged) {
+      // User didn't change but assignment date might have changed
+      // Find the most recent assignment history for the current user
       const mostRecentAssignment = await prisma.assetHistory.findFirst({
         where: {
           assetId: id,
@@ -265,11 +265,32 @@ export async function PUT(
         orderBy: { createdAt: 'desc' }
       });
 
+      const newDate = new Date(data.assignmentDate);
+
       if (mostRecentAssignment) {
-        await prisma.assetHistory.update({
-          where: { id: mostRecentAssignment.id },
-          data: { assignmentDate: new Date(data.assignmentDate) }
-        });
+        // Compare dates to see if it actually changed
+        const currentDate = mostRecentAssignment.assignmentDate;
+        const datesDiffer = !currentDate ||
+          newDate.toISOString().split('T')[0] !== currentDate.toISOString().split('T')[0];
+
+        // Only update if the date actually changed
+        if (datesDiffer) {
+          await prisma.assetHistory.update({
+            where: { id: mostRecentAssignment.id },
+            data: { assignmentDate: newDate }
+          });
+        }
+      } else {
+        // No history record exists - create one for the current assignment
+        const { recordAssetAssignment } = await import('@/lib/asset-history');
+        await recordAssetAssignment(
+          id,
+          null,  // No previous user
+          currentAsset.assignedUserId,
+          session.user.id,
+          'Historical assignment record created during date update',
+          newDate
+        );
       }
     }
 
