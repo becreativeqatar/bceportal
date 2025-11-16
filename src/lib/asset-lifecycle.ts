@@ -90,19 +90,49 @@ export async function getAssignmentPeriods(assetId: string): Promise<AssignmentP
 
   // If currently assigned, add ongoing period
   if (asset.assignedUser && asset.assignedUserId) {
-    const startDate = currentAssignment?.startDate || asset.createdAt;
-    const endDate = new Date();
-    const days = calculateDaysBetween(startDate, endDate);
+    // Only add current period if we have a valid start date from history
+    if (currentAssignment) {
+      const startDate = currentAssignment.startDate;
+      const endDate = new Date();
+      const days = calculateDaysBetween(startDate, endDate);
 
-    periods.push({
-      userId: asset.assignedUser.id,
-      userName: asset.assignedUser.name,
-      userEmail: asset.assignedUser.email,
-      startDate,
-      endDate: null,
-      days,
-      notes: currentAssignment?.notes,
-    });
+      periods.push({
+        userId: asset.assignedUser.id,
+        userName: asset.assignedUser.name,
+        userEmail: asset.assignedUser.email,
+        startDate,
+        endDate: null,
+        days,
+        notes: currentAssignment.notes,
+      });
+    } else {
+      // No assignment history found - try to get assignment date from most recent history
+      const mostRecentAssignment = await prisma.assetHistory.findFirst({
+        where: {
+          assetId: asset.id,
+          action: 'ASSIGNED',
+          toUserId: asset.assignedUserId,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (mostRecentAssignment) {
+        const startDate = mostRecentAssignment.assignmentDate || mostRecentAssignment.createdAt;
+        const endDate = new Date();
+        const days = calculateDaysBetween(startDate, endDate);
+
+        periods.push({
+          userId: asset.assignedUser.id,
+          userName: asset.assignedUser.name,
+          userEmail: asset.assignedUser.email,
+          startDate,
+          endDate: null,
+          days,
+          notes: mostRecentAssignment.notes || undefined,
+        });
+      }
+      // If still no history, asset was assigned before history tracking - don't include in utilization
+    }
   }
 
   return periods;
