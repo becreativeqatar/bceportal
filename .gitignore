@@ -62,3 +62,12 @@ prisma/dev.db.backup-*
 *.sql.backup
 *-setup.md
 *-notes.txt
+check-*.js
+debug-*.js
+temp-*.js
+*.tmp
+
+# Test results
+/test-results
+/playwright-report
+/.swc

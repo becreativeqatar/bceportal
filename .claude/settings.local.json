@@ -78,7 +78,8 @@
       "Bash(if exist \"D:\\Projects\\Asset Managment\\src\\app\\api\\restore-from-backup\" rmdir \"D:\\Projects\\Asset Managment\\src\\app\\api\\restore-from-backup\")",
       "Bash(node scripts/update-all-error-messages.js:*)",
       "Bash(timeout 60 vercel logs:*)",
-      "Bash(del nul 2)"
+      "Bash(del nul 2)",
+      "Bash(git tag:*)"
     ],
     "deny": [],
     "ask": []
