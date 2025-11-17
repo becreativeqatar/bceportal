@@ -79,7 +79,9 @@
       "Bash(node scripts/update-all-error-messages.js:*)",
       "Bash(timeout 60 vercel logs:*)",
       "Bash(del nul 2)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash(npm run test:all:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []

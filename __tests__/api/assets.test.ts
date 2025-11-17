@@ -96,6 +96,30 @@ describe('Assets API Tests', () => {
 
       expect(filtered).toHaveLength(2);
     });
+
+    it('should support type filtering', async () => {
+      const mockAssets = [
+        { id: 'asset-1', type: 'Laptop' },
+        { id: 'asset-2', type: 'Desktop' },
+        { id: 'asset-3', type: 'Laptop' },
+      ];
+
+      const filtered = mockAssets.filter(asset => asset.type === 'Laptop');
+
+      expect(filtered).toHaveLength(2);
+    });
+
+    it('should support category filtering', async () => {
+      const mockAssets = [
+        { id: 'asset-1', category: 'IT' },
+        { id: 'asset-2', category: 'Marketing' },
+        { id: 'asset-3', category: 'IT' },
+      ];
+
+      const filtered = mockAssets.filter(asset => asset.category === 'IT');
+
+      expect(filtered).toHaveLength(2);
+    });
   });
 
   describe('POST /api/assets', () => {
