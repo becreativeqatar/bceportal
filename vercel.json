@@ -3,6 +3,12 @@
   "framework": "nextjs",
   "installCommand": "npm install --legacy-peer-deps",
   "regions": ["bom1"],
+  "crons": [
+    {
+      "path": "/api/admin/backup",
+      "schedule": "0 3 * * *"
+    }
+  ],
   "functions": {
     "app/api/**/*": {
       "maxDuration": 30

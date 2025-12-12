@@ -8,6 +8,7 @@ import { DataExportImport } from '@/components/settings/data-export-import';
 import { ExchangeRateSettings } from '@/components/settings/exchange-rate-settings';
 import { DatabaseStats } from '@/components/settings/database-stats';
 import { DataDeletion } from '@/components/settings/data-deletion';
+import { BackupDownload } from '@/components/settings/backup-download';
 import { prisma } from '@/lib/prisma';
 
 export default async function SettingsPage() {
@@ -63,14 +64,20 @@ export default async function SettingsPage() {
             </p>
           </div>
 
-          <Tabs defaultValue="export" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+          <Tabs defaultValue="backup" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+              <TabsTrigger value="backup">Backup</TabsTrigger>
               <TabsTrigger value="export">Data Export/Import</TabsTrigger>
               <TabsTrigger value="database">Database</TabsTrigger>
               <TabsTrigger value="testing" className="text-red-600">Testing/Deletion</TabsTrigger>
               <TabsTrigger value="organization">Organization</TabsTrigger>
               <TabsTrigger value="system">System Config</TabsTrigger>
             </TabsList>
+
+            {/* Backup Tab */}
+            <TabsContent value="backup" className="space-y-6">
+              <BackupDownload />
+            </TabsContent>
 
             {/* Data Export/Import Tab */}
             <TabsContent value="export" className="space-y-6">
