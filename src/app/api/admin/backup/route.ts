@@ -24,35 +24,50 @@ export async function GET(request: NextRequest) {
   try {
     logger.info('🚀 Starting full database backup');
 
+    // Helper to safely query tables that might not exist
+    const safeQuery = async <T>(query: Promise<T>, fallback: T): Promise<T> => {
+      try {
+        return await query;
+      } catch {
+        return fallback;
+      }
+    };
+
     // Export ALL data from ALL tables
     const [
       users,
       assets,
       assetHistories,
       subscriptions,
-      subscriptionAssignments,
+      subscriptionHistories,
       suppliers,
       supplierEngagements,
-      projects,
-      accreditationRecords,
+      accreditationProjects,
+      accreditations,
+      accreditationHistories,
+      accreditationScans,
       hrProfiles,
       profileChangeRequests,
       activityLogs,
       systemSettings,
+      maintenanceRecords,
     ] = await Promise.all([
       prisma.user.findMany(),
       prisma.asset.findMany(),
       prisma.assetHistory.findMany(),
       prisma.subscription.findMany(),
-      prisma.subscriptionAssignment.findMany(),
+      safeQuery(prisma.subscriptionHistory.findMany(), []),
       prisma.supplier.findMany(),
       prisma.supplierEngagement.findMany(),
-      prisma.project.findMany(),
-      prisma.accreditationRecord.findMany(),
-      prisma.hRProfile.findMany(),
-      prisma.profileChangeRequest.findMany(),
+      prisma.accreditationProject.findMany(),
+      prisma.accreditation.findMany(),
+      safeQuery(prisma.accreditationHistory.findMany(), []),
+      safeQuery(prisma.accreditationScan.findMany(), []),
+      safeQuery(prisma.hRProfile.findMany(), []),
+      safeQuery(prisma.profileChangeRequest.findMany(), []),
       prisma.activityLog.findMany(),
-      prisma.systemSettings.findMany(),
+      safeQuery(prisma.systemSettings.findMany(), []),
+      safeQuery(prisma.maintenanceRecord.findMany(), []),
     ]);
 
     const timestamp = new Date().toISOString();
@@ -68,29 +83,35 @@ export async function GET(request: NextRequest) {
         assets: assets.length,
         assetHistories: assetHistories.length,
         subscriptions: subscriptions.length,
-        subscriptionAssignments: subscriptionAssignments.length,
+        subscriptionHistories: subscriptionHistories.length,
         suppliers: suppliers.length,
         supplierEngagements: supplierEngagements.length,
-        projects: projects.length,
-        accreditationRecords: accreditationRecords.length,
+        accreditationProjects: accreditationProjects.length,
+        accreditations: accreditations.length,
+        accreditationHistories: accreditationHistories.length,
+        accreditationScans: accreditationScans.length,
         hrProfiles: hrProfiles.length,
         profileChangeRequests: profileChangeRequests.length,
         activityLogs: activityLogs.length,
         systemSettings: systemSettings.length,
+        maintenanceRecords: maintenanceRecords.length,
       },
       users,
       assets,
       assetHistories,
       subscriptions,
-      subscriptionAssignments,
+      subscriptionHistories,
       suppliers,
       supplierEngagements,
-      projects,
-      accreditationRecords,
+      accreditationProjects,
+      accreditations,
+      accreditationHistories,
+      accreditationScans,
       hrProfiles,
       profileChangeRequests,
       activityLogs,
       systemSettings,
+      maintenanceRecords,
     };
 
     const backupJson = JSON.stringify(backupData, null, 2);
