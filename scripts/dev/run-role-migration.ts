@@ -10,21 +10,21 @@ async function runMigration() {
     console.log('Step 1: Adding new roles to enum...')
     try {
       await prisma.$executeRawUnsafe(`ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'TEMP_STAFF'`)
-    } catch (e) {
+    } catch {
       console.log('  TEMP_STAFF role may already exist')
     }
     try {
       await prisma.$executeRawUnsafe(
         `ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'ACCREDITATION_ADDER'`
       )
-    } catch (e) {
+    } catch {
       console.log('  ACCREDITATION_ADDER role may already exist')
     }
     try {
       await prisma.$executeRawUnsafe(
         `ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'ACCREDITATION_APPROVER'`
       )
-    } catch (e) {
+    } catch {
       console.log('  ACCREDITATION_APPROVER role may already exist')
     }
     console.log('✅ Roles added to enum')
@@ -52,17 +52,17 @@ async function runMigration() {
     console.log('\nStep 4: Dropping soft-delete columns...')
     try {
       await prisma.$executeRawUnsafe(`ALTER TABLE "User" DROP COLUMN IF EXISTS "deletedById"`)
-    } catch (e) {
+    } catch {
       console.log('  deletedById column may not exist')
     }
     try {
       await prisma.$executeRawUnsafe(`ALTER TABLE "User" DROP COLUMN IF EXISTS "deletedAt"`)
-    } catch (e) {
+    } catch {
       console.log('  deletedAt column may not exist')
     }
     try {
       await prisma.$executeRawUnsafe(`ALTER TABLE "User" DROP COLUMN IF EXISTS "deletionNotes"`)
-    } catch (e) {
+    } catch {
       console.log('  deletionNotes column may not exist')
     }
     console.log('✅ Soft-delete columns dropped')
@@ -73,7 +73,7 @@ async function runMigration() {
       await prisma.$executeRawUnsafe(
         `ALTER TABLE "User" DROP COLUMN IF EXISTS "isTemporaryStaff"`
       )
-    } catch (e) {
+    } catch {
       console.log('  isTemporaryStaff column may not exist')
     }
     console.log('✅ isTemporaryStaff column dropped')
