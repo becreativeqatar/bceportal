@@ -34,7 +34,7 @@ class TestRunner {
     console.log('-'.repeat(60));
 
     const start = Date.now();
-    let result: TestResult = {
+    const result: TestResult = {
       name,
       passed: false,
       duration: 0,

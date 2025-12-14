@@ -30,8 +30,10 @@ npm run test:e2e:ui      # Playwright UI mode
 npm run test:all         # Run all tests (unit + E2E)
 
 # Single test file
-npx jest path/to/test.ts              # Unit test
-npx playwright test e2e/specific.spec.ts  # E2E test
+npx jest tests/unit/lib/utils.test.ts              # Unit test
+npx jest tests/integration/assets.test.ts          # Integration test
+npx playwright test tests/e2e/auth.spec.ts         # E2E test
+npx playwright test tests/e2e/smoke.spec.ts        # Smoke test
 
 # Operational scripts
 npm run cron:subs        # Check subscription renewals and send alerts
@@ -49,6 +51,7 @@ npm run check-deployment    # Pre-deployment validation checks
 - **NextAuth.js** with Azure AD OAuth provider (`src/lib/auth.ts`)
 - JWT session strategy with Prisma adapter for user storage
 - Six user roles: `ADMIN`, `EMPLOYEE`, `VALIDATOR`, `TEMP_STAFF`, `ACCREDITATION_ADDER`, `ACCREDITATION_APPROVER`
+- **Development auth**: Set `DEV_AUTH_ENABLED=true` for credentials-based login (test users: `admin@test.local`/`admin123`, `employee@test.local`/`employee123`, etc.)
 - Role-based routing enforced in `src/middleware.ts`:
   - `/admin/*` - requires authentication (admin check in page components)
   - `/validator/*` - VALIDATOR or ADMIN only
@@ -121,10 +124,20 @@ await logAction(userId, ActivityActions.ASSET_CREATED, 'Asset', assetId, payload
 
 ## Testing
 
-- **Jest** - Unit tests in `__tests__/` directories and `*.test.ts` files
-- **Playwright** - E2E tests in `e2e/` directory (auth, assets, subscriptions, accreditation, permissions)
+- **Jest** - Unit/integration tests in `tests/` directory
+  - `tests/unit/lib/` - Unit tests for lib functions and validations
+  - `tests/integration/` - API integration tests
+  - `tests/security/` - Security tests (auth, IDOR, rate limiting)
+  - `tests/helpers/factories.ts` - Test data factories
+  - `tests/mocks/` - Mock implementations (next-auth, prisma)
+- **Playwright** - E2E tests in `tests/e2e/` directory
+  - `tests/e2e/auth.spec.ts` - Authentication flows
+  - `tests/e2e/assets.spec.ts` - Asset workflows
+  - `tests/e2e/subscriptions.spec.ts` - Subscription workflows
+  - `tests/e2e/accreditation.spec.ts` - Accreditation workflows
+  - `tests/e2e/permissions-and-edge-cases.spec.ts` - Access control & edge cases
+  - `tests/e2e/smoke.spec.ts` - Quick smoke tests
 - Tests use local SQLite database (separate from production PostgreSQL)
-- E2E test files: `e2e/auth.spec.ts`, `e2e/assets.spec.ts`, `e2e/subscriptions.spec.ts`, `e2e/accreditation.spec.ts`
 
 ## Currency Handling
 

@@ -21,8 +21,7 @@ const config: Config = {
 
   // Test match patterns
   testMatch: [
-    '**/__tests__/**/*.(test|spec).[jt]s?(x)',
-    '**/?(*.)+(spec|test).[jt]s?(x)',
+    '<rootDir>/tests/**/*.(test|spec).[jt]s?(x)',
   ],
 
   // Coverage configuration
@@ -50,7 +49,7 @@ const config: Config = {
     '/node_modules/',
     '/.next/',
     '/coverage/',
-    '/e2e/', // E2E tests run via Playwright, not Jest
+    '/tests/e2e/', // E2E tests run via Playwright, not Jest
   ],
 
   // Transform configuration

@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
     let historyRows: HistoryImportRow[] = [];
     try {
       const workbook = new ExcelJS.Workbook();
+      // @ts-expect-error - Buffer type mismatch between Node.js versions
       await workbook.xlsx.load(buffer);
 
       const historySheet = workbook.getWorksheet('Subscription History');

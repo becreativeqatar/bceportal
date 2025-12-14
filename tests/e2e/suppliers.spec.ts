@@ -3,11 +3,11 @@
  * Tests supplier registration and approval workflow
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { loginAs, TEST_USERS } from './utils/auth';
 
 // Helper function to login as admin
-async function loginAsAdmin(page: { goto: (url: string) => Promise<void> }) {
+async function loginAsAdmin(page: Page) {
   await loginAs(page, TEST_USERS.admin);
 }
 
