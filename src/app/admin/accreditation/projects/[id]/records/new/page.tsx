@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,11 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, Upload, Save, Send } from 'lucide-react';
-import { Cache } from '@/lib/cache';
 import { toast } from 'sonner';
 import NextImage from 'next/image';
 import { dedupRequest } from '@/lib/request-dedup';
-import { createAccreditationSchema, type CreateAccreditationRequest } from '@/lib/validations/accreditation';
+import { createAccreditationSchema } from '@/lib/validations/accreditation';
 import { AccreditationStatus } from '@prisma/client';
 
 interface AccreditationProject {
