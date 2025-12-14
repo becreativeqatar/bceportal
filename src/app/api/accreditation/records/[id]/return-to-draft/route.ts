@@ -7,7 +7,7 @@ import { AccreditationStatus } from '@prisma/client';
 // PATCH /api/accreditation/records/[id]/return-to-draft - Return a pending accreditation back to draft
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -16,9 +16,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
+
     // Find the accreditation
     const accreditation = await prisma.accreditation.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!accreditation) {
@@ -40,7 +42,7 @@ export async function PATCH(
     const updated = await prisma.$transaction(async (tx) => {
       // Update accreditation status
       const draft = await tx.accreditation.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           status: AccreditationStatus.DRAFT,
         },
@@ -49,7 +51,7 @@ export async function PATCH(
       // Log the action in history
       await tx.accreditationHistory.create({
         data: {
-          accreditationId: params.id,
+          accreditationId: id,
           action: 'RETURNED_TO_DRAFT',
           oldStatus: AccreditationStatus.PENDING,
           newStatus: AccreditationStatus.DRAFT,

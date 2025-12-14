@@ -69,7 +69,7 @@ export default function SupplierRegistrationPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateSupplierRequest>({
-    resolver: zodResolver(createSupplierSchema),
+    resolver: zodResolver(createSupplierSchema) as any,
     mode: 'onChange',
     defaultValues: {
       name: '',
@@ -193,7 +193,7 @@ export default function SupplierRegistrationPage() {
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-6">
           {/* Company Information */}
           <Card>
             <CardHeader>

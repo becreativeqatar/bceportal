@@ -36,21 +36,21 @@ export default function NewSubscriptionPage() {
     resolver: zodResolver(createSubscriptionSchema) as any,
     defaultValues: {
       serviceName: '',
-      category: null,
-      accountId: null,
-      purchaseDate: null,
-      renewalDate: null,
+      category: undefined,
+      accountId: undefined,
+      purchaseDate: '',
+      renewalDate: undefined,
       billingCycle: 'MONTHLY',
-      costPerCycle: null,
+      costPerCycle: undefined,
       costCurrency: 'QAR',
-      costQAR: null,
-      vendor: null,
+      costQAR: undefined,
+      vendor: undefined,
       status: 'ACTIVE',
       autoRenew: true,
-      paymentMethod: null,
-      notes: null,
+      paymentMethod: undefined,
+      notes: undefined,
       assignedUserId: '',
-      assignmentDate: null,
+      assignmentDate: undefined,
     },
     mode: 'onChange',
   });
@@ -216,8 +216,8 @@ export default function NewSubscriptionPage() {
       // Keep existing assignment date if present, otherwise leave empty
     } else {
       // When unassigning, clear both user and assignment date
-      setValue('assignedUserId', null);
-      setValue('assignmentDate', null);
+      setValue('assignedUserId', '');
+      setValue('assignmentDate', '');
     }
   };
 
@@ -352,7 +352,7 @@ export default function NewSubscriptionPage() {
                     <DatePicker
                       id="purchaseDate"
                       value={watchedPurchaseDate || ''}
-                      onChange={(value) => setValue('purchaseDate', value || null)}
+                      onChange={(value) => setValue('purchaseDate', value || '')}
                     />
                     {errors.purchaseDate && (
                       <p className="text-sm text-red-500">{errors.purchaseDate.message}</p>

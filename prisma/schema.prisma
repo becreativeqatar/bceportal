@@ -90,34 +90,52 @@ model Session {
 }
 
 model User {
-  id                         String                 @id @default(cuid())
-  name                       String?
-  email                      String                 @unique
-  emailVerified              DateTime?
-  image                      String?
-  role                       Role                   @default(EMPLOYEE)
-  isSystemAccount            Boolean                @default(false)  // For shared assets and system users
-  accounts                   Account[]
-  sessions                   Session[]
-  assets                     Asset[]
-  subscriptions              Subscription[]
-  activityLogs               ActivityLog[]
-  assetHistoryFrom           AssetHistory[]         @relation("AssetHistoryFromUser")
-  assetHistoryTo             AssetHistory[]         @relation("AssetHistoryToUser")
-  assetHistoryPerformed      AssetHistory[]         @relation("AssetHistoryPerformer")
-  subscriptionHistoryPerformed SubscriptionHistory[] @relation("SubscriptionHistoryPerformer")
-  subscriptionHistoryOldUser SubscriptionHistory[] @relation("SubscriptionHistoryOldUser")
-  subscriptionHistoryNewUser SubscriptionHistory[] @relation("SubscriptionHistoryNewUser")
-  approvedSuppliers          Supplier[]             @relation("SupplierApprover")
-  supplierEngagements        SupplierEngagement[]
-  createdAccreditations      Accreditation[]        @relation("AccreditationCreator")
-  approvedAccreditations     Accreditation[]        @relation("AccreditationApprover")
-  revokedAccreditations      Accreditation[]        @relation("AccreditationRevoker")
-  accreditationHistory       AccreditationHistory[] @relation("AccreditationHistoryPerformer")
-  accreditationScans         AccreditationScan[]    @relation("AccreditationScans")
-  systemSettingsUpdated      SystemSettings[]       @relation("SystemSettingsUpdater")
-  createdAt                  DateTime               @default(now())
-  updatedAt                  DateTime               @updatedAt
+  id                           String                 @id @default(cuid())
+  name                         String?
+  email                        String                 @unique
+  emailVerified                DateTime?
+  image                        String?
+  role                         Role                   @default(EMPLOYEE)
+  isSystemAccount              Boolean                @default(false) // For shared assets and system users
+  accounts                     Account[]
+  sessions                     Session[]
+  assets                       Asset[]
+  subscriptions                Subscription[]
+  activityLogs                 ActivityLog[]
+  assetHistoryFrom             AssetHistory[]         @relation("AssetHistoryFromUser")
+  assetHistoryTo               AssetHistory[]         @relation("AssetHistoryToUser")
+  assetHistoryPerformed        AssetHistory[]         @relation("AssetHistoryPerformer")
+  subscriptionHistoryPerformed SubscriptionHistory[]  @relation("SubscriptionHistoryPerformer")
+  subscriptionHistoryOldUser   SubscriptionHistory[]  @relation("SubscriptionHistoryOldUser")
+  subscriptionHistoryNewUser   SubscriptionHistory[]  @relation("SubscriptionHistoryNewUser")
+  approvedSuppliers            Supplier[]             @relation("SupplierApprover")
+  supplierEngagements          SupplierEngagement[]
+  createdAccreditations        Accreditation[]        @relation("AccreditationCreator")
+  approvedAccreditations       Accreditation[]        @relation("AccreditationApprover")
+  revokedAccreditations        Accreditation[]        @relation("AccreditationRevoker")
+  accreditationHistory         AccreditationHistory[] @relation("AccreditationHistoryPerformer")
+  accreditationScans           AccreditationScan[]    @relation("AccreditationScans")
+  systemSettingsUpdated        SystemSettings[]       @relation("SystemSettingsUpdater")
+  hrProfile                    HRProfile?
+
+  // Task Management relations
+  ownedBoards         Board[]          @relation("BoardOwner")
+  boardMemberships    BoardMember[]
+  createdTasks        Task[]           @relation("TaskCreator")
+  taskAssignments     TaskAssignee[]   @relation("TaskAssignments")
+  assignedTasks       TaskAssignee[]   @relation("TaskAssigner")
+  completedChecklists ChecklistItem[]  @relation("ChecklistCompleter")
+  taskComments        TaskComment[]    @relation("TaskCommentAuthor")
+  taskAttachments     TaskAttachment[] @relation("TaskAttachmentUploader")
+  taskHistory         TaskHistory[]    @relation("TaskHistoryPerformer")
+
+  // Purchase Request relations
+  purchaseRequests         PurchaseRequest[]        @relation("PurchaseRequester")
+  reviewedPurchaseRequests PurchaseRequest[]        @relation("PurchaseReviewer")
+  purchaseRequestHistory   PurchaseRequestHistory[] @relation("PurchaseRequestHistoryPerformer")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model VerificationToken {
@@ -131,37 +149,37 @@ model VerificationToken {
 // Project model removed - projects are now handled separately by accreditation module
 
 model Asset {
-  id                  String          @id @default(cuid())
-  assetTag            String?         @unique // #1 Asset ID/Tag
-  type                String                   // #2 Asset Type (Laptop, Mouse, Monitor, etc.)
-  category            String?                  // #3 Category/Department (IT, Marketing, Engineering, etc.)
-  brand               String?                  // #4 Brand/Manufacturer (Apple, Dell, HP, etc.)
-  model               String                   // #5 Model/Version (MacBook Pro 16", Dell XPS 15, etc.)
-  serial              String?                  // #6 Serial Number
-  configuration       String?                  // #7 Configuration/Specs (16GB RAM, 512GB SSD, etc.)
-  purchaseDate        DateTime?                // #8 Purchase Date
-  warrantyExpiry      DateTime?                // #9 Warranty Expiry
-  supplier            String?                  // #10 Supplier/Vendor (where purchased from)
-  invoiceNumber       String?                  // #12 Invoice/PO Number
-  assignedUserId      String?                  // #13 Assigned To/User
-  assignedUser        User?           @relation(fields: [assignedUserId], references: [id])
-  assignmentDate      String?                  // When the asset was assigned to current user
-  status              AssetStatus     @default(IN_USE) // #14 Status/Condition
-  acquisitionType     AcquisitionType @default(NEW_PURCHASE) // #15 Asset Movement (New/Transferred)
-  transferNotes       String?                  // Notes for transferred assets
-  price               Decimal?                 // #16 Cost/Value
-  priceCurrency       String?         @default("QAR")
-  priceQAR            Decimal?
+  id              String          @id @default(cuid())
+  assetTag        String?         @unique // #1 Asset ID/Tag
+  type            String // #2 Asset Type (Laptop, Mouse, Monitor, etc.)
+  category        String? // #3 Category/Department (IT, Marketing, Engineering, etc.)
+  brand           String? // #4 Brand/Manufacturer (Apple, Dell, HP, etc.)
+  model           String // #5 Model/Version (MacBook Pro 16", Dell XPS 15, etc.)
+  serial          String? // #6 Serial Number
+  configuration   String? // #7 Configuration/Specs (16GB RAM, 512GB SSD, etc.)
+  purchaseDate    DateTime? // #8 Purchase Date
+  warrantyExpiry  DateTime? // #9 Warranty Expiry
+  supplier        String? // #10 Supplier/Vendor (where purchased from)
+  invoiceNumber   String? // #12 Invoice/PO Number
+  assignedUserId  String? // #13 Assigned To/User
+  assignedUser    User?           @relation(fields: [assignedUserId], references: [id])
+  assignmentDate  String? // When the asset was assigned to current user
+  status          AssetStatus     @default(IN_USE) // #14 Status/Condition
+  acquisitionType AcquisitionType @default(NEW_PURCHASE) // #15 Asset Movement (New/Transferred)
+  transferNotes   String? // Notes for transferred assets
+  price           Decimal? // #16 Cost/Value
+  priceCurrency   String?         @default("QAR")
+  priceQAR        Decimal?
 
   // Additional fields
-  notes               String?                  // General notes/remarks about the asset
-  location            String?                  // Physical location of the asset (Office, Building, Room, etc.)
+  notes    String? // General notes/remarks about the asset
+  location String? // Physical location of the asset (Office, Building, Room, etc.)
 
   // Relations & Metadata
-  history             AssetHistory[]
-  maintenanceRecords  MaintenanceRecord[]
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  history            AssetHistory[]
+  maintenanceRecords MaintenanceRecord[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   @@index([warrantyExpiry])
   @@index([brand])
@@ -196,8 +214,8 @@ model AssetHistory {
   notes          String?
   performedBy    String?
   performer      User?              @relation("AssetHistoryPerformer", fields: [performedBy], references: [id])
-  assignmentDate DateTime?          // When asset was assigned (for ASSIGNED action)
-  returnDate     DateTime?          // When asset was returned (for UNASSIGNED action)
+  assignmentDate DateTime? // When asset was assigned (for ASSIGNED action)
+  returnDate     DateTime? // When asset was returned (for UNASSIGNED action)
   createdAt      DateTime           @default(now())
 
   @@index([assetId])
@@ -206,29 +224,29 @@ model AssetHistory {
 }
 
 model Subscription {
-  id             String      @id @default(cuid())
-  serviceName    String
-  category       String?
-  accountId      String?
-  purchaseDate   DateTime?
-  renewalDate    DateTime?
-  billingCycle   BillingCycle
-  costPerCycle   Decimal?
-  costCurrency   String?     @default("QAR")
-  costQAR        Decimal?
-  vendor         String?
-  status         SubscriptionStatus @default(ACTIVE)
-  assignedUserId String?
-  assignedUser   User?       @relation(fields: [assignedUserId], references: [id])
-  autoRenew      Boolean     @default(true)
-  paymentMethod  String?
-  notes          String?
-  lastActiveRenewalDate DateTime?  // Track last renewal before cancel
-  cancelledAt    DateTime?          // When it was cancelled
-  reactivatedAt  DateTime?          // When it was last reactivated
-  history        SubscriptionHistory[]
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                    String                @id @default(cuid())
+  serviceName           String
+  category              String?
+  accountId             String?
+  purchaseDate          DateTime?
+  renewalDate           DateTime?
+  billingCycle          BillingCycle
+  costPerCycle          Decimal?
+  costCurrency          String?               @default("QAR")
+  costQAR               Decimal?
+  vendor                String?
+  status                SubscriptionStatus    @default(ACTIVE)
+  assignedUserId        String?
+  assignedUser          User?                 @relation(fields: [assignedUserId], references: [id])
+  autoRenew             Boolean               @default(true)
+  paymentMethod         String?
+  notes                 String?
+  lastActiveRenewalDate DateTime? // Track last renewal before cancel
+  cancelledAt           DateTime? // When it was cancelled
+  reactivatedAt         DateTime? // When it was last reactivated
+  history               SubscriptionHistory[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 
   @@index([renewalDate])
   @@index([status])
@@ -255,16 +273,16 @@ model SubscriptionHistory {
   newStatus        SubscriptionStatus?
   oldRenewalDate   DateTime?
   newRenewalDate   DateTime?
-  reactivationDate DateTime?                // Date when service was reactivated
-  assignmentDate   DateTime?                // Date when user was assigned/reassigned
-  oldUserId        String?                  // Previous assigned user
-  newUserId        String?                  // New assigned user
-  oldUser          User?                    @relation("SubscriptionHistoryOldUser", fields: [oldUserId], references: [id])
-  newUser          User?                    @relation("SubscriptionHistoryNewUser", fields: [newUserId], references: [id])
+  reactivationDate DateTime? // Date when service was reactivated
+  assignmentDate   DateTime? // Date when user was assigned/reassigned
+  oldUserId        String? // Previous assigned user
+  newUserId        String? // New assigned user
+  oldUser          User?                     @relation("SubscriptionHistoryOldUser", fields: [oldUserId], references: [id])
+  newUser          User?                     @relation("SubscriptionHistoryNewUser", fields: [newUserId], references: [id])
   notes            String?
   performedBy      String?
-  performer        User?                    @relation("SubscriptionHistoryPerformer", fields: [performedBy], references: [id])
-  createdAt        DateTime                 @default(now())
+  performer        User?                     @relation("SubscriptionHistoryPerformer", fields: [performedBy], references: [id])
+  createdAt        DateTime                  @default(now())
 
   @@index([subscriptionId])
   @@index([createdAt])
@@ -299,33 +317,33 @@ model MaintenanceRecord {
 }
 
 model Supplier {
-  id                    String           @id @default(cuid())
-  suppCode              String?          @unique // Auto-generated SUPP-XXXX on approval
-  name                  String
-  category              String           // Material category
-  address               String?
-  city                  String?
-  country               String?
-  website               String?
-  establishmentYear     Int?
-  primaryContactName    String?
-  primaryContactTitle   String?
-  primaryContactEmail   String?
-  primaryContactMobile  String?
-  secondaryContactName  String?
-  secondaryContactTitle String?
-  secondaryContactEmail String?
+  id                     String               @id @default(cuid())
+  suppCode               String?              @unique // Auto-generated SUPP-XXXX on approval
+  name                   String
+  category               String // Material category
+  address                String?
+  city                   String?
+  country                String?
+  website                String?
+  establishmentYear      Int?
+  primaryContactName     String?
+  primaryContactTitle    String?
+  primaryContactEmail    String?
+  primaryContactMobile   String?
+  secondaryContactName   String?
+  secondaryContactTitle  String?
+  secondaryContactEmail  String?
   secondaryContactMobile String?
-  paymentTerms          String?
-  additionalInfo        String?          // Additional information (portfolio, certifications, etc.)
-  status                SupplierStatus   @default(PENDING)
-  rejectionReason       String?
-  approvedAt            DateTime?
-  approvedById          String?
-  approvedBy            User?            @relation("SupplierApprover", fields: [approvedById], references: [id])
-  engagements           SupplierEngagement[]
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
+  paymentTerms           String?
+  additionalInfo         String? // Additional information (portfolio, certifications, etc.)
+  status                 SupplierStatus       @default(PENDING)
+  rejectionReason        String?
+  approvedAt             DateTime?
+  approvedById           String?
+  approvedBy             User?                @relation("SupplierApprover", fields: [approvedById], references: [id])
+  engagements            SupplierEngagement[]
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
 
   @@index([status])
   @@index([suppCode])
@@ -335,15 +353,15 @@ model Supplier {
 }
 
 model SupplierEngagement {
-  id         String   @id @default(cuid())
-  supplierId String
-  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  date       DateTime
-  notes      String
-  rating     Int?     // 1-5 star rating (optional)
+  id          String   @id @default(cuid())
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  date        DateTime
+  notes       String
+  rating      Int? // 1-5 star rating (optional)
   createdById String
-  createdBy  User     @relation(fields: [createdById], references: [id])
-  createdAt  DateTime @default(now())
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
 
   @@index([supplierId])
   @@index([date])
@@ -377,29 +395,29 @@ model AccreditationProject {
 
   accreditations Accreditation[]
 
-  @@index([isActive])    // For filtering active projects
+  @@index([isActive]) // For filtering active projects
   @@index([bumpInStart]) // For date-based queries
-  @@index([liveStart])   // For date-based queries
-  @@index([code])        // For project code lookups
+  @@index([liveStart]) // For date-based queries
+  @@index([code]) // For project code lookups
 }
 
 model Accreditation {
-  id                   String   @id @default(cuid())
-  accreditationNumber  String   @unique // Auto-generated ACC-XXXX
+  id                  String @id @default(cuid())
+  accreditationNumber String @unique // Auto-generated ACC-XXXX
 
   // Personal Information
-  firstName   String
-  lastName    String
-  organization String
-  jobTitle    String
-  accessGroup String
+  firstName       String
+  lastName        String
+  organization    String
+  jobTitle        String
+  accessGroup     String
   profilePhotoUrl String? // Supabase storage path
 
   // Identification (Either QID OR Passport+Hayya)
   qidNumber       String?
   qidExpiry       DateTime?
   passportNumber  String?
-  passportCountry String?  // Country of passport issuance
+  passportCountry String? // Country of passport issuance
   passportExpiry  DateTime?
   hayyaVisaNumber String?
   hayyaVisaExpiry DateTime?
@@ -420,22 +438,22 @@ model Accreditation {
   // Workflow
   status      AccreditationStatus @default(DRAFT)
   qrCodeToken String?             @unique // For verification URL
-  qrCodeImage String?             // Cached base64 QR code image
+  qrCodeImage String? // Cached base64 QR code image
 
   // Relations
-  projectId   String
-  project     AccreditationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  project   AccreditationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   createdById String
   createdBy   User   @relation("AccreditationCreator", fields: [createdById], references: [id])
 
   approvedById String?
-  approvedBy   User?   @relation("AccreditationApprover", fields: [approvedById], references: [id])
+  approvedBy   User?     @relation("AccreditationApprover", fields: [approvedById], references: [id])
   approvedAt   DateTime?
 
-  revokedById String?
-  revokedBy   User?   @relation("AccreditationRevoker", fields: [revokedById], references: [id])
-  revokedAt   DateTime?
+  revokedById      String?
+  revokedBy        User?     @relation("AccreditationRevoker", fields: [revokedById], references: [id])
+  revokedAt        DateTime?
   revocationReason String?
 
   createdAt DateTime @default(now())
@@ -453,22 +471,22 @@ model Accreditation {
   @@index([lastName])
   @@index([organization])
   @@index([createdAt])
-  @@index([qidNumber])              // For duplicate detection
-  @@index([passportNumber])         // For duplicate detection
-  @@index([status, projectId])      // Composite for filtered queries
-  @@index([createdAt, status])      // For approval queue sorting
+  @@index([qidNumber]) // For duplicate detection
+  @@index([passportNumber]) // For duplicate detection
+  @@index([status, projectId]) // Composite for filtered queries
+  @@index([createdAt, status]) // For approval queue sorting
 }
 
 model AccreditationHistory {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   accreditationId String
   accreditation   Accreditation @relation(fields: [accreditationId], references: [id], onDelete: Cascade)
 
-  action      String // CREATED, SUBMITTED, APPROVED, REJECTED, UPDATED
-  oldStatus   AccreditationStatus?
-  newStatus   AccreditationStatus?
-  changes     Json? // Store field changes
-  notes       String?
+  action    String // CREATED, SUBMITTED, APPROVED, REJECTED, UPDATED
+  oldStatus AccreditationStatus?
+  newStatus AccreditationStatus?
+  changes   Json? // Store field changes
+  notes     String?
 
   performedById String
   performedBy   User   @relation("AccreditationHistoryPerformer", fields: [performedById], references: [id])
@@ -480,7 +498,7 @@ model AccreditationHistory {
 }
 
 model AccreditationScan {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   accreditationId String
   accreditation   Accreditation @relation(fields: [accreditationId], references: [id], onDelete: Cascade)
 
@@ -488,12 +506,12 @@ model AccreditationScan {
   scannedBy   User   @relation("AccreditationScans", fields: [scannedById], references: [id])
 
   scannedAt   DateTime @default(now())
-  location    String?  // Optional: Physical location where scanned
-  device      String?  // Optional: Device info (user agent)
-  ipAddress   String?  // Optional: IP address
-  wasValid    Boolean  // Whether the accreditation was valid at scan time
-  validPhases Json?    // Which phases were active ["BUMP_IN", "LIVE", "BUMP_OUT"]
-  notes       String?  // Optional notes from scanner
+  location    String? // Optional: Physical location where scanned
+  device      String? // Optional: Device info (user agent)
+  ipAddress   String? // Optional: IP address
+  wasValid    Boolean // Whether the accreditation was valid at scan time
+  validPhases Json? // Which phases were active ["BUMP_IN", "LIVE", "BUMP_OUT"]
+  notes       String? // Optional notes from scanner
 
   @@index([accreditationId])
   @@index([scannedById])
@@ -511,4 +529,519 @@ model SystemSettings {
   updatedAt DateTime @updatedAt
 
   @@index([key])
+}
+
+model HRProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Personal Information
+  dateOfBirth   DateTime?
+  gender        String? // Male/Female/Other
+  maritalStatus String? // Single/Married/Divorced/Widowed
+  nationality   String?
+
+  // Contact Information
+  qatarMobile        String? // 8-digit number (prefix +974 hardcoded in UI)
+  otherMobileCode    String? @default("+961") // Country code (Lebanon default)
+  otherMobileNumber  String?
+  personalEmail      String?
+  // workEmail from User.email (read-only)
+  qatarZone          String?
+  qatarStreet        String?
+  qatarBuilding      String?
+  qatarUnit          String?
+  homeCountryAddress String? // textarea
+
+  // Emergency Contacts - Local (Qatar)
+  localEmergencyName      String?
+  localEmergencyRelation  String?
+  localEmergencyPhoneCode String? @default("+974")
+  localEmergencyPhone     String?
+
+  // Emergency Contacts - Home Country
+  homeEmergencyName      String?
+  homeEmergencyRelation  String?
+  homeEmergencyPhoneCode String? @default("+961")
+  homeEmergencyPhone     String?
+
+  // Identification & Legal
+  qidNumber        String?
+  qidExpiry        DateTime?
+  passportNumber   String?
+  passportExpiry   DateTime?
+  // passportCountry removed - QID serves as unique identifier
+  // healthCardNumber removed - QID serves as unique identifier
+  healthCardExpiry DateTime?
+  sponsorshipType  String? // Company/Family/Work Permit
+
+  // Employment Information
+  employeeId    String? // Admin-only editable
+  designation   String?
+  dateOfJoining DateTime?
+
+  // Bank & Payroll
+  bankName String?
+  iban     String?
+
+  // Education
+  highestQualification String?
+  specialization       String?
+  institutionName      String?
+  graduationYear       Int?
+
+  // Documents (Supabase storage URLs)
+  qidUrl          String?
+  passportCopyUrl String?
+  photoUrl        String?
+  contractCopyUrl String?
+
+  // Additional Info
+  hasDrivingLicense    Boolean   @default(false)
+  // licenseNumber removed - QID serves as unique identifier
+  licenseExpiry        DateTime?
+  languagesKnown       String? // JSON array stored as string
+  skillsCertifications String? // JSON array stored as string
+
+  // Onboarding tracking
+  onboardingStep     Int     @default(0) // Current step in wizard (0-7)
+  onboardingComplete Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  changeRequests ProfileChangeRequest[]
+
+  @@index([qidNumber])
+  @@index([passportNumber])
+  @@index([employeeId])
+}
+
+enum ProfileChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ===== Task Management Module Enums =====
+
+enum BoardMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskHistoryAction {
+  CREATED
+  UPDATED
+  MOVED
+  ASSIGNED
+  UNASSIGNED
+  COMPLETED
+  REOPENED
+  COMMENTED
+  ATTACHMENT_ADDED
+  ATTACHMENT_REMOVED
+  CHECKLIST_UPDATED
+}
+
+// ===== Purchase Request Module Enums =====
+
+enum PurchaseRequestStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum PurchaseRequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum PurchaseType {
+  HARDWARE
+  SOFTWARE_SUBSCRIPTION
+  SERVICES
+  OFFICE_SUPPLIES
+  MARKETING
+  TRAVEL
+  TRAINING
+  OTHER
+}
+
+enum CostType {
+  OPERATING_COST
+  PROJECT_COST
+}
+
+enum PaymentMode {
+  BANK_TRANSFER
+  CREDIT_CARD
+  CASH
+  CHEQUE
+  INTERNAL_TRANSFER
+}
+
+model ProfileChangeRequest {
+  id          String    @id @default(cuid())
+  hrProfileId String
+  hrProfile   HRProfile @relation(fields: [hrProfileId], references: [id], onDelete: Cascade)
+
+  // Request details
+  description String // What changes the user is requesting
+  status      ProfileChangeRequestStatus @default(PENDING)
+
+  // Resolution
+  resolvedById  String?
+  resolvedAt    DateTime?
+  resolverNotes String? // Admin notes when resolving
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hrProfileId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ===== Task Management Module Models =====
+
+model Board {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  ownerId     String
+  owner       User    @relation("BoardOwner", fields: [ownerId], references: [id])
+
+  isArchived Boolean @default(false)
+
+  members BoardMember[]
+  columns TaskColumn[]
+  labels  TaskLabel[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([isArchived])
+  @@index([createdAt])
+}
+
+model BoardMember {
+  id      String          @id @default(cuid())
+  boardId String
+  board   Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    BoardMemberRole @default(MEMBER)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([boardId, userId])
+  @@index([boardId])
+  @@index([userId])
+}
+
+model TaskColumn {
+  id       String @id @default(cuid())
+  boardId  String
+  board    Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  title    String
+  position Int    @default(0)
+
+  tasks Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([boardId])
+  @@index([position])
+}
+
+model Task {
+  id       String     @id @default(cuid())
+  columnId String
+  column   TaskColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  position    Int     @default(0)
+
+  priority TaskPriority @default(MEDIUM)
+  dueDate  DateTime?
+
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+
+  createdById String
+  createdBy   User   @relation("TaskCreator", fields: [createdById], references: [id])
+
+  assignees   TaskAssignee[]
+  labels      TaskLabelAssignment[]
+  checklist   ChecklistItem[]
+  comments    TaskComment[]
+  attachments TaskAttachment[]
+  history     TaskHistory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([columnId])
+  @@index([position])
+  @@index([dueDate])
+  @@index([priority])
+  @@index([isCompleted])
+  @@index([createdById])
+  @@index([createdAt])
+}
+
+model TaskAssignee {
+  id     String @id @default(cuid())
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("TaskAssignments", fields: [userId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+  assignedBy String?
+  assigner   User?    @relation("TaskAssigner", fields: [assignedBy], references: [id])
+
+  @@unique([taskId, userId])
+  @@index([taskId])
+  @@index([userId])
+}
+
+model TaskLabel {
+  id      String @id @default(cuid())
+  boardId String
+  board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  name  String
+  color String @default("#3b82f6")
+
+  tasks TaskLabelAssignment[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([boardId, name])
+  @@index([boardId])
+}
+
+model TaskLabelAssignment {
+  id      String    @id @default(cuid())
+  taskId  String
+  task    Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  labelId String
+  label   TaskLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, labelId])
+  @@index([taskId])
+  @@index([labelId])
+}
+
+model ChecklistItem {
+  id     String @id @default(cuid())
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  title       String
+  isCompleted Boolean @default(false)
+  position    Int     @default(0)
+
+  completedAt DateTime?
+  completedBy String?
+  completer   User?     @relation("ChecklistCompleter", fields: [completedBy], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([position])
+}
+
+model TaskComment {
+  id     String @id @default(cuid())
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  content String
+
+  authorId String
+  author   User   @relation("TaskCommentAuthor", fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model TaskAttachment {
+  id     String @id @default(cuid())
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  storagePath String
+
+  uploadedById String
+  uploadedBy   User   @relation("TaskAttachmentUploader", fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([uploadedById])
+}
+
+model TaskHistory {
+  id     String @id @default(cuid())
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  action  TaskHistoryAction
+  changes Json?
+
+  performedById String
+  performedBy   User   @relation("TaskHistoryPerformer", fields: [performedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([performedById])
+  @@index([createdAt])
+}
+
+// ===== Purchase Request Module Models =====
+
+model PurchaseRequest {
+  id              String                  @id @default(cuid())
+  referenceNumber String                  @unique // BCE-PR-YYMM-XXXX
+  requestDate     DateTime                @default(now())
+  status          PurchaseRequestStatus   @default(PENDING)
+  priority        PurchaseRequestPriority @default(MEDIUM)
+
+  // Requester info (auto-populated from logged-in user)
+  requesterId String
+  requester   User   @relation("PurchaseRequester", fields: [requesterId], references: [id])
+
+  // Request details
+  title         String
+  description   String?
+  justification String? // Business justification
+  neededByDate  DateTime? // When items are needed
+
+  // Purchase Type & Cost Details (from prototype)
+  purchaseType PurchaseType @default(OTHER)
+  costType     CostType     @default(OPERATING_COST)
+  projectName  String? // Required when costType is PROJECT_COST
+  paymentMode  PaymentMode  @default(BANK_TRANSFER)
+
+  // Vendor Details
+  vendorName    String?
+  vendorContact String?
+  vendorEmail   String?
+
+  // Additional Notes
+  additionalNotes String?
+
+  // Totals
+  totalAmount       Decimal  @db.Decimal(12, 2)
+  currency          String   @default("QAR")
+  totalAmountQAR    Decimal? @db.Decimal(12, 2)
+  totalOneTime      Decimal? @db.Decimal(12, 2) // One-time costs total
+  totalMonthly      Decimal? @db.Decimal(12, 2) // Monthly recurring total
+  totalContractValue Decimal? @db.Decimal(12, 2) // Total contract value
+
+  // Approval workflow
+  reviewedById String?
+  reviewedBy   User?     @relation("PurchaseReviewer", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  reviewNotes  String?
+
+  // Completion
+  completedAt     DateTime?
+  completionNotes String?
+
+  // Relations
+  items   PurchaseRequestItem[]
+  history PurchaseRequestHistory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([requesterId])
+  @@index([status])
+  @@index([referenceNumber])
+  @@index([createdAt])
+  @@index([purchaseType])
+  @@index([costType])
+}
+
+model PurchaseRequestItem {
+  id                String          @id @default(cuid())
+  purchaseRequestId String
+  purchaseRequest   PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+
+  itemNumber   Int     // Line item number (1, 2, 3...)
+  description  String
+  quantity     Int     @default(1)
+  unitPrice    Decimal @db.Decimal(12, 2)
+  currency     String  @default("QAR")
+  unitPriceQAR Decimal? @db.Decimal(12, 2)
+  totalPrice   Decimal @db.Decimal(12, 2) // quantity * unitPrice
+  totalPriceQAR Decimal? @db.Decimal(12, 2)
+
+  // Subscription/recurring fields (for SOFTWARE_SUBSCRIPTION type)
+  billingCycle   BillingCycle @default(ONE_TIME) // ONE_TIME, MONTHLY, YEARLY
+  durationMonths Int?         // Duration in months (for monthly billing)
+  amountPerCycle Decimal?     @db.Decimal(12, 2) // Recurring cost per cycle
+
+  // Product details
+  productUrl String? // Product link URL
+
+  category String? // IT Equipment, Office Supplies, etc.
+  supplier String? // Preferred supplier
+  notes    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([purchaseRequestId])
+  @@index([billingCycle])
+}
+
+model PurchaseRequestHistory {
+  id                String          @id @default(cuid())
+  purchaseRequestId String
+  purchaseRequest   PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+
+  action         String // CREATED, STATUS_CHANGED, UPDATED, ITEM_ADDED, ITEM_REMOVED
+  previousStatus PurchaseRequestStatus?
+  newStatus      PurchaseRequestStatus?
+
+  performedById String
+  performedBy   User   @relation("PurchaseRequestHistoryPerformer", fields: [performedById], references: [id])
+
+  details String? // JSON or text description of changes
+
+  createdAt DateTime @default(now())
+
+  @@index([purchaseRequestId])
+  @@index([performedById])
+  @@index([createdAt])
 }

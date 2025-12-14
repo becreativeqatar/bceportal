@@ -24,7 +24,7 @@ export async function GET() {
     return NextResponse.json({
       rate: parseFloat(rate),
       lastUpdated: setting?.updatedAt || null,
-      updatedBy: setting?.updater?.name || setting?.updater?.email || null,
+      updatedBy: setting?.updatedBy || null,
     });
   } catch (error) {
     console.error('Get exchange rate error:', error);

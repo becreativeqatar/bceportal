@@ -1,14 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Disable ESLint during build (warnings exist but don't break functionality)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // Ignore TypeScript errors during build (non-critical errors exist)
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   // Allow larger file uploads (10MB)
   experimental: {
     serverActions: {

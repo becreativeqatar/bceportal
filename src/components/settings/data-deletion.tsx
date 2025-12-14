@@ -169,7 +169,7 @@ export function DataDeletion() {
     <>
       <div className="space-y-6">
         {/* Warning Banner */}
-        <Alert variant="destructive" className="border-red-600 bg-red-50">
+        <Alert variant="error" className="border-red-600 bg-red-50">
           <AlertTriangle className="h-5 w-5 text-red-600" />
           <AlertDescription className="text-red-900">
             <strong>⚠️ DANGER ZONE - TESTING ONLY</strong>

@@ -6,7 +6,11 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import Image from 'next/image';
+
+// Check if dev auth is enabled (set via environment variable)
+const DEV_AUTH_ENABLED = process.env.NEXT_PUBLIC_DEV_AUTH_ENABLED === 'true';
 
 // Color scheme for login page
 // Modify these values to customize the appearance
@@ -22,6 +26,9 @@ const colorScheme = {
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [devEmail, setDevEmail] = useState('');
+  const [devPassword, setDevPassword] = useState('');
+  const [devError, setDevError] = useState('');
 
   useEffect(() => {
     // Check if user is already logged in
@@ -40,6 +47,31 @@ export default function LoginPage() {
       console.error('Azure sign in error:', error);
       toast.error('Failed to sign in. Please try again.', { duration: 10000 });
     }
+    setIsLoading(false);
+  };
+
+  const handleDevSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDevError('');
+    setIsLoading(true);
+
+    try {
+      const result = await signIn('dev-credentials', {
+        email: devEmail,
+        password: devPassword,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setDevError('Invalid email or password');
+      } else if (result?.ok) {
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Dev sign in error:', error);
+      setDevError('Failed to sign in');
+    }
+
     setIsLoading(false);
   };
 
@@ -88,8 +120,62 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Login Button */}
+          {/* Login Options */}
           <div className="space-y-6">
+            {/* Development Login Form - Only shown when DEV_AUTH_ENABLED */}
+            {DEV_AUTH_ENABLED && (
+              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-amber-600 font-semibold text-sm">🛠️ Development Mode</span>
+                </div>
+                <form onSubmit={handleDevSignIn} className="space-y-3">
+                  <div>
+                    <Label htmlFor="dev-email" className="text-sm text-gray-700">Email</Label>
+                    <Input
+                      id="dev-email"
+                      type="email"
+                      value={devEmail}
+                      onChange={(e) => setDevEmail(e.target.value)}
+                      placeholder="admin@test.local"
+                      className="mt-1"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dev-password" className="text-sm text-gray-700">Password</Label>
+                    <Input
+                      id="dev-password"
+                      type="password"
+                      value={devPassword}
+                      onChange={(e) => setDevPassword(e.target.value)}
+                      placeholder="admin123"
+                      className="mt-1"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  {devError && (
+                    <p className="text-sm text-red-600">{devError}</p>
+                  )}
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    {isLoading ? 'Signing in...' : 'Dev Login'}
+                  </Button>
+                </form>
+                <div className="mt-3 text-xs text-gray-500">
+                  <p className="font-medium mb-1">Test accounts:</p>
+                  <ul className="space-y-0.5">
+                    <li>admin@test.local / admin123</li>
+                    <li>employee@test.local / employee123</li>
+                    <li>validator@test.local / validator123</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Azure AD Login Button */}
             <Button
               onClick={handleAzureSignIn}
               disabled={isLoading}
@@ -118,9 +204,11 @@ export default function LoginPage() {
             </Button>
 
             {/* Access Notice - Below button */}
-            <p className="text-center text-sm text-gray-500">
-              Access restricted to <span className="text-gray-700 font-medium">@becreative.qa</span> domain only
-            </p>
+            {!DEV_AUTH_ENABLED && (
+              <p className="text-center text-sm text-gray-500">
+                Access restricted to <span className="text-gray-700 font-medium">@becreative.qa</span> domain only
+              </p>
+            )}
 
             {/* Supplier Registration Link */}
             <div className="mt-8 pt-6 border-t border-gray-200">

@@ -159,11 +159,7 @@ export default async function EmployeeSubscriptionDetailPage({ params }: Props) 
             </Card>
 
             {/* Cost Breakdown */}
-            <CostBreakdown
-              costPerCycle={subscription.costPerCycle ? Number(subscription.costPerCycle) : null}
-              billingCycle={subscription.billingCycle}
-              currency={subscription.costCurrency || 'QAR'}
-            />
+            <CostBreakdown subscriptionId={subscription.id} />
 
             {/* Assignment Info */}
             {subscription.assignedUser && (
@@ -218,7 +214,7 @@ export default async function EmployeeSubscriptionDetailPage({ params }: Props) 
                   <SubscriptionRenewalDisplay
                     renewalDate={subscription.renewalDate}
                     billingCycle={subscription.billingCycle}
-                    autoRenew={subscription.autoRenew}
+                    status={subscription.status}
                   />
                 </CardContent>
               </Card>

@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/playwright/.cache/
+.env.test.local
 
 # next.js
 /.next/
@@ -67,7 +71,10 @@ debug-*.js
 temp-*.js
 *.tmp
 
-# Test results
-/test-results
-/playwright-report
+# Playwright/Jest artifacts
 /.swc
+/blob-report/
+/test-backups/
+
+.vercel
+.env*.local

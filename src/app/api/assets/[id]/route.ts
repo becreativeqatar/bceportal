@@ -7,6 +7,8 @@ import { updateAssetSchema } from '@/lib/validations/assets';
 import { logAction, ActivityActions } from '@/lib/activity';
 import { recordAssetUpdate } from '@/lib/asset-history';
 import { USD_TO_QAR_RATE } from '@/lib/constants';
+import { sendEmail } from '@/lib/email';
+import { assetAssignmentEmail } from '@/lib/email-templates';
 
 // Helper to convert field names to human-readable labels
 const fieldLabels: Record<string, string> = {
@@ -258,6 +260,13 @@ export async function PUT(
     // Track assignment changes with custom date
     const userChanged = data.assignedUserId !== undefined && data.assignedUserId !== currentAsset.assignedUserId;
 
+    console.log('[Asset Update] Assignment check:', {
+      dataAssignedUserId: data.assignedUserId,
+      currentAssignedUserId: currentAsset.assignedUserId,
+      userChanged,
+      newAssignedUser: asset.assignedUser,
+    });
+
     if (userChanged) {
       // User assignment changed - create new history record
       const { recordAssetAssignment } = await import('@/lib/asset-history');
@@ -266,11 +275,35 @@ export async function PUT(
       await recordAssetAssignment(
         id,
         currentAsset.assignedUserId,
-        data.assignedUserId,
+        data.assignedUserId ?? null,
         session.user.id,
         undefined,
         assignmentDate
       );
+
+      // Send assignment email to the new user (if assigned, not unassigned)
+      if (asset.assignedUser?.email) {
+        try {
+          const emailContent = assetAssignmentEmail({
+            userName: asset.assignedUser.name || asset.assignedUser.email,
+            assetTag: asset.assetTag || 'N/A',
+            assetType: asset.type,
+            brand: asset.brand || 'N/A',
+            model: asset.model,
+            serialNumber: asset.serial || null,
+            assignmentDate: assignmentDate,
+          });
+          await sendEmail({
+            to: asset.assignedUser.email,
+            subject: emailContent.subject,
+            html: emailContent.html,
+            text: emailContent.text,
+          });
+          console.log('[Asset] Assignment email sent to:', asset.assignedUser.email);
+        } catch (emailError) {
+          console.error('[Asset] Failed to send assignment email:', emailError);
+        }
+      }
     } else if (data.assignmentDate && currentAsset.assignedUserId && !userChanged) {
       // User didn't change but assignment date might have changed
       // Find the most recent assignment history for the current user

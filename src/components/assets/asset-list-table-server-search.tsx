@@ -292,7 +292,7 @@ export function AssetListTableServerSearch() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <AssetActions assetId={asset.id} onUpdate={fetchAssets} />
+                    <AssetActions assetId={asset.id} />
                   </TableCell>
                 </TableRow>
               ))

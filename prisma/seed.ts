@@ -1,4 +1,4 @@
-import { PrismaClient, Role, UsageType, BillingCycle, AssetStatus, AcquisitionType } from '@prisma/client';
+import { PrismaClient, Role, BillingCycle, AssetStatus, AcquisitionType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -174,7 +174,6 @@ async function main() {
         costCurrency: 'QAR',
         costQAR: 1450,
         vendor: 'GitHub',
-        usageType: UsageType.PROJECT,
         assignedUserId: admin.id,
         autoRenew: true,
         paymentMethod: 'Company Credit Card',
@@ -192,7 +191,6 @@ async function main() {
         costCurrency: 'QAR',
         costQAR: 193,
         vendor: 'Adobe',
-        usageType: UsageType.PROJECT,
         assignedUserId: employees[1].id,
         autoRenew: true,
         paymentMethod: 'Company Credit Card',
@@ -209,7 +207,6 @@ async function main() {
         costCurrency: 'QAR',
         costQAR: 546,
         vendor: 'Microsoft',
-        usageType: UsageType.OFFICE,
         assignedUserId: employees[2].id,
         autoRenew: false,
         paymentMethod: 'Purchase Order',

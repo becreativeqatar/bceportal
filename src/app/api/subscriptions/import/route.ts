@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { csvToArray } from '@/lib/csv-utils';
 import { logAction, ActivityActions } from '@/lib/activity';
-import { BillingCycle } from '@prisma/client';
+import { BillingCycle, SubscriptionStatus } from '@prisma/client';
 import { USD_TO_QAR_RATE } from '@/lib/constants';
 
 interface ImportRow {

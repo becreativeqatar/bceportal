@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { Role, AssetStatus, UsageType, AcquisitionType, BillingCycle, SubscriptionStatus } from '@prisma/client';
+import { Role, AssetStatus, AcquisitionType, BillingCycle, SubscriptionStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import ExcelJS from 'exceljs';
 
@@ -204,15 +204,14 @@ export async function POST(request: NextRequest) {
             costCurrency: row.getCell(9).value?.toString() || 'QAR',
             costQAR: row.getCell(10).value ? parseFloat(row.getCell(10).value?.toString() || '0') : null,
             vendor: row.getCell(11).value?.toString() || null,
-            usageType: (row.getCell(12).value?.toString() || 'OFFICE') as UsageType,
-            status: (row.getCell(13).value?.toString() || 'ACTIVE') as SubscriptionStatus,
+            status: (row.getCell(12).value?.toString() || 'ACTIVE') as SubscriptionStatus,
             assignedUserId: newUserId,
-            autoRenew: row.getCell(18).value?.toString() === 'Yes',
-            paymentMethod: row.getCell(19).value?.toString() || null,
-            notes: row.getCell(20).value?.toString() || null,
-            lastActiveRenewalDate: parseDate(row.getCell(21).value?.toString()),
-            cancelledAt: parseDate(row.getCell(22).value?.toString()),
-            reactivatedAt: parseDate(row.getCell(23).value?.toString()),
+            autoRenew: row.getCell(16).value?.toString() === 'Yes',
+            paymentMethod: row.getCell(17).value?.toString() || null,
+            notes: row.getCell(18).value?.toString() || null,
+            lastActiveRenewalDate: parseDate(row.getCell(19).value?.toString()),
+            cancelledAt: parseDate(row.getCell(20).value?.toString()),
+            reactivatedAt: parseDate(row.getCell(21).value?.toString()),
           };
 
           // Try to find existing subscription by serviceName

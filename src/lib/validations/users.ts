@@ -11,6 +11,8 @@ export const createUserSchema = z.object({
     .min(8, 'Password must be at least 8 characters')
     .max(100, 'Password must be less than 100 characters')
     .optional(),
+  employeeId: z.string().max(50, 'Employee code must be less than 50 characters').optional(),
+  designation: z.string().max(100, 'Designation must be less than 100 characters').optional(),
 });
 
 export const updateUserSchema = z.object({

@@ -298,7 +298,7 @@ export function SubscriptionListTableServerSearch() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <SubscriptionActions subscriptionId={subscription.id} onUpdate={fetchSubscriptions} />
+                    <SubscriptionActions subscriptionId={subscription.id} />
                   </TableCell>
                 </TableRow>
               ))

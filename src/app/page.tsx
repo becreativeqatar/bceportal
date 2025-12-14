@@ -36,6 +36,11 @@ export default async function Home() {
   let statsData = null;
 
   if (isAdmin) {
+    // Calculate date thresholds for expiry checks
+    const today = new Date();
+    const thirtyDaysFromNow = new Date(today);
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
     const [
       allSubscriptions,
       recentActivity,
@@ -46,6 +51,11 @@ export default async function Home() {
       totalSuppliers,
       pendingAccreditations,
       pendingSuppliers,
+      pendingPurchaseRequests,
+      pendingChangeRequests,
+      expiringDocuments,
+      incompleteOnboarding,
+      overdueTasks,
     ] = await Promise.all([
       prisma.subscription.findMany({
         where: {
@@ -74,6 +84,29 @@ export default async function Home() {
       prisma.supplier.count(),
       prisma.accreditation.count({ where: { status: 'PENDING' } }),
       prisma.supplier.count({ where: { status: 'PENDING' } }),
+      prisma.purchaseRequest.count({ where: { status: 'PENDING' } }),
+      prisma.profileChangeRequest.count({ where: { status: 'PENDING' } }),
+      // Count employees with documents expiring within 30 days
+      prisma.hRProfile.count({
+        where: {
+          OR: [
+            { qidExpiry: { lte: thirtyDaysFromNow, gte: today } },
+            { passportExpiry: { lte: thirtyDaysFromNow, gte: today } },
+            { healthCardExpiry: { lte: thirtyDaysFromNow, gte: today } },
+          ],
+        },
+      }),
+      // Count incomplete onboarding profiles
+      prisma.hRProfile.count({
+        where: { onboardingComplete: false },
+      }),
+      // Count overdue tasks
+      prisma.task.count({
+        where: {
+          dueDate: { lt: today },
+          isCompleted: false,
+        },
+      }),
     ]);
 
     statsData = {
@@ -105,6 +138,11 @@ export default async function Home() {
       monthlySpendData,
       pendingAccreditations,
       pendingSuppliers,
+      pendingPurchaseRequests,
+      pendingChangeRequests,
+      expiringDocuments,
+      incompleteOnboarding,
+      overdueTasks,
     };
   }
 
@@ -274,7 +312,12 @@ export default async function Home() {
 
                 {/* Suppliers */}
                 <Link href="/admin/suppliers">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
+                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full relative">
+                    {adminData && adminData.pendingSuppliers > 0 && (
+                      <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5">
+                        {adminData.pendingSuppliers} pending
+                      </Badge>
+                    )}
                     <CardHeader>
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-4xl">🤝</div>
@@ -295,7 +338,12 @@ export default async function Home() {
 
                 {/* Accreditation */}
                 <Link href="/admin/accreditation">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
+                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full relative">
+                    {adminData && adminData.pendingAccreditations > 0 && (
+                      <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5">
+                        {adminData.pendingAccreditations} pending
+                      </Badge>
+                    )}
                     <CardHeader>
                       <div className="text-4xl mb-2">🎫</div>
                       <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
@@ -311,20 +359,25 @@ export default async function Home() {
                   </Card>
                 </Link>
 
-                {/* Users */}
-                <Link href="/admin/users">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
+                {/* Employees */}
+                <Link href="/admin/employees">
+                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full relative">
+                    {adminData && adminData.pendingChangeRequests > 0 && (
+                      <Badge className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-0.5">
+                        {adminData.pendingChangeRequests} change req
+                      </Badge>
+                    )}
                     <CardHeader>
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-4xl">👥</div>
                         {statsData && <div className="text-2xl font-bold text-slate-700">{statsData.activeUsers}</div>}
                       </div>
                       <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
-                        Users
+                        Employees
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <CardDescription className="text-gray-600">Manage team members and assignments</CardDescription>
+                      <CardDescription className="text-gray-600">Team members, HR profiles & document tracking</CardDescription>
                       <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
                         Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
                       </div>
@@ -343,6 +396,47 @@ export default async function Home() {
                     </CardHeader>
                     <CardContent>
                       <CardDescription className="text-gray-600">View analytics and generate reports</CardDescription>
+                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
+                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                {/* Task Management */}
+                <Link href="/admin/tasks">
+                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
+                    <CardHeader>
+                      <div className="text-4xl mb-2">📋</div>
+                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
+                        Task Management
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-gray-600">Kanban boards and project tasks</CardDescription>
+                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
+                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                {/* Purchase Requests */}
+                <Link href="/admin/purchase-requests">
+                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full relative">
+                    {adminData && adminData.pendingPurchaseRequests > 0 && (
+                      <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5">
+                        {adminData.pendingPurchaseRequests} pending
+                      </Badge>
+                    )}
+                    <CardHeader>
+                      <div className="text-4xl mb-2">🛒</div>
+                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
+                        Purchase Requests
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-gray-600">Review and manage employee purchase requests</CardDescription>
                       <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
                         Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
                       </div>
@@ -420,6 +514,40 @@ export default async function Home() {
                     </CardContent>
                   </Card>
                 </Link>
+
+                <Link href="/employee/purchase-requests">
+                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
+                    <CardHeader>
+                      <div className="text-4xl mb-2">🛒</div>
+                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
+                        Purchase Requests
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-gray-600">Submit and track your purchase requests</CardDescription>
+                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
+                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <Link href="/admin/tasks">
+                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
+                    <CardHeader>
+                      <div className="text-4xl mb-2">📋</div>
+                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
+                        Task Management
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-gray-600">View and manage your assigned tasks</CardDescription>
+                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
+                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               </>
             )}
           </div>
@@ -432,7 +560,7 @@ export default async function Home() {
                 Needs Your Attention
               </h2>
 
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
 
                 {/* Upcoming Renewals */}
                 <Card className="bg-white border-l-4 border-l-orange-500 hover:shadow-lg transition-all">
@@ -474,12 +602,24 @@ export default async function Home() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base font-semibold text-gray-900">Pending Approvals</CardTitle>
                       <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        {adminData.pendingAccreditations + adminData.pendingSuppliers} Waiting
+                        {adminData.pendingAccreditations + adminData.pendingSuppliers + adminData.pendingPurchaseRequests + adminData.pendingChangeRequests} Waiting
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2 text-sm">
+                      {adminData.pendingPurchaseRequests > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Purchase Requests</span>
+                          <span className="text-red-600 font-medium">{adminData.pendingPurchaseRequests}</span>
+                        </div>
+                      )}
+                      {adminData.pendingChangeRequests > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Profile Changes</span>
+                          <span className="text-orange-600 font-medium">{adminData.pendingChangeRequests}</span>
+                        </div>
+                      )}
                       {adminData.pendingAccreditations > 0 && (
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Accreditations</span>
@@ -492,11 +632,23 @@ export default async function Home() {
                           <span className="text-red-600 font-medium">{adminData.pendingSuppliers}</span>
                         </div>
                       )}
-                      {adminData.pendingAccreditations === 0 && adminData.pendingSuppliers === 0 && (
+                      {adminData.pendingAccreditations === 0 && adminData.pendingSuppliers === 0 && adminData.pendingPurchaseRequests === 0 && adminData.pendingChangeRequests === 0 && (
                         <p className="text-gray-500 text-sm">No pending approvals</p>
                       )}
                     </div>
-                    {adminData.pendingAccreditations > 0 ? (
+                    {adminData.pendingPurchaseRequests > 0 ? (
+                      <Link href="/admin/purchase-requests">
+                        <Button variant="ghost" size="sm" className="w-full mt-4 text-slate-700 hover:bg-slate-50">
+                          Review Purchase Requests →
+                        </Button>
+                      </Link>
+                    ) : adminData.pendingChangeRequests > 0 ? (
+                      <Link href="/admin/employees/change-requests">
+                        <Button variant="ghost" size="sm" className="w-full mt-4 text-slate-700 hover:bg-slate-50">
+                          Review Change Requests →
+                        </Button>
+                      </Link>
+                    ) : adminData.pendingAccreditations > 0 ? (
                       <Link href="/admin/accreditation/projects">
                         <Button variant="ghost" size="sm" className="w-full mt-4 text-slate-700 hover:bg-slate-50">
                           Review Accreditations →
@@ -509,9 +661,71 @@ export default async function Home() {
                         </Button>
                       </Link>
                     ) : (
-                      <Link href="/admin/accreditation/projects">
+                      <Link href="/admin/purchase-requests">
                         <Button variant="ghost" size="sm" className="w-full mt-4 text-slate-700 hover:bg-slate-50">
                           View Approvals →
+                        </Button>
+                      </Link>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* HR & Tasks Alerts */}
+                <Card className="bg-white border-l-4 border-l-purple-500 hover:shadow-lg transition-all">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-semibold text-gray-900">HR & Tasks</CardTitle>
+                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                        {adminData.expiringDocuments + adminData.incompleteOnboarding + adminData.overdueTasks} Items
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      {adminData.expiringDocuments > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Expiring Documents</span>
+                          <span className="text-red-600 font-medium">{adminData.expiringDocuments}</span>
+                        </div>
+                      )}
+                      {adminData.incompleteOnboarding > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Incomplete Onboarding</span>
+                          <span className="text-orange-600 font-medium">{adminData.incompleteOnboarding}</span>
+                        </div>
+                      )}
+                      {adminData.overdueTasks > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Overdue Tasks</span>
+                          <span className="text-red-600 font-medium">{adminData.overdueTasks}</span>
+                        </div>
+                      )}
+                      {adminData.expiringDocuments === 0 && adminData.incompleteOnboarding === 0 && adminData.overdueTasks === 0 && (
+                        <p className="text-gray-500 text-sm">All clear!</p>
+                      )}
+                    </div>
+                    {adminData.expiringDocuments > 0 ? (
+                      <Link href="/admin/employees/document-expiry">
+                        <Button variant="ghost" size="sm" className="w-full mt-4 text-slate-700 hover:bg-slate-50">
+                          View Expiring Documents →
+                        </Button>
+                      </Link>
+                    ) : adminData.incompleteOnboarding > 0 ? (
+                      <Link href="/admin/employees">
+                        <Button variant="ghost" size="sm" className="w-full mt-4 text-slate-700 hover:bg-slate-50">
+                          View Employees →
+                        </Button>
+                      </Link>
+                    ) : adminData.overdueTasks > 0 ? (
+                      <Link href="/admin/tasks">
+                        <Button variant="ghost" size="sm" className="w-full mt-4 text-slate-700 hover:bg-slate-50">
+                          View Overdue Tasks →
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Link href="/admin/employees">
+                        <Button variant="ghost" size="sm" className="w-full mt-4 text-slate-700 hover:bg-slate-50">
+                          View Employees →
                         </Button>
                       </Link>
                     )}

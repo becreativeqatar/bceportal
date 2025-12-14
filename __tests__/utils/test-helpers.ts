@@ -112,8 +112,8 @@ export const createMockResponse = () => {
 
 // Security testing helpers
 export const testUnauthorizedAccess = async (
-  handler: Function,
-  mockGetServerSession: Function
+  handler: () => Promise<unknown>,
+  mockGetServerSession: jest.Mock
 ) => {
   mockGetServerSession.mockResolvedValue(null);
   const result = await handler();
@@ -121,8 +121,8 @@ export const testUnauthorizedAccess = async (
 };
 
 export const testForbiddenAccess = async (
-  handler: Function,
-  mockGetServerSession: Function,
+  handler: () => Promise<unknown>,
+  mockGetServerSession: jest.Mock,
   role: Role = Role.EMPLOYEE
 ) => {
   const session = createMockSession(role);

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ExportUserPDFButton } from './export-user-pdf-button';
 import { DeleteUserButton } from './delete-user-button';
+import { FileText } from 'lucide-react';
 
 interface UserDetailActionsProps {
   userId: string;
@@ -24,6 +25,14 @@ export function UserDetailActions({ userId, userName, userEmail, currentUserId, 
         userName={displayName}
         userEmail={userEmail}
       />
+      {!isSystemAccount && (
+        <Link href={`/admin/users/${userId}/hr`}>
+          <Button variant="outline">
+            <FileText className="h-4 w-4 mr-2" />
+            HR Profile
+          </Button>
+        </Link>
+      )}
       <Link href={`/admin/users/${userId}/edit`}>
         <Button>Edit User</Button>
       </Link>

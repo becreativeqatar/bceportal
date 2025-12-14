@@ -77,12 +77,12 @@ export async function GET(request: Request, { params }: Props) {
     ];
 
     // Generate CSV/Excel
-    const csvBuffer = await arrayToCSV(csvData, headers);
+    const csvBuffer = await arrayToCSV(csvData, headers as any);
 
     // Return Excel file
     const filename = `subscription_${subscription.serviceName.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    return new NextResponse(csvBuffer, {
+    return new NextResponse(new Uint8Array(csvBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

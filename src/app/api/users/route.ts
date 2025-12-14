@@ -6,6 +6,8 @@ import { prisma } from '@/lib/prisma';
 import { createUserSchema } from '@/lib/validations/users';
 import { logAction, ActivityActions } from '@/lib/activity';
 import { withErrorHandler } from '@/lib/http/handler';
+import { sendEmail } from '@/lib/email';
+import { welcomeUserEmail } from '@/lib/email-templates';
 
 async function getUsersHandler(request: NextRequest) {
   // Parse query parameters
@@ -47,7 +49,7 @@ async function createUserHandler(request: NextRequest) {
     }, { status: 400 });
   }
 
-  const { name, email, role } = validation.data;
+  const { name, email, role, employeeId, designation } = validation.data;
 
   // Check if user with this email already exists
   const existingUser = await prisma.user.findUnique({
@@ -61,7 +63,21 @@ async function createUserHandler(request: NextRequest) {
     );
   }
 
-  // Create user
+  // Generate employee code if not provided
+  let finalEmployeeId = employeeId;
+  if (!finalEmployeeId) {
+    // Generate employee code: BCE-YYYY-XXX (e.g., BCE-2024-001)
+    const year = new Date().getFullYear();
+    const prefix = `BCE-${year}`;
+    const count = await prisma.hRProfile.count({
+      where: {
+        employeeId: { startsWith: prefix }
+      }
+    });
+    finalEmployeeId = `${prefix}-${String(count + 1).padStart(3, '0')}`;
+  }
+
+  // Create user with HR profile in a transaction
   // Note: Password is not stored as users authenticate via Azure AD or OAuth
   // emailVerified is set to null - they'll verify on first login
   const user = await prisma.user.create({
@@ -70,6 +86,14 @@ async function createUserHandler(request: NextRequest) {
       email,
       role,
       emailVerified: null,
+      hrProfile: {
+        create: {
+          employeeId: finalEmployeeId,
+          designation: designation || null,
+          onboardingComplete: false,
+          onboardingStep: 0,
+        }
+      }
     },
     include: {
       _count: {
@@ -78,6 +102,12 @@ async function createUserHandler(request: NextRequest) {
           subscriptions: true,
         },
       },
+      hrProfile: {
+        select: {
+          employeeId: true,
+          designation: true,
+        }
+      }
     },
   });
 
@@ -91,6 +121,24 @@ async function createUserHandler(request: NextRequest) {
       user.id,
       { userName: user.name, userEmail: user.email, userRole: user.role }
     );
+  }
+
+  // Send welcome email to the new user (non-blocking)
+  try {
+    const emailContent = welcomeUserEmail({
+      userName: user.name || user.email,
+      userEmail: user.email,
+      userRole: user.role,
+    });
+    await sendEmail({
+      to: user.email,
+      subject: emailContent.subject,
+      html: emailContent.html,
+      text: emailContent.text,
+    });
+  } catch (emailError) {
+    console.error('[Email] Failed to send welcome email:', emailError);
+    // Don't fail the request if email fails
   }
 
   return NextResponse.json(user, { status: 201 });

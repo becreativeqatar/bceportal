@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { logAction } from '@/lib/activity';
 import { generateUniqueSupplierCode } from '@/lib/supplier-utils';
 import { Role } from '@prisma/client';
+import { sendEmail } from '@/lib/email';
+import { supplierApprovalEmail } from '@/lib/email-templates';
 
 export async function PATCH(
   request: NextRequest,
@@ -66,6 +68,26 @@ export async function PATCH(
         approvedBy: session.user.name || session.user.email,
       }
     );
+
+    // Send approval email to supplier (non-blocking)
+    if (supplier.primaryContactEmail) {
+      try {
+        const emailContent = supplierApprovalEmail({
+          companyName: supplier.name,
+          serviceCategory: supplier.category || 'General',
+          approvalDate: new Date(),
+        });
+        await sendEmail({
+          to: supplier.primaryContactEmail,
+          subject: emailContent.subject,
+          html: emailContent.html,
+          text: emailContent.text,
+        });
+      } catch (emailError) {
+        console.error('[Email] Failed to send supplier approval email:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
 
     return NextResponse.json({
       message: 'Supplier approved successfully',

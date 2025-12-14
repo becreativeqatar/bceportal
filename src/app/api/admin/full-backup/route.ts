@@ -12,6 +12,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Helper to safely query tables that might not exist
+    const safeQuery = async <T>(query: Promise<T>, fallback: T): Promise<T> => {
+      try {
+        return await query;
+      } catch {
+        return fallback;
+      }
+    };
+
     // Fetch all data from all tables
     const [
       users,
@@ -21,6 +30,14 @@ export async function GET(request: NextRequest) {
       subscriptions,
       subscriptionHistory,
       activityLogs,
+      suppliers,
+      supplierEngagements,
+      hrProfiles,
+      profileChangeRequests,
+      accreditationProjects,
+      accreditations,
+      purchaseRequests,
+      purchaseRequestItems,
     ] = await Promise.all([
       prisma.user.findMany({
         select: {
@@ -30,7 +47,6 @@ export async function GET(request: NextRequest) {
           emailVerified: true,
           image: true,
           role: true,
-          isTemporaryStaff: true,
           isSystemAccount: true,
           createdAt: true,
           updatedAt: true,
@@ -72,6 +88,40 @@ export async function GET(request: NextRequest) {
           actorUser: { select: { email: true, name: true } },
         },
       }),
+      prisma.supplier.findMany(),
+      prisma.supplierEngagement.findMany({
+        include: {
+          supplier: { select: { name: true } },
+        },
+      }),
+      safeQuery(prisma.hRProfile.findMany({
+        include: {
+          user: { select: { email: true, name: true } },
+        },
+      }), []),
+      safeQuery(prisma.profileChangeRequest.findMany({
+        include: {
+          hrProfile: {
+            include: { user: { select: { email: true, name: true } } },
+          },
+        },
+      }), []),
+      prisma.accreditationProject.findMany(),
+      prisma.accreditation.findMany({
+        include: {
+          project: { select: { name: true } },
+        },
+      }),
+      safeQuery(prisma.purchaseRequest.findMany({
+        include: {
+          requester: { select: { email: true, name: true } },
+        },
+      }), []),
+      safeQuery(prisma.purchaseRequestItem.findMany({
+        include: {
+          purchaseRequest: { select: { referenceNumber: true } },
+        },
+      }), []),
     ]);
 
     // Create Excel workbook
@@ -98,7 +148,6 @@ export async function GET(request: NextRequest) {
       { header: 'Email Verified', key: 'emailVerified', width: 20 },
       { header: 'Image', key: 'image', width: 50 },
       { header: 'Role', key: 'role', width: 15 },
-      { header: 'Is Temporary Staff', key: 'isTemporaryStaff', width: 20 },
       { header: 'Is System Account', key: 'isSystemAccount', width: 20 },
       { header: 'Created At', key: 'createdAt', width: 20 },
       { header: 'Updated At', key: 'updatedAt', width: 20 },
@@ -111,7 +160,6 @@ export async function GET(request: NextRequest) {
         emailVerified: formatDate(user.emailVerified),
         image: user.image || '',
         role: user.role,
-        isTemporaryStaff: user.isTemporaryStaff ? 'Yes' : 'No',
         isSystemAccount: user.isSystemAccount ? 'Yes' : 'No',
         createdAt: formatDate(user.createdAt),
         updatedAt: formatDate(user.updatedAt),
@@ -253,7 +301,6 @@ export async function GET(request: NextRequest) {
       { header: 'Cost Currency', key: 'costCurrency', width: 15 },
       { header: 'Cost USD', key: 'costQAR', width: 15 },
       { header: 'Vendor', key: 'vendor', width: 25 },
-      { header: 'Usage Type', key: 'usageType', width: 15 },
       { header: 'Status', key: 'status', width: 15 },
       { header: 'Assigned User ID', key: 'assignedUserId', width: 30 },
       { header: 'Assigned User Email', key: 'assignedUserEmail', width: 30 },
@@ -279,7 +326,6 @@ export async function GET(request: NextRequest) {
         costCurrency: subscription.costCurrency || '',
         costQAR: subscription.costQAR ? Number(subscription.costQAR) : '',
         vendor: subscription.vendor || '',
-        usageType: subscription.usageType,
         status: subscription.status,
         assignedUserId: subscription.assignedUserId || '',
         assignedUserEmail: subscription.assignedUser?.email || '',
@@ -364,6 +410,348 @@ export async function GET(request: NextRequest) {
       });
     });
 
+    // 8. Suppliers Sheet
+    const suppliersSheet = workbook.addWorksheet('Suppliers');
+    suppliersSheet.columns = [
+      { header: 'ID', key: 'id', width: 30 },
+      { header: 'Supplier Code', key: 'suppCode', width: 20 },
+      { header: 'Name', key: 'name', width: 30 },
+      { header: 'Category', key: 'category', width: 25 },
+      { header: 'Address', key: 'address', width: 30 },
+      { header: 'City', key: 'city', width: 20 },
+      { header: 'Country', key: 'country', width: 20 },
+      { header: 'Website', key: 'website', width: 30 },
+      { header: 'Primary Contact Name', key: 'primaryContactName', width: 25 },
+      { header: 'Primary Contact Email', key: 'primaryContactEmail', width: 30 },
+      { header: 'Primary Contact Mobile', key: 'primaryContactMobile', width: 20 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Approved At', key: 'approvedAt', width: 20 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
+      { header: 'Updated At', key: 'updatedAt', width: 20 },
+    ];
+    suppliers.forEach(supplier => {
+      suppliersSheet.addRow({
+        id: supplier.id,
+        suppCode: supplier.suppCode || '',
+        name: supplier.name,
+        category: supplier.category || '',
+        address: supplier.address || '',
+        city: supplier.city || '',
+        country: supplier.country || '',
+        website: supplier.website || '',
+        primaryContactName: supplier.primaryContactName || '',
+        primaryContactEmail: supplier.primaryContactEmail || '',
+        primaryContactMobile: supplier.primaryContactMobile || '',
+        status: supplier.status,
+        approvedAt: formatDate(supplier.approvedAt),
+        createdAt: formatDate(supplier.createdAt),
+        updatedAt: formatDate(supplier.updatedAt),
+      });
+    });
+
+    // 9. Supplier Engagements Sheet
+    const supplierEngagementsSheet = workbook.addWorksheet('Supplier Engagements');
+    supplierEngagementsSheet.columns = [
+      { header: 'ID', key: 'id', width: 30 },
+      { header: 'Supplier ID', key: 'supplierId', width: 30 },
+      { header: 'Supplier Name', key: 'supplierName', width: 30 },
+      { header: 'Date', key: 'date', width: 20 },
+      { header: 'Notes', key: 'notes', width: 50 },
+      { header: 'Rating', key: 'rating', width: 10 },
+      { header: 'Created By ID', key: 'createdById', width: 30 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
+    ];
+    supplierEngagements.forEach(engagement => {
+      supplierEngagementsSheet.addRow({
+        id: engagement.id,
+        supplierId: engagement.supplierId,
+        supplierName: engagement.supplier?.name || '',
+        date: formatDate(engagement.date),
+        notes: engagement.notes || '',
+        rating: engagement.rating || '',
+        createdById: engagement.createdById,
+        createdAt: formatDate(engagement.createdAt),
+      });
+    });
+
+    // 10. HR Profiles Sheet
+    const hrProfilesSheet = workbook.addWorksheet('HR Profiles');
+    hrProfilesSheet.columns = [
+      { header: 'ID', key: 'id', width: 30 },
+      { header: 'User ID', key: 'userId', width: 30 },
+      { header: 'User Email', key: 'userEmail', width: 30 },
+      { header: 'User Name', key: 'userName', width: 25 },
+      { header: 'Employee ID', key: 'employeeId', width: 20 },
+      { header: 'Designation', key: 'designation', width: 25 },
+      { header: 'Date of Birth', key: 'dateOfBirth', width: 20 },
+      { header: 'Date of Joining', key: 'dateOfJoining', width: 20 },
+      { header: 'Nationality', key: 'nationality', width: 20 },
+      { header: 'Gender', key: 'gender', width: 15 },
+      { header: 'Marital Status', key: 'maritalStatus', width: 15 },
+      { header: 'Qatar Mobile', key: 'qatarMobile', width: 20 },
+      { header: 'Personal Email', key: 'personalEmail', width: 30 },
+      { header: 'QID Number', key: 'qidNumber', width: 20 },
+      { header: 'QID Expiry', key: 'qidExpiry', width: 20 },
+      { header: 'Passport Number', key: 'passportNumber', width: 20 },
+      { header: 'Passport Expiry', key: 'passportExpiry', width: 20 },
+      { header: 'Health Card Expiry', key: 'healthCardExpiry', width: 20 },
+      { header: 'Sponsorship Type', key: 'sponsorshipType', width: 20 },
+      { header: 'Local Emergency Name', key: 'localEmergencyName', width: 25 },
+      { header: 'Local Emergency Phone', key: 'localEmergencyPhone', width: 20 },
+      { header: 'Home Emergency Name', key: 'homeEmergencyName', width: 25 },
+      { header: 'Home Emergency Phone', key: 'homeEmergencyPhone', width: 20 },
+      { header: 'Onboarding Complete', key: 'onboardingComplete', width: 20 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
+      { header: 'Updated At', key: 'updatedAt', width: 20 },
+    ];
+    hrProfiles.forEach(profile => {
+      hrProfilesSheet.addRow({
+        id: profile.id,
+        userId: profile.userId,
+        userEmail: profile.user?.email || '',
+        userName: profile.user?.name || '',
+        employeeId: profile.employeeId || '',
+        designation: profile.designation || '',
+        dateOfBirth: formatDate(profile.dateOfBirth),
+        dateOfJoining: formatDate(profile.dateOfJoining),
+        nationality: profile.nationality || '',
+        gender: profile.gender || '',
+        maritalStatus: profile.maritalStatus || '',
+        qatarMobile: profile.qatarMobile || '',
+        personalEmail: profile.personalEmail || '',
+        qidNumber: profile.qidNumber || '',
+        qidExpiry: formatDate(profile.qidExpiry),
+        passportNumber: profile.passportNumber || '',
+        passportExpiry: formatDate(profile.passportExpiry),
+        healthCardExpiry: formatDate(profile.healthCardExpiry),
+        sponsorshipType: profile.sponsorshipType || '',
+        localEmergencyName: profile.localEmergencyName || '',
+        localEmergencyPhone: profile.localEmergencyPhone || '',
+        homeEmergencyName: profile.homeEmergencyName || '',
+        homeEmergencyPhone: profile.homeEmergencyPhone || '',
+        onboardingComplete: profile.onboardingComplete ? 'Yes' : 'No',
+        createdAt: formatDate(profile.createdAt),
+        updatedAt: formatDate(profile.updatedAt),
+      });
+    });
+
+    // 11. Profile Change Requests Sheet
+    const changeRequestsSheet = workbook.addWorksheet('Profile Change Requests');
+    changeRequestsSheet.columns = [
+      { header: 'ID', key: 'id', width: 30 },
+      { header: 'HR Profile ID', key: 'hrProfileId', width: 30 },
+      { header: 'User Email', key: 'userEmail', width: 30 },
+      { header: 'User Name', key: 'userName', width: 25 },
+      { header: 'Description', key: 'description', width: 50 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Resolved By ID', key: 'resolvedById', width: 30 },
+      { header: 'Resolver Notes', key: 'resolverNotes', width: 40 },
+      { header: 'Resolved At', key: 'resolvedAt', width: 20 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
+      { header: 'Updated At', key: 'updatedAt', width: 20 },
+    ];
+    profileChangeRequests.forEach(request => {
+      changeRequestsSheet.addRow({
+        id: request.id,
+        hrProfileId: request.hrProfileId,
+        userEmail: request.hrProfile?.user?.email || '',
+        userName: request.hrProfile?.user?.name || '',
+        description: request.description || '',
+        status: request.status,
+        resolvedById: request.resolvedById || '',
+        resolverNotes: request.resolverNotes || '',
+        resolvedAt: formatDate(request.resolvedAt),
+        createdAt: formatDate(request.createdAt),
+        updatedAt: formatDate(request.updatedAt),
+      });
+    });
+
+    // 12. Accreditation Projects Sheet
+    const accreditationProjectsSheet = workbook.addWorksheet('Accreditation Projects');
+    accreditationProjectsSheet.columns = [
+      { header: 'ID', key: 'id', width: 30 },
+      { header: 'Name', key: 'name', width: 30 },
+      { header: 'Code', key: 'code', width: 20 },
+      { header: 'Is Active', key: 'isActive', width: 15 },
+      { header: 'Bump In Start', key: 'bumpInStart', width: 20 },
+      { header: 'Bump In End', key: 'bumpInEnd', width: 20 },
+      { header: 'Live Start', key: 'liveStart', width: 20 },
+      { header: 'Live End', key: 'liveEnd', width: 20 },
+      { header: 'Bump Out Start', key: 'bumpOutStart', width: 20 },
+      { header: 'Bump Out End', key: 'bumpOutEnd', width: 20 },
+      { header: 'Access Groups', key: 'accessGroups', width: 40 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
+      { header: 'Updated At', key: 'updatedAt', width: 20 },
+    ];
+    accreditationProjects.forEach(project => {
+      accreditationProjectsSheet.addRow({
+        id: project.id,
+        name: project.name,
+        code: project.code || '',
+        isActive: project.isActive ? 'Yes' : 'No',
+        bumpInStart: formatDate(project.bumpInStart),
+        bumpInEnd: formatDate(project.bumpInEnd),
+        liveStart: formatDate(project.liveStart),
+        liveEnd: formatDate(project.liveEnd),
+        bumpOutStart: formatDate(project.bumpOutStart),
+        bumpOutEnd: formatDate(project.bumpOutEnd),
+        accessGroups: project.accessGroups ? JSON.stringify(project.accessGroups) : '',
+        createdAt: formatDate(project.createdAt),
+        updatedAt: formatDate(project.updatedAt),
+      });
+    });
+
+    // 13. Accreditations Sheet
+    const accreditationsSheet = workbook.addWorksheet('Accreditations');
+    accreditationsSheet.columns = [
+      { header: 'ID', key: 'id', width: 30 },
+      { header: 'Accreditation Number', key: 'accreditationNumber', width: 25 },
+      { header: 'Project ID', key: 'projectId', width: 30 },
+      { header: 'Project Name', key: 'projectName', width: 30 },
+      { header: 'First Name', key: 'firstName', width: 20 },
+      { header: 'Last Name', key: 'lastName', width: 20 },
+      { header: 'Organization', key: 'organization', width: 25 },
+      { header: 'Job Title', key: 'jobTitle', width: 25 },
+      { header: 'Access Group', key: 'accessGroup', width: 20 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'QID Number', key: 'qidNumber', width: 20 },
+      { header: 'QID Expiry', key: 'qidExpiry', width: 20 },
+      { header: 'Passport Number', key: 'passportNumber', width: 20 },
+      { header: 'Passport Expiry', key: 'passportExpiry', width: 20 },
+      { header: 'QR Code Token', key: 'qrCodeToken', width: 30 },
+      { header: 'Has Bump In Access', key: 'hasBumpInAccess', width: 15 },
+      { header: 'Has Live Access', key: 'hasLiveAccess', width: 15 },
+      { header: 'Has Bump Out Access', key: 'hasBumpOutAccess', width: 15 },
+      { header: 'Approved At', key: 'approvedAt', width: 20 },
+      { header: 'Revoked At', key: 'revokedAt', width: 20 },
+      { header: 'Revocation Reason', key: 'revocationReason', width: 40 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
+      { header: 'Updated At', key: 'updatedAt', width: 20 },
+    ];
+    accreditations.forEach(accreditation => {
+      accreditationsSheet.addRow({
+        id: accreditation.id,
+        accreditationNumber: accreditation.accreditationNumber,
+        projectId: accreditation.projectId,
+        projectName: accreditation.project?.name || '',
+        firstName: accreditation.firstName,
+        lastName: accreditation.lastName,
+        organization: accreditation.organization || '',
+        jobTitle: accreditation.jobTitle || '',
+        accessGroup: accreditation.accessGroup || '',
+        status: accreditation.status,
+        qidNumber: accreditation.qidNumber || '',
+        qidExpiry: formatDate(accreditation.qidExpiry),
+        passportNumber: accreditation.passportNumber || '',
+        passportExpiry: formatDate(accreditation.passportExpiry),
+        qrCodeToken: accreditation.qrCodeToken || '',
+        hasBumpInAccess: accreditation.hasBumpInAccess ? 'Yes' : 'No',
+        hasLiveAccess: accreditation.hasLiveAccess ? 'Yes' : 'No',
+        hasBumpOutAccess: accreditation.hasBumpOutAccess ? 'Yes' : 'No',
+        approvedAt: formatDate(accreditation.approvedAt),
+        revokedAt: formatDate(accreditation.revokedAt),
+        revocationReason: accreditation.revocationReason || '',
+        createdAt: formatDate(accreditation.createdAt),
+        updatedAt: formatDate(accreditation.updatedAt),
+      });
+    });
+
+    // 14. Purchase Requests Sheet
+    const purchaseRequestsSheet = workbook.addWorksheet('Purchase Requests');
+    purchaseRequestsSheet.columns = [
+      { header: 'ID', key: 'id', width: 30 },
+      { header: 'Reference Number', key: 'referenceNumber', width: 20 },
+      { header: 'Title', key: 'title', width: 30 },
+      { header: 'Description', key: 'description', width: 40 },
+      { header: 'Requester ID', key: 'requesterId', width: 30 },
+      { header: 'Requester Email', key: 'requesterEmail', width: 30 },
+      { header: 'Request Date', key: 'requestDate', width: 20 },
+      { header: 'Purchase Type', key: 'purchaseType', width: 20 },
+      { header: 'Cost Type', key: 'costType', width: 20 },
+      { header: 'Project Name', key: 'projectName', width: 25 },
+      { header: 'Priority', key: 'priority', width: 15 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Currency', key: 'currency', width: 10 },
+      { header: 'Total Amount', key: 'totalAmount', width: 15 },
+      { header: 'Vendor Name', key: 'vendorName', width: 25 },
+      { header: 'Payment Mode', key: 'paymentMode', width: 20 },
+      { header: 'Needed By Date', key: 'neededByDate', width: 20 },
+      { header: 'Justification', key: 'justification', width: 40 },
+      { header: 'Reviewed By ID', key: 'reviewedById', width: 30 },
+      { header: 'Reviewed At', key: 'reviewedAt', width: 20 },
+      { header: 'Review Notes', key: 'reviewNotes', width: 40 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
+      { header: 'Updated At', key: 'updatedAt', width: 20 },
+    ];
+    purchaseRequests.forEach(pr => {
+      purchaseRequestsSheet.addRow({
+        id: pr.id,
+        referenceNumber: pr.referenceNumber,
+        title: pr.title,
+        description: pr.description || '',
+        requesterId: pr.requesterId,
+        requesterEmail: pr.requester?.email || '',
+        requestDate: formatDate(pr.requestDate),
+        purchaseType: pr.purchaseType || '',
+        costType: pr.costType || '',
+        projectName: pr.projectName || '',
+        priority: pr.priority,
+        status: pr.status,
+        currency: pr.currency,
+        totalAmount: pr.totalAmount ? Number(pr.totalAmount) : '',
+        vendorName: pr.vendorName || '',
+        paymentMode: pr.paymentMode || '',
+        neededByDate: formatDate(pr.neededByDate),
+        justification: pr.justification || '',
+        reviewedById: pr.reviewedById || '',
+        reviewedAt: formatDate(pr.reviewedAt),
+        reviewNotes: pr.reviewNotes || '',
+        createdAt: formatDate(pr.createdAt),
+        updatedAt: formatDate(pr.updatedAt),
+      });
+    });
+
+    // 15. Purchase Request Items Sheet
+    const purchaseRequestItemsSheet = workbook.addWorksheet('Purchase Request Items');
+    purchaseRequestItemsSheet.columns = [
+      { header: 'ID', key: 'id', width: 30 },
+      { header: 'Purchase Request ID', key: 'purchaseRequestId', width: 30 },
+      { header: 'Reference Number', key: 'referenceNumber', width: 20 },
+      { header: 'Item Number', key: 'itemNumber', width: 12 },
+      { header: 'Description', key: 'description', width: 40 },
+      { header: 'Quantity', key: 'quantity', width: 10 },
+      { header: 'Unit Price', key: 'unitPrice', width: 15 },
+      { header: 'Currency', key: 'currency', width: 10 },
+      { header: 'Total Price', key: 'totalPrice', width: 15 },
+      { header: 'Billing Cycle', key: 'billingCycle', width: 15 },
+      { header: 'Duration Months', key: 'durationMonths', width: 15 },
+      { header: 'Category', key: 'category', width: 20 },
+      { header: 'Supplier', key: 'supplier', width: 25 },
+      { header: 'Notes', key: 'notes', width: 40 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
+      { header: 'Updated At', key: 'updatedAt', width: 20 },
+    ];
+    purchaseRequestItems.forEach(item => {
+      purchaseRequestItemsSheet.addRow({
+        id: item.id,
+        purchaseRequestId: item.purchaseRequestId,
+        referenceNumber: item.purchaseRequest?.referenceNumber || '',
+        itemNumber: item.itemNumber,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice ? Number(item.unitPrice) : '',
+        currency: item.currency || '',
+        totalPrice: item.totalPrice ? Number(item.totalPrice) : '',
+        billingCycle: item.billingCycle || '',
+        durationMonths: item.durationMonths || '',
+        category: item.category || '',
+        supplier: item.supplier || '',
+        notes: item.notes || '',
+        createdAt: formatDate(item.createdAt),
+        updatedAt: formatDate(item.updatedAt),
+      });
+    });
+
     // Style header rows
     [
       usersSheet,
@@ -373,6 +761,14 @@ export async function GET(request: NextRequest) {
       subscriptionsSheet,
       subscriptionHistorySheet,
       activityLogsSheet,
+      suppliersSheet,
+      supplierEngagementsSheet,
+      hrProfilesSheet,
+      changeRequestsSheet,
+      accreditationProjectsSheet,
+      accreditationsSheet,
+      purchaseRequestsSheet,
+      purchaseRequestItemsSheet,
     ].forEach(sheet => {
       sheet.getRow(1).font = { bold: true };
       sheet.getRow(1).fill = {

@@ -47,7 +47,7 @@ export function EmployeeSupplierListTable({ suppliers }: EmployeeSupplierListTab
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(supplier =>
         supplier.name.toLowerCase().includes(term) ||
-        supplier.suppCode.toLowerCase().includes(term) ||
+        supplier.suppCode?.toLowerCase().includes(term) ||
         supplier.category?.toLowerCase().includes(term) ||
         supplier.city?.toLowerCase().includes(term) ||
         supplier.country?.toLowerCase().includes(term) ||
@@ -72,8 +72,8 @@ export function EmployeeSupplierListTable({ suppliers }: EmployeeSupplierListTab
           bValue = b.name.toLowerCase();
           break;
         case 'suppCode':
-          aValue = a.suppCode.toLowerCase();
-          bValue = b.suppCode.toLowerCase();
+          aValue = a.suppCode?.toLowerCase() || '';
+          bValue = b.suppCode?.toLowerCase() || '';
           break;
         case 'category':
           aValue = a.category?.toLowerCase() || 'zzz';

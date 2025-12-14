@@ -140,9 +140,9 @@ async function exportSubscriptionsHandler(request: NextRequest) {
     console.log(`Will create ${historyData.length > 0 ? '2' : '1'} sheets`);
 
     // Generate Excel file with multiple sheets
-    const csvBuffer = await arrayToCSV(csvData, headers, historyData.length > 0 ? [
-      { name: 'Subscriptions', data: csvData, headers },
-      { name: 'Subscription History', data: historyData, headers: historyHeaders },
+    const csvBuffer = await arrayToCSV(csvData, headers as any, historyData.length > 0 ? [
+      { name: 'Subscriptions', data: csvData, headers: headers as any },
+      { name: 'Subscription History', data: historyData, headers: historyHeaders as any },
     ] : undefined);
 
     console.log('Excel file generated successfully');
@@ -150,7 +150,7 @@ async function exportSubscriptionsHandler(request: NextRequest) {
     // Return Excel file
     const filename = `subscriptions_export_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    return new NextResponse(Buffer.from(csvBuffer), {
+    return new NextResponse(new Uint8Array(csvBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

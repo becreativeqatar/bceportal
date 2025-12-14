@@ -51,6 +51,22 @@ export async function GET(request: NextRequest) {
       activityLogs,
       systemSettings,
       maintenanceRecords,
+      // Task Management
+      boards,
+      boardMembers,
+      taskColumns,
+      tasks,
+      taskAssignees,
+      taskLabels,
+      taskLabelAssignments,
+      checklistItems,
+      taskComments,
+      taskAttachments,
+      taskHistory,
+      // Purchase Requests
+      purchaseRequests,
+      purchaseRequestItems,
+      purchaseRequestHistory,
     ] = await Promise.all([
       prisma.user.findMany(),
       prisma.asset.findMany(),
@@ -68,12 +84,28 @@ export async function GET(request: NextRequest) {
       prisma.activityLog.findMany(),
       safeQuery(prisma.systemSettings.findMany(), []),
       safeQuery(prisma.maintenanceRecord.findMany(), []),
+      // Task Management
+      safeQuery(prisma.board.findMany(), []),
+      safeQuery(prisma.boardMember.findMany(), []),
+      safeQuery(prisma.taskColumn.findMany(), []),
+      safeQuery(prisma.task.findMany(), []),
+      safeQuery(prisma.taskAssignee.findMany(), []),
+      safeQuery(prisma.taskLabel.findMany(), []),
+      safeQuery(prisma.taskLabelAssignment.findMany(), []),
+      safeQuery(prisma.checklistItem.findMany(), []),
+      safeQuery(prisma.taskComment.findMany(), []),
+      safeQuery(prisma.taskAttachment.findMany(), []),
+      safeQuery(prisma.taskHistory.findMany(), []),
+      // Purchase Requests
+      safeQuery(prisma.purchaseRequest.findMany(), []),
+      safeQuery(prisma.purchaseRequestItem.findMany(), []),
+      safeQuery(prisma.purchaseRequestHistory.findMany(), []),
     ]);
 
     const timestamp = new Date().toISOString();
     const backupData = {
       _metadata: {
-        version: '1.0',
+        version: '2.0',
         application: 'DAMP',
         createdAt: timestamp,
         description: 'Full database backup - use this to restore all data',
@@ -95,6 +127,22 @@ export async function GET(request: NextRequest) {
         activityLogs: activityLogs.length,
         systemSettings: systemSettings.length,
         maintenanceRecords: maintenanceRecords.length,
+        // Task Management
+        boards: boards.length,
+        boardMembers: boardMembers.length,
+        taskColumns: taskColumns.length,
+        tasks: tasks.length,
+        taskAssignees: taskAssignees.length,
+        taskLabels: taskLabels.length,
+        taskLabelAssignments: taskLabelAssignments.length,
+        checklistItems: checklistItems.length,
+        taskComments: taskComments.length,
+        taskAttachments: taskAttachments.length,
+        taskHistory: taskHistory.length,
+        // Purchase Requests
+        purchaseRequests: purchaseRequests.length,
+        purchaseRequestItems: purchaseRequestItems.length,
+        purchaseRequestHistory: purchaseRequestHistory.length,
       },
       users,
       assets,
@@ -112,6 +160,22 @@ export async function GET(request: NextRequest) {
       activityLogs,
       systemSettings,
       maintenanceRecords,
+      // Task Management
+      boards,
+      boardMembers,
+      taskColumns,
+      tasks,
+      taskAssignees,
+      taskLabels,
+      taskLabelAssignments,
+      checklistItems,
+      taskComments,
+      taskAttachments,
+      taskHistory,
+      // Purchase Requests
+      purchaseRequests,
+      purchaseRequestItems,
+      purchaseRequestHistory,
     };
 
     const backupJson = JSON.stringify(backupData, null, 2);

@@ -12,7 +12,7 @@ const revokeSchema = z.object({
 // POST /api/accreditation/records/[id]/revoke - Revoke an approved accreditation
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -20,6 +20,8 @@ export async function POST(
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const body = await request.json();
     const validation = revokeSchema.safeParse(body);
@@ -38,7 +40,7 @@ export async function POST(
 
     // Find the accreditation
     const accreditation = await prisma.accreditation.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!accreditation) {
@@ -60,7 +62,7 @@ export async function POST(
     const updated = await prisma.$transaction(async (tx) => {
       // Update accreditation status
       const revoked = await tx.accreditation.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           status: AccreditationStatus.REVOKED,
           revokedById: session.user.id,
@@ -74,7 +76,7 @@ export async function POST(
       // Log the revocation in history
       await tx.accreditationHistory.create({
         data: {
-          accreditationId: params.id,
+          accreditationId: id,
           action: 'REVOKED',
           oldStatus: AccreditationStatus.APPROVED,
           newStatus: AccreditationStatus.REVOKED,

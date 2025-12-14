@@ -621,7 +621,7 @@ export default function EditAssetPage() {
                       onChange={(value) => setValue('warrantyExpiry', value)}
                       required={false}
                       placeholder="No warranty or unknown"
-                      minDate={watchedPurchaseDate || undefined}
+                      minDate={watchedPurchaseDate ? new Date(watchedPurchaseDate) : undefined}
                     />
                     <p className="text-xs text-gray-500">
                       {watchedPurchaseDate
@@ -690,7 +690,7 @@ export default function EditAssetPage() {
                       value={watch('assignmentDate') || ''}
                       onChange={(value) => setValue('assignmentDate', value)}
                       maxDate={getQatarEndOfDay()}
-                      minDate={watchedPurchaseDate || undefined}
+                      minDate={watchedPurchaseDate ? new Date(watchedPurchaseDate) : undefined}
                     />
                     {errors.assignmentDate && (
                       <p className="text-sm text-red-500">{errors.assignmentDate.message}</p>

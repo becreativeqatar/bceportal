@@ -56,12 +56,12 @@ export async function GET() {
     ];
 
     // Generate CSV
-    const csvBuffer = await arrayToCSV(csvData, headers);
+    const csvBuffer = await arrayToCSV(csvData, headers as any);
 
     // Return CSV file
     const filename = `users_export_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    return new NextResponse(csvBuffer, {
+    return new NextResponse(new Uint8Array(csvBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

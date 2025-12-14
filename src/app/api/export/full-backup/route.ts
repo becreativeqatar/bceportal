@@ -30,6 +30,24 @@ export async function GET() {
       accreditationScans,
       activityLogs,
       maintenanceRecords,
+      hrProfiles,
+      profileChangeRequests,
+      // Task Management
+      boards,
+      boardMembers,
+      taskColumns,
+      tasks,
+      taskAssignees,
+      taskLabels,
+      taskLabelAssignments,
+      checklistItems,
+      taskComments,
+      taskAttachments,
+      taskHistory,
+      // Purchase Requests
+      purchaseRequests,
+      purchaseRequestItems,
+      purchaseRequestHistory,
     ] = await Promise.all([
       prisma.user.findMany(),
       prisma.asset.findMany({
@@ -237,6 +255,140 @@ export async function GET() {
               assetTag: true,
               type: true,
               model: true,
+            },
+          },
+        },
+      }),
+      prisma.hRProfile.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.profileChangeRequest.findMany({
+        include: {
+          hrProfile: {
+            select: {
+              id: true,
+              userId: true,
+            },
+          },
+        },
+      }),
+      // Task Management
+      prisma.board.findMany({
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.boardMember.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.taskColumn.findMany(),
+      prisma.task.findMany({
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.taskAssignee.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.taskLabel.findMany(),
+      prisma.taskLabelAssignment.findMany(),
+      prisma.checklistItem.findMany(),
+      prisma.taskComment.findMany({
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.taskAttachment.findMany({
+        include: {
+          uploadedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.taskHistory.findMany({
+        include: {
+          performedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      // Purchase Requests
+      prisma.purchaseRequest.findMany({
+        include: {
+          requester: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          reviewedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.purchaseRequestItem.findMany(),
+      prisma.purchaseRequestHistory.findMany({
+        include: {
+          performedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
             },
           },
         },
@@ -502,11 +654,241 @@ export async function GET() {
       updatedAt: formatDateForCSV(m.updatedAt),
     }));
 
+    // HR Profiles
+    const hrProfilesData = hrProfiles.map(h => ({
+      id: h.id,
+      userId: h.userId,
+      userName: h.user ? (h.user.name || h.user.email) : '',
+      dateOfBirth: formatDateForCSV(h.dateOfBirth),
+      gender: h.gender || '',
+      maritalStatus: h.maritalStatus || '',
+      nationality: h.nationality || '',
+      qatarMobile: h.qatarMobile || '',
+      otherMobileCode: h.otherMobileCode || '',
+      otherMobileNumber: h.otherMobileNumber || '',
+      personalEmail: h.personalEmail || '',
+      qidNumber: h.qidNumber || '',
+      qidExpiry: formatDateForCSV(h.qidExpiry),
+      passportNumber: h.passportNumber || '',
+      passportExpiry: formatDateForCSV(h.passportExpiry),
+      healthCardExpiry: formatDateForCSV(h.healthCardExpiry),
+      sponsorshipType: h.sponsorshipType || '',
+      employeeId: h.employeeId || '',
+      designation: h.designation || '',
+      dateOfJoining: formatDateForCSV(h.dateOfJoining),
+      bankName: h.bankName || '',
+      iban: h.iban || '',
+      highestQualification: h.highestQualification || '',
+      specialization: h.specialization || '',
+      institutionName: h.institutionName || '',
+      graduationYear: h.graduationYear || '',
+      hasDrivingLicense: h.hasDrivingLicense ? 'Yes' : 'No',
+      licenseExpiry: formatDateForCSV(h.licenseExpiry),
+      onboardingStep: h.onboardingStep,
+      onboardingComplete: h.onboardingComplete ? 'Yes' : 'No',
+      createdAt: formatDateForCSV(h.createdAt),
+      updatedAt: formatDateForCSV(h.updatedAt),
+    }));
+
+    // Profile Change Requests
+    const profileChangeRequestsData = profileChangeRequests.map(r => ({
+      id: r.id,
+      hrProfileId: r.hrProfileId,
+      description: r.description,
+      status: r.status,
+      resolvedById: r.resolvedById || '',
+      resolvedAt: formatDateForCSV(r.resolvedAt),
+      resolverNotes: r.resolverNotes || '',
+      createdAt: formatDateForCSV(r.createdAt),
+      updatedAt: formatDateForCSV(r.updatedAt),
+    }));
+
+    // Task Management - Boards
+    const boardsData = boards.map(b => ({
+      id: b.id,
+      title: b.title,
+      description: b.description || '',
+      ownerId: b.ownerId,
+      ownerName: b.owner ? (b.owner.name || b.owner.email) : '',
+      isArchived: b.isArchived ? 'Yes' : 'No',
+      createdAt: formatDateForCSV(b.createdAt),
+      updatedAt: formatDateForCSV(b.updatedAt),
+    }));
+
+    // Task Management - Board Members
+    const boardMembersData = boardMembers.map(m => ({
+      id: m.id,
+      boardId: m.boardId,
+      userId: m.userId,
+      userName: m.user ? (m.user.name || m.user.email) : '',
+      role: m.role,
+      joinedAt: formatDateForCSV(m.joinedAt),
+    }));
+
+    // Task Management - Columns
+    const taskColumnsData = taskColumns.map(c => ({
+      id: c.id,
+      boardId: c.boardId,
+      title: c.title,
+      position: c.position,
+      createdAt: formatDateForCSV(c.createdAt),
+      updatedAt: formatDateForCSV(c.updatedAt),
+    }));
+
+    // Task Management - Tasks
+    const tasksData = tasks.map(t => ({
+      id: t.id,
+      columnId: t.columnId,
+      title: t.title,
+      description: t.description || '',
+      position: t.position,
+      priority: t.priority,
+      dueDate: formatDateForCSV(t.dueDate),
+      isCompleted: t.isCompleted ? 'Yes' : 'No',
+      completedAt: formatDateForCSV(t.completedAt),
+      createdById: t.createdById,
+      createdByName: t.createdBy ? (t.createdBy.name || t.createdBy.email) : '',
+      createdAt: formatDateForCSV(t.createdAt),
+      updatedAt: formatDateForCSV(t.updatedAt),
+    }));
+
+    // Task Management - Task Assignees
+    const taskAssigneesData = taskAssignees.map(a => ({
+      id: a.id,
+      taskId: a.taskId,
+      userId: a.userId,
+      userName: a.user ? (a.user.name || a.user.email) : '',
+      assignedAt: formatDateForCSV(a.assignedAt),
+      assignedBy: a.assignedBy || '',
+    }));
+
+    // Task Management - Labels
+    const taskLabelsData = taskLabels.map(l => ({
+      id: l.id,
+      boardId: l.boardId,
+      name: l.name,
+      color: l.color,
+      createdAt: formatDateForCSV(l.createdAt),
+    }));
+
+    // Task Management - Label Assignments
+    const taskLabelAssignmentsData = taskLabelAssignments.map(a => ({
+      id: a.id,
+      taskId: a.taskId,
+      labelId: a.labelId,
+    }));
+
+    // Task Management - Checklist Items
+    const checklistItemsData = checklistItems.map(c => ({
+      id: c.id,
+      taskId: c.taskId,
+      title: c.title,
+      isCompleted: c.isCompleted ? 'Yes' : 'No',
+      position: c.position,
+      completedAt: formatDateForCSV(c.completedAt),
+      completedBy: c.completedBy || '',
+      createdAt: formatDateForCSV(c.createdAt),
+      updatedAt: formatDateForCSV(c.updatedAt),
+    }));
+
+    // Task Management - Comments
+    const taskCommentsData = taskComments.map(c => ({
+      id: c.id,
+      taskId: c.taskId,
+      content: c.content,
+      authorId: c.authorId,
+      authorName: c.author ? (c.author.name || c.author.email) : '',
+      createdAt: formatDateForCSV(c.createdAt),
+      updatedAt: formatDateForCSV(c.updatedAt),
+    }));
+
+    // Task Management - Attachments
+    const taskAttachmentsData = taskAttachments.map(a => ({
+      id: a.id,
+      taskId: a.taskId,
+      fileName: a.fileName,
+      fileSize: a.fileSize,
+      mimeType: a.mimeType,
+      storagePath: a.storagePath,
+      uploadedById: a.uploadedById,
+      uploadedByName: a.uploadedBy ? (a.uploadedBy.name || a.uploadedBy.email) : '',
+      createdAt: formatDateForCSV(a.createdAt),
+    }));
+
+    // Task Management - History
+    const taskHistoryData = taskHistory.map(h => ({
+      id: h.id,
+      taskId: h.taskId,
+      action: h.action,
+      changes: JSON.stringify(h.changes || {}),
+      performedById: h.performedById,
+      performedByName: h.performedBy ? (h.performedBy.name || h.performedBy.email) : '',
+      createdAt: formatDateForCSV(h.createdAt),
+    }));
+
+    // Purchase Requests
+    const purchaseRequestsData = purchaseRequests.map(r => ({
+      id: r.id,
+      referenceNumber: r.referenceNumber,
+      requestDate: formatDateForCSV(r.requestDate),
+      status: r.status,
+      priority: r.priority,
+      requesterId: r.requesterId,
+      requesterName: r.requester ? (r.requester.name || r.requester.email) : '',
+      title: r.title,
+      description: r.description || '',
+      justification: r.justification || '',
+      neededByDate: formatDateForCSV(r.neededByDate),
+      totalAmount: r.totalAmount ? Number(r.totalAmount) : '',
+      currency: r.currency,
+      totalAmountQAR: r.totalAmountQAR ? Number(r.totalAmountQAR) : '',
+      reviewedById: r.reviewedById || '',
+      reviewedByName: r.reviewedBy ? (r.reviewedBy.name || r.reviewedBy.email) : '',
+      reviewedAt: formatDateForCSV(r.reviewedAt),
+      reviewNotes: r.reviewNotes || '',
+      completedAt: formatDateForCSV(r.completedAt),
+      completionNotes: r.completionNotes || '',
+      createdAt: formatDateForCSV(r.createdAt),
+      updatedAt: formatDateForCSV(r.updatedAt),
+    }));
+
+    // Purchase Request Items
+    const purchaseRequestItemsData = purchaseRequestItems.map(i => ({
+      id: i.id,
+      purchaseRequestId: i.purchaseRequestId,
+      itemNumber: i.itemNumber,
+      description: i.description,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice ? Number(i.unitPrice) : '',
+      currency: i.currency,
+      unitPriceQAR: i.unitPriceQAR ? Number(i.unitPriceQAR) : '',
+      totalPrice: i.totalPrice ? Number(i.totalPrice) : '',
+      totalPriceQAR: i.totalPriceQAR ? Number(i.totalPriceQAR) : '',
+      category: i.category || '',
+      supplier: i.supplier || '',
+      notes: i.notes || '',
+      createdAt: formatDateForCSV(i.createdAt),
+      updatedAt: formatDateForCSV(i.updatedAt),
+    }));
+
+    // Purchase Request History
+    const purchaseRequestHistoryData = purchaseRequestHistory.map(h => ({
+      id: h.id,
+      purchaseRequestId: h.purchaseRequestId,
+      action: h.action,
+      previousStatus: h.previousStatus || '',
+      newStatus: h.newStatus || '',
+      performedById: h.performedById,
+      performedByName: h.performedBy ? (h.performedBy.name || h.performedBy.email) : '',
+      details: h.details || '',
+      createdAt: formatDateForCSV(h.createdAt),
+    }));
+
     // Metadata sheet
     const metadataData = [{
       exportDate: new Date().toISOString(),
       exportedBy: session.user.email,
-      version: '3.0',
+      version: '4.0',
       totalUsers: users.length,
       totalAssets: assets.length,
       totalSubscriptions: subscriptions.length,
@@ -520,6 +902,24 @@ export async function GET() {
       totalAccreditationScans: accreditationScans.length,
       totalActivityLogs: activityLogs.length,
       totalMaintenanceRecords: maintenanceRecords.length,
+      totalHRProfiles: hrProfiles.length,
+      totalProfileChangeRequests: profileChangeRequests.length,
+      // Task Management
+      totalBoards: boards.length,
+      totalBoardMembers: boardMembers.length,
+      totalTaskColumns: taskColumns.length,
+      totalTasks: tasks.length,
+      totalTaskAssignees: taskAssignees.length,
+      totalTaskLabels: taskLabels.length,
+      totalTaskLabelAssignments: taskLabelAssignments.length,
+      totalChecklistItems: checklistItems.length,
+      totalTaskComments: taskComments.length,
+      totalTaskAttachments: taskAttachments.length,
+      totalTaskHistory: taskHistory.length,
+      // Purchase Requests
+      totalPurchaseRequests: purchaseRequests.length,
+      totalPurchaseRequestItems: purchaseRequestItems.length,
+      totalPurchaseRequestHistory: purchaseRequestHistory.length,
     }];
 
     // Create Excel file with multiple sheets - ALL data included
@@ -532,12 +932,30 @@ export async function GET() {
       { name: 'Accreditations', data: accreditationsData, headers: Object.keys(accreditationsData[0] || {}).map(key => ({ key, header: key })) },
       { name: 'Projects', data: projectsData, headers: Object.keys(projectsData[0] || {}).map(key => ({ key, header: key })) },
       { name: 'Asset History', data: assetHistoryData, headers: Object.keys(assetHistoryData[0] || {}).map(key => ({ key, header: key })) },
-      { name: 'Subscription History', data: subscriptionHistoryData, headers: Object.keys(subscriptionHistoryData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Sub History', data: subscriptionHistoryData, headers: Object.keys(subscriptionHistoryData[0] || {}).map(key => ({ key, header: key })) },
       { name: 'Supplier Engagements', data: supplierEngagementsData, headers: Object.keys(supplierEngagementsData[0] || {}).map(key => ({ key, header: key })) },
-      { name: 'Accreditation History', data: accreditationHistoryData, headers: Object.keys(accreditationHistoryData[0] || {}).map(key => ({ key, header: key })) },
-      { name: 'Accreditation Scans', data: accreditationScansData, headers: Object.keys(accreditationScansData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Accred History', data: accreditationHistoryData, headers: Object.keys(accreditationHistoryData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Accred Scans', data: accreditationScansData, headers: Object.keys(accreditationScansData[0] || {}).map(key => ({ key, header: key })) },
       { name: 'Activity Logs', data: activityLogsData, headers: Object.keys(activityLogsData[0] || {}).map(key => ({ key, header: key })) },
-      { name: 'Maintenance Records', data: maintenanceRecordsData, headers: Object.keys(maintenanceRecordsData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Maintenance', data: maintenanceRecordsData, headers: Object.keys(maintenanceRecordsData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'HR Profiles', data: hrProfilesData, headers: Object.keys(hrProfilesData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Profile Changes', data: profileChangeRequestsData, headers: Object.keys(profileChangeRequestsData[0] || {}).map(key => ({ key, header: key })) },
+      // Task Management
+      { name: 'Boards', data: boardsData, headers: Object.keys(boardsData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Board Members', data: boardMembersData, headers: Object.keys(boardMembersData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Task Columns', data: taskColumnsData, headers: Object.keys(taskColumnsData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Tasks', data: tasksData, headers: Object.keys(tasksData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Task Assignees', data: taskAssigneesData, headers: Object.keys(taskAssigneesData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Task Labels', data: taskLabelsData, headers: Object.keys(taskLabelsData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Label Assignments', data: taskLabelAssignmentsData, headers: Object.keys(taskLabelAssignmentsData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Checklist Items', data: checklistItemsData, headers: Object.keys(checklistItemsData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Task Comments', data: taskCommentsData, headers: Object.keys(taskCommentsData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Task Attachments', data: taskAttachmentsData, headers: Object.keys(taskAttachmentsData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'Task History', data: taskHistoryData, headers: Object.keys(taskHistoryData[0] || {}).map(key => ({ key, header: key })) },
+      // Purchase Requests
+      { name: 'Purchase Requests', data: purchaseRequestsData, headers: Object.keys(purchaseRequestsData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'PR Items', data: purchaseRequestItemsData, headers: Object.keys(purchaseRequestItemsData[0] || {}).map(key => ({ key, header: key })) },
+      { name: 'PR History', data: purchaseRequestHistoryData, headers: Object.keys(purchaseRequestHistoryData[0] || {}).map(key => ({ key, header: key })) },
     ];
 
     const excelBuffer = await arrayToCSV([], [], sheets);

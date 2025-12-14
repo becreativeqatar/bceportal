@@ -1,28 +1,118 @@
 import { NextAuthOptions } from 'next-auth';
 import AzureADProvider from 'next-auth/providers/azure-ad';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from './prisma';
 import { Role } from '@prisma/client';
 
 const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || [];
 
+// Development-only test users (only available when DEV_AUTH_ENABLED=true)
+const DEV_USERS: Record<string, { id: string; email: string; name: string; role: Role; password: string }> = {
+  'admin@test.local': {
+    id: 'dev-admin-001',
+    email: 'admin@test.local',
+    name: 'Dev Admin',
+    role: Role.ADMIN,
+    password: 'admin123',
+  },
+  'employee@test.local': {
+    id: 'dev-employee-001',
+    email: 'employee@test.local',
+    name: 'Dev Employee',
+    role: Role.EMPLOYEE,
+    password: 'employee123',
+  },
+  'validator@test.local': {
+    id: 'dev-validator-001',
+    email: 'validator@test.local',
+    name: 'Dev Validator',
+    role: Role.VALIDATOR,
+    password: 'validator123',
+  },
+  'adder@test.local': {
+    id: 'dev-adder-001',
+    email: 'adder@test.local',
+    name: 'Dev Accreditation Adder',
+    role: Role.ACCREDITATION_ADDER,
+    password: 'adder123',
+  },
+  'approver@test.local': {
+    id: 'dev-approver-001',
+    email: 'approver@test.local',
+    name: 'Dev Accreditation Approver',
+    role: Role.ACCREDITATION_APPROVER,
+    password: 'approver123',
+  },
+};
+
+// Build providers array based on environment
+const providers: NextAuthOptions['providers'] = [];
+
+// Always add Azure AD if configured
+if (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET && process.env.AZURE_AD_TENANT_ID) {
+  providers.push(
+    AzureADProvider({
+      clientId: process.env.AZURE_AD_CLIENT_ID,
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
+      tenantId: process.env.AZURE_AD_TENANT_ID,
+      authorization: {
+        params: {
+          prompt: "select_account",
+        }
+      }
+    })
+  );
+}
+
+// Add development credentials provider (only when DEV_AUTH_ENABLED=true)
+if (process.env.DEV_AUTH_ENABLED === 'true') {
+  providers.push(
+    CredentialsProvider({
+      id: 'dev-credentials',
+      name: 'Development Login',
+      credentials: {
+        email: { label: 'Email', type: 'email', placeholder: 'admin@test.local' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        const devUser = DEV_USERS[credentials.email.toLowerCase()];
+        if (devUser && devUser.password === credentials.password) {
+          // Ensure the dev user exists in the database
+          const dbUser = await prisma.user.upsert({
+            where: { email: devUser.email },
+            update: { name: devUser.name, role: devUser.role },
+            create: {
+              id: devUser.id,
+              email: devUser.email,
+              name: devUser.name,
+              role: devUser.role,
+            },
+          });
+
+          return {
+            id: dbUser.id,
+            email: dbUser.email,
+            name: dbUser.name,
+            role: dbUser.role,
+          };
+        }
+
+        return null;
+      },
+    })
+  );
+}
+
 export const authOptions: NextAuthOptions = {
   // Note: Using PrismaAdapter for OAuth providers, but JWT strategy for sessions
   // to avoid database session issues
   adapter: PrismaAdapter(prisma),
-  providers: [
-    // Azure AD authentication (required)
-    AzureADProvider({
-      clientId: process.env.AZURE_AD_CLIENT_ID!,
-      clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
-      tenantId: process.env.AZURE_AD_TENANT_ID!,
-      authorization: {
-        params: {
-          prompt: "select_account", // Force account selection on every sign-in
-        }
-      }
-    }),
-  ],
+  providers,
   callbacks: {
     async signIn({ user, account, profile }) {
       try {

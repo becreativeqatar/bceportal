@@ -213,7 +213,7 @@ describe('Subscriptions API Tests', () => {
 
     it('should calculate monthly cost from yearly billing', () => {
       const costPerCycle = 659.88;
-      const billingCycle = 'YEARLY';
+      const billingCycle: string = 'YEARLY';
 
       const monthlyCost = billingCycle === 'MONTHLY' ? costPerCycle : costPerCycle / 12;
       expect(monthlyCost).toBeCloseTo(54.99, 2);
@@ -223,7 +223,7 @@ describe('Subscriptions API Tests', () => {
   describe('Renewal Date Calculations', () => {
     it('should calculate next renewal date for monthly subscription', () => {
       const renewalDate = new Date('2025-01-01');
-      const billingCycle = 'MONTHLY';
+      const billingCycle: string = 'MONTHLY';
 
       const nextRenewal = new Date(renewalDate);
       if (billingCycle === 'MONTHLY') {
@@ -237,7 +237,7 @@ describe('Subscriptions API Tests', () => {
 
     it('should calculate next renewal date for yearly subscription', () => {
       const renewalDate = new Date('2025-01-01');
-      const billingCycle = 'YEARLY';
+      const billingCycle: string = 'YEARLY';
 
       const nextRenewal = new Date(renewalDate);
       if (billingCycle === 'MONTHLY') {
