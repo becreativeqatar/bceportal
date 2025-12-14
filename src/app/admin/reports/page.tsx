@@ -5,9 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { redirect } from 'next/navigation';
 import { Role } from '@prisma/client';
 import { formatBillingCycle } from '@/lib/utils/format-billing-cycle';
-import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Activity, TrendingUp, Users, Package, CreditCard, Building2, IdCard } from 'lucide-react';
+import { Activity, Users, Package, CreditCard, Building2, IdCard } from 'lucide-react';
 
 export default async function AdminReportsPage() {
   const session = await getServerSession(authOptions);
