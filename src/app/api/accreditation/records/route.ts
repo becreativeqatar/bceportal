@@ -209,14 +209,6 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log('Received accreditation creation request:', {
-      identificationType: body.identificationType,
-      hasQidNumber: !!body.qidNumber,
-      hasPassportNumber: !!body.passportNumber,
-      projectId: body.projectId,
-      projectIdType: typeof body.projectId,
-      status: body.status,
-    });
 
     // Validate projectId exists
     if (!body.projectId) {
@@ -261,25 +253,16 @@ export async function POST(request: NextRequest) {
     const data = validation.data;
 
     // Check if accreditation project exists
-    console.log('Looking for project with ID:', data.projectId);
     const accreditationProject = await prisma.accreditationProject.findUnique({
       where: { id: data.projectId },
     });
 
     if (!accreditationProject) {
-      console.log('Project not found! Searching for all projects...');
-      const allProjects = await prisma.accreditationProject.findMany({
-        select: { id: true, name: true, code: true },
-      });
-      console.log('Available projects:', allProjects);
-
       return NextResponse.json(
-        { error: `Accreditation project not found. Looking for ID: ${data.projectId}` },
+        { error: `Accreditation project not found` },
         { status: 404 }
       );
     }
-
-    console.log('Project found:', { id: accreditationProject.id, name: accreditationProject.name });
 
     // Validate access group is in project's access groups
     const accessGroups = accreditationProject.accessGroups as string[];

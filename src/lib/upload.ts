@@ -1,4 +1,4 @@
-import formidable, { IncomingForm, File } from 'formidable';
+import { IncomingForm, File } from 'formidable';
 import { NextRequest } from 'next/server';
 import mime from 'mime';
 import fs from 'fs/promises';
@@ -172,16 +172,15 @@ export async function validateFile(file: File): Promise<{ valid: boolean; error?
       return { valid: false, error: `File type ${ext} not allowed. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}` };
     }
 
-    // Verify MIME type by reading file content
-    const buffer = await fs.readFile(file.filepath);
+    // Verify MIME type by file extension and declared type
     const detectedMimeType = mime.getType(file.originalFilename || '') || file.mimetype;
-    
+
     if (!detectedMimeType || !ALLOWED_MIME_TYPES.includes(detectedMimeType)) {
       return { valid: false, error: `Invalid file type: ${detectedMimeType}` };
     }
 
     return { valid: true };
-  } catch (error) {
+  } catch {
     return { valid: false, error: 'Failed to validate file' };
   }
 }

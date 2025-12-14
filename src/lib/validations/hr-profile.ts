@@ -12,9 +12,6 @@ const mobileRegex = /^\d{5,15}$/;
 // Email validation
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Qatar IBAN: QA + 2 digits + 4 alphanumeric + 21 alphanumeric = 29 chars total
-const qatarIbanRegex = /^QA\d{2}[A-Z0-9]{4}[A-Z0-9]{21}$/i;
-
 // Simple IBAN pattern for international
 const ibanRegex = /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/i;
 

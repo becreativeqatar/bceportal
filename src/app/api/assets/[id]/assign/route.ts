@@ -96,7 +96,6 @@ export async function POST(
 
     // Send assignment email to the new user (non-blocking)
     if (newUser?.email) {
-      console.log('[Asset Assignment] Attempting to send email to:', newUser.email);
       try {
         const emailContent = assetAssignmentEmail({
           userName: newUser.name || newUser.email,
@@ -107,20 +106,15 @@ export async function POST(
           serialNumber: asset.serial || null,
           assignmentDate: new Date(),
         });
-        console.log('[Asset Assignment] Email content generated, subject:', emailContent.subject);
-        const emailResult = await sendEmail({
+        await sendEmail({
           to: newUser.email,
           subject: emailContent.subject,
           html: emailContent.html,
           text: emailContent.text,
         });
-        console.log('[Asset Assignment] Email result:', JSON.stringify(emailResult));
-      } catch (emailError) {
-        console.error('[Asset Assignment] Failed to send email:', emailError);
+      } catch {
         // Don't fail the request if email fails
       }
-    } else {
-      console.log('[Asset Assignment] No email sent - newUser or email missing:', { newUser: !!newUser, email: newUser?.email });
     }
 
     return NextResponse.json(asset);

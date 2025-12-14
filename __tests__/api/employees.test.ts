@@ -466,7 +466,7 @@ describe('Employees API Tests', () => {
       const dob = new Date(1990, thisYearBirthday.getMonth(), thisYearBirthday.getDate());
 
       // Calculate next birthday
-      let nextBirthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+      const nextBirthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
       if (nextBirthday < today) {
         nextBirthday.setFullYear(nextBirthday.getFullYear() + 1);
       }
@@ -484,7 +484,7 @@ describe('Employees API Tests', () => {
       const doj = new Date(2022, today.getMonth(), today.getDate() + 5);
 
       // Calculate next anniversary
-      let nextAnniversary = new Date(today.getFullYear(), doj.getMonth(), doj.getDate());
+      const nextAnniversary = new Date(today.getFullYear(), doj.getMonth(), doj.getDate());
       if (nextAnniversary < today) {
         nextAnniversary.setFullYear(nextAnniversary.getFullYear() + 1);
       }

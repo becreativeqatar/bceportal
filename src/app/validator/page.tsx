@@ -94,7 +94,7 @@ export default function ValidatorDashboard() {
           // First, try to extract token from URL pattern (our accreditation URLs)
           const urlPattern = /\/verify\/([a-zA-Z0-9-]+)$/;
           const match = decodedText.match(urlPattern);
-          let token = match ? match[1] : decodedText.trim();
+          const token = match ? match[1] : decodedText.trim();
 
           console.log('[Scanner] Extracted token:', token);
 

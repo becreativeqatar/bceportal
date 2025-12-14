@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';

@@ -1,6 +1,5 @@
 import { ZodError } from 'zod';
 import { NextResponse } from 'next/server';
-import logger from '@/lib/log';
 
 export interface APIError {
   error: string;
@@ -25,7 +24,7 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, _details?: unknown) {
     super(message, 400);
     this.name = 'ValidationError';
   }

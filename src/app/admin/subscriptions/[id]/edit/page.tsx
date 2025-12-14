@@ -137,7 +137,7 @@ export default function EditSubscriptionPage() {
       const [y, m, d] = watchedPurchaseDate.split('-').map(Number);
       const purchaseDate = new Date(y, m - 1, d);
 
-      let renewalDate = new Date(purchaseDate);
+      const renewalDate = new Date(purchaseDate);
       switch (watchedBillingCycle) {
         case 'MONTHLY':
           renewalDate.setMonth(renewalDate.getMonth() + 1);

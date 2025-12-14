@@ -309,15 +309,12 @@ function NewAccreditationContent({ projectId }: { projectId: string }) {
       }
 
       // Prepare data - only include relevant identification fields
-      const submitData: any = {
+      const submitData: Record<string, unknown> = {
         ...formData,
-        projectId: projectId, // Ensure projectId is explicitly set
+        projectId: projectId,
         profilePhotoUrl: photoUrl,
         status: AccreditationStatus.DRAFT,
       };
-
-      console.log('Submitting accreditation with projectId:', projectId);
-      console.log('Full submit data:', JSON.stringify(submitData, null, 2));
 
       // Add identification fields based on type
       if (formData.identificationType === 'qid') {

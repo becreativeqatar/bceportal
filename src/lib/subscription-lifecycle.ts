@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { SubscriptionStatus, BillingCycle } from '@prisma/client';
+import { BillingCycle } from '@prisma/client';
 
 export interface ActivePeriod {
   startDate: Date;

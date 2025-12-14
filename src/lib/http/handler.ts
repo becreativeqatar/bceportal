@@ -5,7 +5,7 @@ import { formatError } from './errors';
 import { logRequest, generateRequestId } from '@/lib/log';
 import { checkRateLimit } from '@/lib/security/rateLimit';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export type APIHandler = (
   request: NextRequest,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -260,13 +260,6 @@ export async function PUT(
     // Track assignment changes with custom date
     const userChanged = data.assignedUserId !== undefined && data.assignedUserId !== currentAsset.assignedUserId;
 
-    console.log('[Asset Update] Assignment check:', {
-      dataAssignedUserId: data.assignedUserId,
-      currentAssignedUserId: currentAsset.assignedUserId,
-      userChanged,
-      newAssignedUser: asset.assignedUser,
-    });
-
     if (userChanged) {
       // User assignment changed - create new history record
       const { recordAssetAssignment } = await import('@/lib/asset-history');
@@ -299,9 +292,8 @@ export async function PUT(
             html: emailContent.html,
             text: emailContent.text,
           });
-          console.log('[Asset] Assignment email sent to:', asset.assignedUser.email);
-        } catch (emailError) {
-          console.error('[Asset] Failed to send assignment email:', emailError);
+        } catch {
+          // Don't fail the request if email fails
         }
       }
     } else if (data.assignmentDate && currentAsset.assignedUserId && !userChanged) {

@@ -58,8 +58,6 @@ export async function GET(
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const verificationUrl = `${protocol}://${host}/verify/${accreditation.qrCodeToken}`;
 
-    console.log('[QR] Generating QR code with URL:', verificationUrl);
-
     // Generate QR code as PNG buffer
     const qrCodeBuffer = await QRCode.toBuffer(verificationUrl, {
       errorCorrectionLevel: 'H',

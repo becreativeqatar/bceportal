@@ -32,7 +32,7 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-export function securityHeadersMiddleware(request: NextRequest): NextResponse {
+export function securityHeadersMiddleware(_request: NextRequest): NextResponse {
   const response = NextResponse.next();
   return addSecurityHeaders(response);
 }
