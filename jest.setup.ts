@@ -18,37 +18,70 @@ jest.mock('next-auth/next', () => ({
 }));
 
 // Mock Prisma Client for unit tests
+const createModelMock = () => ({
+  findUnique: jest.fn(),
+  findMany: jest.fn(),
+  findFirst: jest.fn(),
+  create: jest.fn(),
+  createMany: jest.fn(),
+  update: jest.fn(),
+  updateMany: jest.fn(),
+  upsert: jest.fn(),
+  delete: jest.fn(),
+  deleteMany: jest.fn(),
+  count: jest.fn(),
+  aggregate: jest.fn(),
+  groupBy: jest.fn(),
+});
+
 jest.mock('@/lib/prisma', () => ({
   prisma: {
-    user: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      findFirst: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
-    },
-    asset: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      findFirst: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
-      aggregate: jest.fn(),
-    },
-    subscription: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      findFirst: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
-    },
-    // Add other models as needed
+    // Core models
+    user: createModelMock(),
+    asset: createModelMock(),
+    assetHistory: createModelMock(),
+    subscription: createModelMock(),
+    subscriptionHistory: createModelMock(),
+    supplier: createModelMock(),
+    supplierEngagement: createModelMock(),
+    accreditation: createModelMock(),
+    accreditationProject: createModelMock(),
+    accreditationHistory: createModelMock(),
+    accreditationScan: createModelMock(),
+    activityLog: createModelMock(),
+    maintenanceRecord: createModelMock(),
+    systemSettings: createModelMock(),
+    appSetting: createModelMock(),
+    // Task Management models
+    board: createModelMock(),
+    boardMember: createModelMock(),
+    taskColumn: createModelMock(),
+    task: createModelMock(),
+    taskAssignee: createModelMock(),
+    taskLabel: createModelMock(),
+    taskLabelAssignment: createModelMock(),
+    taskChecklistItem: createModelMock(),
+    taskComment: createModelMock(),
+    taskAttachment: createModelMock(),
+    taskHistory: createModelMock(),
+    // Purchase Request models
+    purchaseRequest: createModelMock(),
+    purchaseRequestItem: createModelMock(),
+    // HR models
+    hRProfile: createModelMock(),
+    profileChangeRequest: createModelMock(),
+    // Auth models
+    account: createModelMock(),
+    session: createModelMock(),
+    verificationToken: createModelMock(),
+    // Transaction support
+    $transaction: jest.fn((callback) => callback({
+      user: createModelMock(),
+      asset: createModelMock(),
+      // Add other models as needed for transactions
+    })),
+    $connect: jest.fn(),
+    $disconnect: jest.fn(),
   },
 }));
 

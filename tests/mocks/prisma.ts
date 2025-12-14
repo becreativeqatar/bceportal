@@ -40,6 +40,23 @@ export const mockPrisma = {
   account: createModelMock(),
   session: createModelMock(),
   verificationToken: createModelMock(),
+  // Task Management models
+  board: createModelMock(),
+  boardMember: createModelMock(),
+  taskColumn: createModelMock(),
+  task: createModelMock(),
+  taskAssignee: createModelMock(),
+  taskLabel: createModelMock(),
+  taskChecklist: createModelMock(),
+  taskComment: createModelMock(),
+  taskAttachment: createModelMock(),
+  taskHistory: createModelMock(),
+  // Purchase Request models
+  purchaseRequest: createModelMock(),
+  purchaseRequestItem: createModelMock(),
+  // HR Profile models
+  hRProfile: createModelMock(),
+  profileChangeRequest: createModelMock(),
   $transaction: jest.fn((callback: any) => callback(mockPrisma)),
   $connect: jest.fn(),
   $disconnect: jest.fn(),
