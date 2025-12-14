@@ -4,18 +4,11 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { loginAs, logout, TEST_USERS } from './utils/auth';
+import { loginAs, TEST_USERS } from './utils/auth';
 
 // Helper function to login as admin
-async function loginAsAdmin(page: any) {
+async function loginAsAdmin(page: { goto: (url: string) => Promise<void> }) {
   await loginAs(page, TEST_USERS.admin);
-}
-
-// Helper function to login with credentials
-async function login(page: any, email: string, _password: string) {
-  // Find user by email or default to employee
-  const user = Object.values(TEST_USERS).find(u => u.email === email) || TEST_USERS.employee;
-  await loginAs(page, user);
 }
 
 test.describe('Suppliers Module', () => {

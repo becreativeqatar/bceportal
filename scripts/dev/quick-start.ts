@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { writeFileSync, existsSync, readFileSync } from 'fs';
+import { writeFileSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
 
@@ -65,7 +65,7 @@ NODE_ENV="development"
     console.log('\n🌱 Adding sample data...');
     try {
       await runCommand('npm', ['run', 'db:seed']);
-    } catch (error) {
+    } catch {
       console.log('ℹ️ Seeding skipped (optional)');
     }
 

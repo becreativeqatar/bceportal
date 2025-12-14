@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginAs, logout, TEST_USERS } from './utils/auth';
 import { generateAssetData } from './utils/test-data';
-import path from 'path';
 
 /**
  * Test Sessions 5 & 6: Permissions Check and Edge Cases

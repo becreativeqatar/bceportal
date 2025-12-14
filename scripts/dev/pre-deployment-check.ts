@@ -85,7 +85,7 @@ try {
   } else {
     addCheck('Dependencies', 'pass', 'All required dependencies present');
   }
-} catch (error) {
+} catch {
   addCheck('package.json', 'fail', 'Could not read package.json');
 }
 
@@ -125,7 +125,7 @@ try {
   } else {
     addCheck('Database Schema', 'warn', 'Some models might be missing');
   }
-} catch (error) {
+} catch {
   addCheck('Prisma Schema', 'fail', 'Could not read prisma/schema.prisma');
 }
 
@@ -144,7 +144,7 @@ try {
       'No .env.production.example found'
     );
   }
-} catch (error) {
+} catch {
   addCheck('ENV Template', 'warn', 'Could not check for .env files');
 }
 
@@ -162,7 +162,7 @@ try {
   } else {
     addCheck('.gitignore', 'fail', 'Missing important .gitignore entries');
   }
-} catch (error) {
+} catch {
   addCheck('.gitignore', 'warn', 'Could not read .gitignore');
 }
 
@@ -181,7 +181,7 @@ try {
   } else {
     addCheck('Start Script', 'fail', 'No start script in package.json');
   }
-} catch (error) {
+} catch {
   addCheck('Scripts', 'fail', 'Could not check scripts');
 }
 
@@ -192,7 +192,7 @@ try {
   } else {
     addCheck('Next.js Config', 'warn', 'No next.config file found (may use defaults)');
   }
-} catch (error) {
+} catch {
   addCheck('Next.js Config', 'warn', 'Could not check Next.js config');
 }
 
@@ -203,7 +203,7 @@ try {
   } else {
     addCheck('TypeScript Config', 'warn', 'No tsconfig.json found');
   }
-} catch (error) {
+} catch {
   addCheck('TypeScript Config', 'warn', 'Could not check TypeScript config');
 }
 
@@ -214,7 +214,7 @@ try {
   } else {
     addCheck('Documentation', 'warn', 'Consider adding deployment documentation');
   }
-} catch (error) {
+} catch {
   addCheck('Documentation', 'warn', 'Could not check for documentation');
 }
 

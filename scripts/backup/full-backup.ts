@@ -153,7 +153,7 @@ async function main() {
             console.log(`   Database: ${manifest.database.success ? '✅' : '❌'} ${manifest.database.path || manifest.database.error}`);
             console.log(`   Files: ${manifest.files.success ? '✅' : '❌'} ${manifest.files.inventoryPath || manifest.files.error}`);
             console.log('');
-          } catch (error) {
+          } catch {
             console.log(`❌ ${file} (corrupted manifest)`);
           }
         }

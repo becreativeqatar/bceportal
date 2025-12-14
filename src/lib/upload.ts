@@ -60,7 +60,8 @@ export async function parseMultipartForm(req: NextRequest): Promise<ParsedUpload
         const buffer = Buffer.concat(chunks);
 
         // Create a proper mock IncomingMessage with all required properties
-        const eventHandlers: Record<string, Function[]> = {};
+        type EventHandler = (...args: unknown[]) => void;
+        const eventHandlers: Record<string, EventHandler[]> = {};
 
         const mockReq = {
           headers: Object.fromEntries(req.headers.entries()),
@@ -85,14 +86,14 @@ export async function parseMultipartForm(req: NextRequest): Promise<ParsedUpload
             dest.end();
             return dest;
           },
-          on: (event: string, cb: Function) => {
+          on: (event: string, cb: EventHandler) => {
             if (!eventHandlers[event]) {
               eventHandlers[event] = [];
             }
             eventHandlers[event].push(cb);
             return mockReq;
           },
-          once: (event: string, cb: Function) => {
+          once: (event: string, cb: EventHandler) => {
             if (!eventHandlers[event]) {
               eventHandlers[event] = [];
             }
@@ -104,7 +105,7 @@ export async function parseMultipartForm(req: NextRequest): Promise<ParsedUpload
             handlers.forEach(handler => handler(...args));
             return true;
           },
-          removeListener: (event: string, cb: Function) => {
+          removeListener: (event: string, cb: EventHandler) => {
             if (eventHandlers[event]) {
               eventHandlers[event] = eventHandlers[event].filter(h => h !== cb);
             }

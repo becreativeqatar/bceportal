@@ -26,7 +26,7 @@ async function listAllFiles(bucketName: string = 'invoices'): Promise<FileInfo[]
   logger.info(`📂 Listing files in bucket: ${bucketName}`);
 
   try {
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from(bucketName)
       .list('', {
         limit: 1000,
