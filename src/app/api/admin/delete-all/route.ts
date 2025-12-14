@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
 
 // DELETE ALL DATA - FOR TESTING ONLY
-export async function DELETE(request: NextRequest) {
+export async function DELETE(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 

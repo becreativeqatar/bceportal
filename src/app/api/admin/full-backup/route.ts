@@ -5,7 +5,7 @@ import { Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import ExcelJS from 'exceljs';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== Role.ADMIN) {

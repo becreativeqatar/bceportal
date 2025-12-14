@@ -3,9 +3,10 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { csvToArray } from '@/lib/csv-utils';
-import { logAction, ActivityActions } from '@/lib/activity';
+import { ActivityActions } from '@/lib/activity';
 import { BillingCycle, SubscriptionStatus } from '@prisma/client';
 import { USD_TO_QAR_RATE } from '@/lib/constants';
+import ExcelJS from 'exceljs';
 
 interface ImportRow {
   'ID'?: string;
@@ -103,7 +104,6 @@ export async function POST(request: NextRequest) {
     // Try to parse history from second sheet (if exists)
     let historyRows: HistoryImportRow[] = [];
     try {
-      const ExcelJS = require('exceljs');
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer);
 

@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma';
  * - Sets createdAt to purchaseDate for all assets and subscriptions
  * - Sets assignment dates in history to purchaseDate
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== Role.ADMIN) {
