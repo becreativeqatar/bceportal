@@ -76,5 +76,15 @@ temp-*.js
 /blob-report/
 /test-backups/
 
+# Cleanup folders
+/_TO_DELETE/
+/docs/email-mockups/
+/docs/mockups/
+/docs/status/
+nul
+
 .vercel
 .env*.local
+
+# Claude Code local settings
+.claude/settings.local.json
