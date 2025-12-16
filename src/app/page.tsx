@@ -53,6 +53,7 @@ export default async function Home() {
       pendingSuppliers,
       pendingPurchaseRequests,
       pendingChangeRequests,
+      pendingLeaveRequests,
       expiringDocuments,
       incompleteOnboarding,
       overdueTasks,
@@ -86,6 +87,7 @@ export default async function Home() {
       prisma.supplier.count({ where: { status: 'PENDING' } }),
       prisma.purchaseRequest.count({ where: { status: 'PENDING' } }),
       prisma.profileChangeRequest.count({ where: { status: 'PENDING' } }),
+      prisma.leaveRequest.count({ where: { status: 'PENDING' } }),
       // Count employees with documents expiring within 30 days
       prisma.hRProfile.count({
         where: {
@@ -140,6 +142,7 @@ export default async function Home() {
       pendingSuppliers,
       pendingPurchaseRequests,
       pendingChangeRequests,
+      pendingLeaveRequests,
       expiringDocuments,
       incompleteOnboarding,
       overdueTasks,
@@ -444,6 +447,29 @@ export default async function Home() {
                   </Card>
                 </Link>
 
+                {/* Leave Management */}
+                <Link href="/admin/leave">
+                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full relative">
+                    {adminData && adminData.pendingLeaveRequests > 0 && (
+                      <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5">
+                        {adminData.pendingLeaveRequests} pending
+                      </Badge>
+                    )}
+                    <CardHeader>
+                      <div className="text-4xl mb-2">🏖️</div>
+                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
+                        Leave Management
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-gray-600">Manage employee leave requests and balances</CardDescription>
+                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
+                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+
                 {/* Settings */}
                 <Link href="/admin/settings">
                   <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
@@ -548,6 +574,23 @@ export default async function Home() {
                     </CardContent>
                   </Card>
                 </Link>
+
+                <Link href="/employee/leave">
+                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
+                    <CardHeader>
+                      <div className="text-4xl mb-2">🏖️</div>
+                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
+                        Leave
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-gray-600">Request leave and view your balances</CardDescription>
+                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
+                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               </>
             )}
           </div>
@@ -602,12 +645,18 @@ export default async function Home() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base font-semibold text-gray-900">Pending Approvals</CardTitle>
                       <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        {adminData.pendingAccreditations + adminData.pendingSuppliers + adminData.pendingPurchaseRequests + adminData.pendingChangeRequests} Waiting
+                        {adminData.pendingAccreditations + adminData.pendingSuppliers + adminData.pendingPurchaseRequests + adminData.pendingChangeRequests + adminData.pendingLeaveRequests} Waiting
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2 text-sm">
+                      {adminData.pendingLeaveRequests > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Leave Requests</span>
+                          <span className="text-red-600 font-medium">{adminData.pendingLeaveRequests}</span>
+                        </div>
+                      )}
                       {adminData.pendingPurchaseRequests > 0 && (
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Purchase Requests</span>
@@ -632,11 +681,17 @@ export default async function Home() {
                           <span className="text-red-600 font-medium">{adminData.pendingSuppliers}</span>
                         </div>
                       )}
-                      {adminData.pendingAccreditations === 0 && adminData.pendingSuppliers === 0 && adminData.pendingPurchaseRequests === 0 && adminData.pendingChangeRequests === 0 && (
+                      {adminData.pendingAccreditations === 0 && adminData.pendingSuppliers === 0 && adminData.pendingPurchaseRequests === 0 && adminData.pendingChangeRequests === 0 && adminData.pendingLeaveRequests === 0 && (
                         <p className="text-gray-500 text-sm">No pending approvals</p>
                       )}
                     </div>
-                    {adminData.pendingPurchaseRequests > 0 ? (
+                    {adminData.pendingLeaveRequests > 0 ? (
+                      <Link href="/admin/leave/requests">
+                        <Button variant="ghost" size="sm" className="w-full mt-4 text-slate-700 hover:bg-slate-50">
+                          Review Leave Requests →
+                        </Button>
+                      </Link>
+                    ) : adminData.pendingPurchaseRequests > 0 ? (
                       <Link href="/admin/purchase-requests">
                         <Button variant="ghost" size="sm" className="w-full mt-4 text-slate-700 hover:bg-slate-50">
                           Review Purchase Requests →
@@ -661,7 +716,7 @@ export default async function Home() {
                         </Button>
                       </Link>
                     ) : (
-                      <Link href="/admin/purchase-requests">
+                      <Link href="/admin/leave">
                         <Button variant="ghost" size="sm" className="w-full mt-4 text-slate-700 hover:bg-slate-50">
                           View Approvals →
                         </Button>
