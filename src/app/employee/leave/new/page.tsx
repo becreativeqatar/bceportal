@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { LeaveRequestForm } from '@/components/leave/leave-request-form';
+import { getAnnualLeaveDetails } from '@/lib/leave-utils';
 
 interface LeaveType {
   id: string;
@@ -15,29 +16,114 @@ interface LeaveType {
   requiresDocument: boolean;
   minNoticeDays: number;
   maxConsecutiveDays?: number | null;
+  isPaid?: boolean;
+  accrualBased?: boolean;
+}
+
+interface LeaveBalance {
+  id: string;
+  leaveTypeId: string;
+  entitlement: number;
+  used: number;
+  pending: number;
+  carriedForward: number;
+  adjustment: number;
+  leaveType: {
+    id: string;
+    name: string;
+    color: string;
+    isPaid?: boolean;
+    accrualBased?: boolean;
+  };
+  accrued?: number;
+}
+
+interface HRProfile {
+  dateOfJoining?: string | null;
 }
 
 export default function EmployeeNewLeavePage() {
   const router = useRouter();
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
+  const [balances, setBalances] = useState<LeaveBalance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const fetchLeaveTypes = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/leave/types');
-        if (response.ok) {
-          const data = await response.json();
-          setLeaveTypes(data.leaveTypes || []);
+        const currentYear = new Date().getFullYear();
+
+        // Fetch leave types, balances, and user profile in parallel
+        const [typesRes, balancesRes, profileRes] = await Promise.all([
+          fetch('/api/leave/types'),
+          fetch(`/api/leave/balances?year=${currentYear}&ps=100`),
+          fetch('/api/users/me'),
+        ]);
+
+        let leaveTypesData: LeaveType[] = [];
+        let balancesData: LeaveBalance[] = [];
+        let dateOfJoining: Date | null = null;
+
+        if (typesRes.ok) {
+          const data = await typesRes.json();
+          leaveTypesData = data.leaveTypes || [];
         }
+
+        if (balancesRes.ok) {
+          const data = await balancesRes.json();
+          balancesData = (data.balances || []).map((b: LeaveBalance) => ({
+            ...b,
+            entitlement: Number(b.entitlement),
+            used: Number(b.used),
+            pending: Number(b.pending),
+            carriedForward: Number(b.carriedForward),
+            adjustment: Number(b.adjustment),
+          }));
+        }
+
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (profileData.hrProfile?.dateOfJoining) {
+            dateOfJoining = new Date(profileData.hrProfile.dateOfJoining);
+          }
+          // Check if user is admin
+          if (profileData.role === 'ADMIN') {
+            setIsAdmin(true);
+          }
+        }
+
+        // Add accrual info to balances for accrual-based leave types
+        const now = new Date();
+        const enrichedBalances = balancesData.map((balance: LeaveBalance) => {
+          if (balance.leaveType.accrualBased) {
+            if (dateOfJoining) {
+              const annualDetails = getAnnualLeaveDetails(dateOfJoining, currentYear, now);
+              return {
+                ...balance,
+                accrued: annualDetails.accrued,
+              };
+            } else {
+              // No date of joining - set accrued to 0 to prevent over-requesting
+              return {
+                ...balance,
+                accrued: 0,
+              };
+            }
+          }
+          return balance;
+        });
+
+        setLeaveTypes(leaveTypesData);
+        setBalances(enrichedBalances);
       } catch (error) {
-        console.error('Failed to fetch leave types:', error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLeaveTypes();
+    fetchData();
   }, []);
 
   const handleSuccess = () => {
@@ -65,20 +151,26 @@ export default function EmployeeNewLeavePage() {
           <CardHeader>
             <CardTitle>Leave Request Form</CardTitle>
             <CardDescription>
-              Fill in the details below. Your request will be sent to your manager for approval.
+              Fill in the details below. Your request will be sent for approval.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-8">Loading...</div>
-            ) : leaveTypes.length === 0 ? (
+              <div className="flex items-center justify-center py-8 gap-2 text-gray-500">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Loading...</span>
+              </div>
+            ) : balances.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No leave types available. Please contact HR.
+                <p className="mb-2">No leave balances available.</p>
+                <p className="text-sm">Please contact HR to set up your leave entitlements.</p>
               </div>
             ) : (
               <LeaveRequestForm
                 leaveTypes={leaveTypes}
+                balances={balances}
                 onSuccess={handleSuccess}
+                isAdmin={isAdmin}
               />
             )}
           </CardContent>

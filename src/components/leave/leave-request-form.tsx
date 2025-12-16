@@ -262,9 +262,15 @@ export function LeaveRequestForm({ leaveTypes, balances, onSuccess, isAdmin = fa
                   {selectedBalance.accrued.toFixed(1)} days
                 </span>
               </div>
-              <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                Pro-rata accrual based on months worked this year
-              </div>
+              {selectedBalance.accrued === 0 ? (
+                <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                  Your date of joining is not set. Please contact HR to update your profile.
+                </div>
+              ) : (
+                <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                  Pro-rata accrual based on months worked this year
+                </div>
+              )}
               {(Number(selectedBalance.used) > 0 || Number(selectedBalance.pending) > 0) && (
                 <div className="text-xs text-gray-500">
                   Used: {Number(selectedBalance.used)} days | Pending: {Number(selectedBalance.pending)} days
