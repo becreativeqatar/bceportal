@@ -53,6 +53,20 @@ enum SupplierStatus {
   REJECTED
 }
 
+// Leave Management Enums
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LeaveRequestType {
+  FULL_DAY
+  HALF_DAY_AM
+  HALF_DAY_PM
+}
+
 enum AccreditationStatus {
   DRAFT
   PENDING
@@ -133,6 +147,12 @@ model User {
   purchaseRequests         PurchaseRequest[]        @relation("PurchaseRequester")
   reviewedPurchaseRequests PurchaseRequest[]        @relation("PurchaseReviewer")
   purchaseRequestHistory   PurchaseRequestHistory[] @relation("PurchaseRequestHistoryPerformer")
+
+  // Leave Management relations
+  leaveRequests         LeaveRequest[]        @relation("LeaveRequests")
+  leaveApprovals        LeaveRequest[]        @relation("LeaveApprovals")
+  leaveBalances         LeaveBalance[]
+  leaveHistoryPerformed LeaveRequestHistory[] @relation("LeaveHistoryPerformer")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -960,11 +980,11 @@ model PurchaseRequest {
   additionalNotes String?
 
   // Totals
-  totalAmount       Decimal  @db.Decimal(12, 2)
-  currency          String   @default("QAR")
-  totalAmountQAR    Decimal? @db.Decimal(12, 2)
-  totalOneTime      Decimal? @db.Decimal(12, 2) // One-time costs total
-  totalMonthly      Decimal? @db.Decimal(12, 2) // Monthly recurring total
+  totalAmount        Decimal  @db.Decimal(12, 2)
+  currency           String   @default("QAR")
+  totalAmountQAR     Decimal? @db.Decimal(12, 2)
+  totalOneTime       Decimal? @db.Decimal(12, 2) // One-time costs total
+  totalMonthly       Decimal? @db.Decimal(12, 2) // Monthly recurring total
   totalContractValue Decimal? @db.Decimal(12, 2) // Total contract value
 
   // Approval workflow
@@ -997,18 +1017,18 @@ model PurchaseRequestItem {
   purchaseRequestId String
   purchaseRequest   PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
 
-  itemNumber   Int     // Line item number (1, 2, 3...)
-  description  String
-  quantity     Int     @default(1)
-  unitPrice    Decimal @db.Decimal(12, 2)
-  currency     String  @default("QAR")
-  unitPriceQAR Decimal? @db.Decimal(12, 2)
-  totalPrice   Decimal @db.Decimal(12, 2) // quantity * unitPrice
+  itemNumber    Int // Line item number (1, 2, 3...)
+  description   String
+  quantity      Int      @default(1)
+  unitPrice     Decimal  @db.Decimal(12, 2)
+  currency      String   @default("QAR")
+  unitPriceQAR  Decimal? @db.Decimal(12, 2)
+  totalPrice    Decimal  @db.Decimal(12, 2) // quantity * unitPrice
   totalPriceQAR Decimal? @db.Decimal(12, 2)
 
   // Subscription/recurring fields (for SOFTWARE_SUBSCRIPTION type)
   billingCycle   BillingCycle @default(ONE_TIME) // ONE_TIME, MONTHLY, YEARLY
-  durationMonths Int?         // Duration in months (for monthly billing)
+  durationMonths Int? // Duration in months (for monthly billing)
   amountPerCycle Decimal?     @db.Decimal(12, 2) // Recurring cost per cycle
 
   // Product details
@@ -1043,5 +1063,120 @@ model PurchaseRequestHistory {
 
   @@index([purchaseRequestId])
   @@index([performedById])
+  @@index([createdAt])
+}
+
+// ===== Leave Management Module Models =====
+
+model LeaveType {
+  id                  String  @id @default(cuid())
+  name                String  @unique // Annual, Sick, Maternity, Paternity, Unpaid, Compassionate
+  description         String?
+  color               String  @default("#3B82F6") // For calendar display
+  defaultDays         Int     @default(0) // Default annual entitlement
+  requiresApproval    Boolean @default(true)
+  requiresDocument    Boolean @default(false) // Medical certificate etc.
+  isPaid              Boolean @default(true)
+  isActive            Boolean @default(true)
+  maxConsecutiveDays  Int? // Max consecutive days allowed
+  minNoticeDays       Int     @default(0) // Advance notice required
+  allowCarryForward   Boolean @default(false)
+  maxCarryForwardDays Int?
+
+  leaveRequests LeaveRequest[]
+  leaveBalances LeaveBalance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+model LeaveBalance {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveTypeId     String
+  leaveType       LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+  year            Int // Year for balance
+  entitlement     Decimal   @default(0) // Total days entitled
+  used            Decimal   @default(0) // Days used
+  pending         Decimal   @default(0) // Days in pending requests
+  carriedForward  Decimal   @default(0) // From previous year
+  adjustment      Decimal   @default(0) // Manual adjustments (+/-)
+  adjustmentNotes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, leaveTypeId, year])
+  @@index([userId])
+  @@index([leaveTypeId])
+  @@index([year])
+}
+
+model LeaveRequest {
+  id            String           @id @default(cuid())
+  requestNumber String           @unique // Auto-generated LR-XXXXX
+  userId        String
+  user          User             @relation("LeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
+  leaveTypeId   String
+  leaveType     LeaveType        @relation(fields: [leaveTypeId], references: [id])
+  startDate     DateTime
+  endDate       DateTime
+  requestType   LeaveRequestType @default(FULL_DAY)
+  totalDays     Decimal // Calculated working days
+  reason        String?
+  documentUrl   String? // Supporting document
+
+  status LeaveStatus @default(PENDING)
+
+  // Approval
+  approverId    String?
+  approver      User?     @relation("LeaveApprovals", fields: [approverId], references: [id])
+  approvedAt    DateTime?
+  approverNotes String?
+
+  // Rejection
+  rejectedAt      DateTime?
+  rejectionReason String?
+
+  // Cancellation
+  cancelledAt        DateTime?
+  cancellationReason String?
+
+  // Emergency contact during leave
+  emergencyContact String?
+  emergencyPhone   String?
+
+  history LeaveRequestHistory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([leaveTypeId])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model LeaveRequestHistory {
+  id             String       @id @default(cuid())
+  leaveRequestId String
+  leaveRequest   LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+
+  action    String // CREATED, SUBMITTED, APPROVED, REJECTED, CANCELLED, UPDATED
+  oldStatus LeaveStatus?
+  newStatus LeaveStatus?
+  changes   Json?
+  notes     String?
+
+  performedById String
+  performedBy   User   @relation("LeaveHistoryPerformer", fields: [performedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([leaveRequestId])
   @@index([createdAt])
 }

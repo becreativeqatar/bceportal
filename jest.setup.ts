@@ -70,6 +70,11 @@ jest.mock('@/lib/prisma', () => ({
     // HR models
     hRProfile: createModelMock(),
     profileChangeRequest: createModelMock(),
+    // Leave Management models
+    leaveType: createModelMock(),
+    leaveBalance: createModelMock(),
+    leaveRequest: createModelMock(),
+    leaveRequestHistory: createModelMock(),
     // Auth models
     account: createModelMock(),
     session: createModelMock(),

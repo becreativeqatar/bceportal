@@ -57,6 +57,11 @@ export const mockPrisma = {
   // HR Profile models
   hRProfile: createModelMock(),
   profileChangeRequest: createModelMock(),
+  // Leave Management models
+  leaveType: createModelMock(),
+  leaveBalance: createModelMock(),
+  leaveRequest: createModelMock(),
+  leaveRequestHistory: createModelMock(),
   $transaction: jest.fn((callback: any) => callback(mockPrisma)),
   $connect: jest.fn(),
   $disconnect: jest.fn(),

@@ -1,4 +1,5 @@
 import { PrismaClient, Role, BillingCycle, AssetStatus, AcquisitionType } from '@prisma/client';
+import { DEFAULT_LEAVE_TYPES } from '../src/lib/leave-utils';
 
 const prisma = new PrismaClient();
 
@@ -240,6 +241,44 @@ async function main() {
   ]);
 
   console.log('✅ Created activity logs');
+
+  // Create leave types
+  for (const leaveType of DEFAULT_LEAVE_TYPES) {
+    await prisma.leaveType.upsert({
+      where: { name: leaveType.name },
+      update: {},
+      create: leaveType,
+    });
+  }
+
+  console.log('✅ Created leave types');
+
+  // Create leave balances for employees
+  const leaveTypes = await prisma.leaveType.findMany({ where: { isActive: true } });
+  const currentYear = new Date().getFullYear();
+
+  for (const employee of employees) {
+    for (const leaveType of leaveTypes) {
+      await prisma.leaveBalance.upsert({
+        where: {
+          userId_leaveTypeId_year: {
+            userId: employee.id,
+            leaveTypeId: leaveType.id,
+            year: currentYear,
+          },
+        },
+        update: {},
+        create: {
+          userId: employee.id,
+          leaveTypeId: leaveType.id,
+          year: currentYear,
+          entitlement: leaveType.defaultDays,
+        },
+      });
+    }
+  }
+
+  console.log('✅ Created leave balances');
   console.log('🎉 Seeding completed successfully!');
 }
 

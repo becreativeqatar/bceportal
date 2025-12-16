@@ -11,6 +11,8 @@ import {
   SubscriptionStatus,
   SupplierStatus,
   AccreditationStatus,
+  LeaveStatus,
+  LeaveRequestType,
 } from '@prisma/client';
 
 // Counter for generating unique IDs
@@ -424,5 +426,172 @@ export const createMockMaintenanceRecord = (
   performedBy: 'IT Support',
   createdAt: new Date(),
   updatedAt: new Date(),
+  ...overrides,
+});
+
+/**
+ * Create a mock Leave Type
+ */
+export interface MockLeaveType {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  defaultDays: number;
+  requiresApproval: boolean;
+  requiresDocument: boolean;
+  isPaid: boolean;
+  isActive: boolean;
+  maxConsecutiveDays: number | null;
+  minNoticeDays: number;
+  allowCarryForward: boolean;
+  maxCarryForwardDays: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const createMockLeaveType = (
+  overrides: Partial<MockLeaveType> = {}
+): MockLeaveType => ({
+  id: generateId('leave-type'),
+  name: 'Annual Leave',
+  description: 'Paid annual vacation leave',
+  color: '#3B82F6',
+  defaultDays: 30,
+  requiresApproval: true,
+  requiresDocument: false,
+  isPaid: true,
+  isActive: true,
+  maxConsecutiveDays: 15,
+  minNoticeDays: 7,
+  allowCarryForward: true,
+  maxCarryForwardDays: 5,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  ...overrides,
+});
+
+/**
+ * Create a mock Leave Balance
+ */
+export interface MockLeaveBalance {
+  id: string;
+  userId: string;
+  leaveTypeId: string;
+  year: number;
+  entitlement: number;
+  used: number;
+  pending: number;
+  carriedForward: number;
+  adjustment: number;
+  adjustmentNotes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const createMockLeaveBalance = (
+  overrides: Partial<MockLeaveBalance> = {}
+): MockLeaveBalance => ({
+  id: generateId('leave-balance'),
+  userId: generateId('user'),
+  leaveTypeId: generateId('leave-type'),
+  year: new Date().getFullYear(),
+  entitlement: 30,
+  used: 5,
+  pending: 2,
+  carriedForward: 3,
+  adjustment: 0,
+  adjustmentNotes: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  ...overrides,
+});
+
+/**
+ * Create a mock Leave Request
+ */
+export interface MockLeaveRequest {
+  id: string;
+  requestNumber: string;
+  userId: string;
+  leaveTypeId: string;
+  startDate: Date;
+  endDate: Date;
+  requestType: LeaveRequestType;
+  totalDays: number;
+  reason: string | null;
+  status: LeaveStatus;
+  documentUrl: string | null;
+  emergencyContact: string | null;
+  emergencyPhone: string | null;
+  approvedById: string | null;
+  approvedAt: Date | null;
+  rejectedById: string | null;
+  rejectedAt: Date | null;
+  rejectionReason: string | null;
+  cancelledById: string | null;
+  cancelledAt: Date | null;
+  cancellationReason: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const createMockLeaveRequest = (
+  overrides: Partial<MockLeaveRequest> = {}
+): MockLeaveRequest => {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() + 7);
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 4);
+
+  return {
+    id: generateId('leave-request'),
+    requestNumber: `LR-${String(idCounter).padStart(5, '0')}`,
+    userId: generateId('user'),
+    leaveTypeId: generateId('leave-type'),
+    startDate,
+    endDate,
+    requestType: LeaveRequestType.FULL_DAY,
+    totalDays: 5,
+    reason: 'Annual vacation',
+    status: LeaveStatus.PENDING,
+    documentUrl: null,
+    emergencyContact: null,
+    emergencyPhone: null,
+    approvedById: null,
+    approvedAt: null,
+    rejectedById: null,
+    rejectedAt: null,
+    rejectionReason: null,
+    cancelledById: null,
+    cancelledAt: null,
+    cancellationReason: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  };
+};
+
+/**
+ * Create a mock Leave Request History
+ */
+export interface MockLeaveRequestHistory {
+  id: string;
+  leaveRequestId: string;
+  action: string;
+  actorId: string;
+  details: Record<string, unknown> | null;
+  createdAt: Date;
+}
+
+export const createMockLeaveRequestHistory = (
+  overrides: Partial<MockLeaveRequestHistory> = {}
+): MockLeaveRequestHistory => ({
+  id: generateId('leave-history'),
+  leaveRequestId: generateId('leave-request'),
+  action: 'CREATED',
+  actorId: generateId('user'),
+  details: null,
+  createdAt: new Date(),
   ...overrides,
 });
