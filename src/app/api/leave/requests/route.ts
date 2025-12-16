@@ -7,12 +7,14 @@ import { createLeaveRequestSchema, leaveRequestQuerySchema } from '@/lib/validat
 import { logAction, ActivityActions } from '@/lib/activity';
 import {
   calculateWorkingDays,
-  generateLeaveRequestNumber,
-  getCurrentYear,
-  datesOverlap,
   meetsNoticeDaysRequirement,
   exceedsMaxConsecutiveDays,
   calculateAvailableBalance,
+  meetsServiceRequirement,
+  getServiceBasedEntitlement,
+  formatServiceDuration,
+  ServiceBasedEntitlement,
+  getAnnualLeaveDetails,
 } from '@/lib/leave-utils';
 
 export async function GET(request: NextRequest) {
@@ -167,8 +169,108 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This leave type is not active' }, { status: 400 });
     }
 
-    // Calculate working days
-    const totalDays = calculateWorkingDays(startDate, endDate, data.requestType);
+    // Get user's HR profile for service duration and gender checks
+    const hrProfile = await prisma.hRProfile.findUnique({
+      where: { userId },
+      select: {
+        dateOfJoining: true,
+        hajjLeaveTaken: true,
+        gender: true,
+      },
+    });
+
+    // Check if this leave type requires admin assignment (PARENTAL or RELIGIOUS categories)
+    if (leaveType.category === 'PARENTAL' || leaveType.category === 'RELIGIOUS') {
+      // Check if user already has a balance for this leave type (admin-assigned)
+      const existingBalance = await prisma.leaveBalance.findUnique({
+        where: {
+          userId_leaveTypeId_year: {
+            userId,
+            leaveTypeId: data.leaveTypeId,
+            year: startDate.getFullYear(),
+          },
+        },
+      });
+
+      if (!existingBalance) {
+        return NextResponse.json({
+          error: `${leaveType.name} must be assigned by an administrator. Please contact HR to request this leave type.`,
+        }, { status: 400 });
+      }
+    }
+
+    // Validate gender restriction for parental leave
+    if (leaveType.genderRestriction) {
+      if (!hrProfile?.gender) {
+        return NextResponse.json({
+          error: 'Your gender is not recorded in your HR profile. Please contact HR to update your profile.',
+        }, { status: 400 });
+      }
+
+      if (hrProfile.gender.toUpperCase() !== leaveType.genderRestriction) {
+        return NextResponse.json({
+          error: `${leaveType.name} is only available for ${leaveType.genderRestriction.toLowerCase()} employees.`,
+        }, { status: 400 });
+      }
+    }
+
+    // Check minimum service requirement (Qatar Labor Law)
+    if (leaveType.minimumServiceMonths > 0) {
+      if (!hrProfile?.dateOfJoining) {
+        return NextResponse.json({
+          error: 'Your date of joining is not recorded. Please contact HR to update your profile.',
+        }, { status: 400 });
+      }
+
+      if (!meetsServiceRequirement(hrProfile.dateOfJoining, leaveType.minimumServiceMonths, startDate)) {
+        const requiredMonths = leaveType.minimumServiceMonths;
+        const requiredYears = Math.floor(requiredMonths / 12);
+        const remainingMonths = requiredMonths % 12;
+
+        let requirement = '';
+        if (requiredYears > 0 && remainingMonths > 0) {
+          requirement = `${requiredYears} year(s) and ${remainingMonths} month(s)`;
+        } else if (requiredYears > 0) {
+          requirement = `${requiredYears} year(s)`;
+        } else {
+          requirement = `${remainingMonths} month(s)`;
+        }
+
+        return NextResponse.json({
+          error: `You must complete ${requirement} of service to be eligible for ${leaveType.name}. Your current service: ${formatServiceDuration(hrProfile.dateOfJoining)}`,
+        }, { status: 400 });
+      }
+    }
+
+    // Check if this is a "once in employment" leave type (e.g., Hajj leave)
+    if (leaveType.isOnceInEmployment) {
+      // Check if user has already taken this type of leave (using flag, not name)
+      if (hrProfile?.hajjLeaveTaken) {
+        return NextResponse.json({
+          error: `${leaveType.name} can only be taken once during your employment. You have already used this leave.`,
+        }, { status: 400 });
+      }
+
+      // Also check for any existing approved Hajj leave requests (as backup check)
+      const existingOnceLeave = await prisma.leaveRequest.findFirst({
+        where: {
+          userId,
+          leaveTypeId: leaveType.id,
+          status: { in: ['PENDING', 'APPROVED'] },
+        },
+      });
+
+      if (existingOnceLeave) {
+        return NextResponse.json({
+          error: `${leaveType.name} can only be taken once during your employment. You already have a ${existingOnceLeave.status.toLowerCase()} request.`,
+        }, { status: 400 });
+      }
+    }
+
+    // Calculate days - Accrual-based leave (Annual Leave) includes weekends, others exclude weekends
+    const includeWeekends = leaveType.accrualBased === true;
+    const isAdmin = session.user.role === Role.ADMIN;
+    const totalDays = calculateWorkingDays(startDate, endDate, data.requestType, includeWeekends);
 
     if (totalDays === 0) {
       return NextResponse.json({
@@ -176,8 +278,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Check minimum notice days
-    if (!meetsNoticeDaysRequirement(startDate, leaveType.minNoticeDays)) {
+    // Check minimum notice days (admin can override with adminOverrideNotice flag)
+    const skipNoticeCheck = isAdmin && data.adminOverrideNotice === true;
+    if (!skipNoticeCheck && !meetsNoticeDaysRequirement(startDate, leaveType.minNoticeDays)) {
       return NextResponse.json({
         error: `This leave type requires at least ${leaveType.minNoticeDays} days advance notice`,
       }, { status: 400 });
@@ -197,47 +300,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Get or create leave balance for current year
-    const year = startDate.getFullYear();
-    let balance = await prisma.leaveBalance.findUnique({
-      where: {
-        userId_leaveTypeId_year: {
-          userId,
-          leaveTypeId: data.leaveTypeId,
-          year,
-        },
-      },
-    });
-
-    // If no balance exists, create one with default entitlement
-    if (!balance) {
-      balance = await prisma.leaveBalance.create({
-        data: {
-          userId,
-          leaveTypeId: data.leaveTypeId,
-          year,
-          entitlement: leaveType.defaultDays,
-        },
-      });
-    }
-
-    // Check sufficient balance (for paid leave types)
-    if (leaveType.isPaid) {
-      const available = calculateAvailableBalance(
-        balance.entitlement,
-        balance.used,
-        balance.carriedForward,
-        balance.adjustment
-      );
-
-      if (totalDays > available) {
-        return NextResponse.json({
-          error: `Insufficient leave balance. Available: ${available} days, Requested: ${totalDays} days`,
-        }, { status: 400 });
-      }
-    }
-
-    // Check for overlapping requests
+    // Check for overlapping requests (pre-check before transaction)
     const overlappingRequests = await prisma.leaveRequest.findMany({
       where: {
         userId,
@@ -259,12 +322,70 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Generate request number
-    const requestCount = await prisma.leaveRequest.count();
-    const requestNumber = generateLeaveRequestNumber(requestCount);
+    const year = startDate.getFullYear();
 
-    // Create leave request in a transaction
+    // Create leave request in a transaction (includes balance check to prevent race conditions)
     const leaveRequest = await prisma.$transaction(async (tx) => {
+      // Get or create leave balance inside transaction to prevent race conditions
+      let balance = await tx.leaveBalance.findUnique({
+        where: {
+          userId_leaveTypeId_year: {
+            userId,
+            leaveTypeId: data.leaveTypeId,
+            year,
+          },
+        },
+      });
+
+      // If no balance exists, create one with appropriate entitlement
+      if (!balance) {
+        let entitlement = leaveType.defaultDays;
+
+        // For accrual-based leave types (like Annual Leave), calculate accrued entitlement
+        if (leaveType.accrualBased && hrProfile?.dateOfJoining) {
+          const annualLeaveDetails = getAnnualLeaveDetails(hrProfile.dateOfJoining, year, startDate);
+          entitlement = annualLeaveDetails.accrued;
+        } else if (leaveType.serviceBasedEntitlement && hrProfile?.dateOfJoining) {
+          // For non-accrual but service-based leave types
+          const serviceEntitlement = getServiceBasedEntitlement(
+            hrProfile.dateOfJoining,
+            leaveType.serviceBasedEntitlement as ServiceBasedEntitlement,
+            startDate
+          );
+          if (serviceEntitlement > 0) {
+            entitlement = serviceEntitlement;
+          }
+        }
+
+        balance = await tx.leaveBalance.create({
+          data: {
+            userId,
+            leaveTypeId: data.leaveTypeId,
+            year,
+            entitlement,
+          },
+        });
+      }
+
+      // Check sufficient balance (for paid leave types) inside transaction
+      if (leaveType.isPaid) {
+        const available = calculateAvailableBalance(
+          balance.entitlement,
+          balance.used,
+          balance.carriedForward,
+          balance.adjustment
+        );
+
+        if (totalDays > available) {
+          throw new Error(`INSUFFICIENT_BALANCE:${available}`);
+        }
+      }
+
+      // Generate unique request number using timestamp + random to prevent duplicates
+      const timestamp = Date.now().toString(36).toUpperCase();
+      const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+      const requestNumber = `LR-${timestamp}-${random}`;
+
       // Create the request
       const request = await tx.leaveRequest.create({
         data: {
@@ -344,6 +465,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(leaveRequest, { status: 201 });
   } catch (error) {
+    // Handle insufficient balance error thrown from transaction
+    if (error instanceof Error && error.message.startsWith('INSUFFICIENT_BALANCE:')) {
+      const available = error.message.split(':')[1];
+      return NextResponse.json({
+        error: `Insufficient leave balance. Available: ${available} days`,
+      }, { status: 400 });
+    }
+
     console.error('Leave requests POST error:', error);
     return NextResponse.json(
       { error: 'Failed to create leave request' },

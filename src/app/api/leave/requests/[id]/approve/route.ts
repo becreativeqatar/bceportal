@@ -39,7 +39,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           select: { name: true },
         },
         leaveType: {
-          select: { name: true },
+          select: { name: true, isOnceInEmployment: true },
         },
       },
     });
@@ -122,6 +122,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           performedById: session.user.id,
         },
       });
+
+      // Mark hajjLeaveTaken on HR profile if this is once-in-employment leave (e.g., Hajj)
+      if (existing.leaveType?.isOnceInEmployment) {
+        await tx.hRProfile.update({
+          where: { userId: existing.userId },
+          data: { hajjLeaveTaken: true },
+        });
+      }
 
       return request;
     });

@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface LeaveType {
   id: string;
@@ -73,10 +74,14 @@ export default function AdminLeaveTypesPage() {
       });
 
       if (response.ok) {
+        toast.success(`Leave type ${isActive ? 'activated' : 'deactivated'} successfully`);
         fetchLeaveTypes();
+      } else {
+        toast.error('Failed to update leave type');
       }
     } catch (error) {
       console.error('Failed to toggle leave type:', error);
+      toast.error('An error occurred');
     }
   };
 
@@ -90,13 +95,15 @@ export default function AdminLeaveTypesPage() {
       });
 
       if (response.ok) {
+        toast.success('Leave type deleted successfully');
         fetchLeaveTypes();
       } else {
         const data = await response.json();
-        alert(data.error || 'Failed to delete leave type');
+        toast.error(data.error || 'Failed to delete leave type');
       }
     } catch (error) {
       console.error('Failed to delete leave type:', error);
+      toast.error('An error occurred while deleting leave type');
     } finally {
       setIsDeleting(false);
       setDeleteId(null);

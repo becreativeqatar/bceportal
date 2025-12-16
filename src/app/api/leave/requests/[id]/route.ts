@@ -138,8 +138,41 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }, { status: 400 });
     }
 
-    // Calculate new working days
-    const newTotalDays = calculateWorkingDays(startDate, endDate, requestType);
+    // Validate half-day requests must be single day
+    if (requestType !== 'FULL_DAY') {
+      if (startDate.toDateString() !== endDate.toDateString()) {
+        return NextResponse.json({
+          error: 'Half-day requests must be for a single day',
+        }, { status: 400 });
+      }
+    }
+
+    // Check for overlapping requests (excluding current request)
+    const overlappingRequests = await prisma.leaveRequest.findMany({
+      where: {
+        id: { not: id },
+        userId: existing.userId,
+        status: { in: ['PENDING', 'APPROVED'] },
+        OR: [
+          {
+            AND: [
+              { startDate: { lte: endDate } },
+              { endDate: { gte: startDate } },
+            ],
+          },
+        ],
+      },
+    });
+
+    if (overlappingRequests.length > 0) {
+      return NextResponse.json({
+        error: 'These dates overlap with another pending or approved leave request',
+      }, { status: 400 });
+    }
+
+    // Calculate new working days (include weekends for accrual-based leave like Annual Leave)
+    const includeWeekends = existing.leaveType.accrualBased === true;
+    const newTotalDays = calculateWorkingDays(startDate, endDate, requestType, includeWeekends);
     const oldTotalDays = Number(existing.totalDays);
     const daysDiff = newTotalDays - oldTotalDays;
 

@@ -100,6 +100,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Calculate new adjustment (add to existing adjustment)
     const newAdjustment = Number(existing.adjustment) + adjustment;
 
+    // Validate that resulting balance won't be negative
+    const resultingBalance = Number(existing.entitlement) +
+      Number(existing.carriedForward) +
+      newAdjustment -
+      Number(existing.used) -
+      Number(existing.pending);
+
+    if (resultingBalance < 0) {
+      return NextResponse.json({
+        error: `Adjustment would result in negative balance (${resultingBalance.toFixed(1)} days). Current available: ${(Number(existing.entitlement) + Number(existing.carriedForward) + Number(existing.adjustment) - Number(existing.used) - Number(existing.pending)).toFixed(1)} days`,
+      }, { status: 400 });
+    }
+
     const balance = await prisma.leaveBalance.update({
       where: { id },
       data: {

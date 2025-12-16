@@ -4,18 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { AdjustBalanceDialog } from '@/components/leave/adjust-balance-dialog';
-import { Search, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { calculateRemainingBalance } from '@/lib/leave-utils';
+import { Search, ChevronLeft, ChevronRight, Plus, User, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { calculateRemainingBalance, getAnnualLeaveDetails } from '@/lib/leave-utils';
+import Link from 'next/link';
+import { toast } from 'sonner';
 
 interface LeaveBalance {
   id: string;
@@ -40,10 +35,26 @@ interface LeaveBalance {
   };
 }
 
+interface UserGroup {
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+  balances: LeaveBalance[];
+  totalEntitlement: number;
+  totalUsed: number;
+  totalPending: number;
+  totalRemaining: number;
+}
+
 interface User {
   id: string;
   name: string | null;
   email: string;
+  hrProfile?: {
+    dateOfJoining?: string | null;
+  } | null;
 }
 
 interface LeaveType {
@@ -58,16 +69,11 @@ export default function AdminLeaveBalancesPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    pageSize: 20,
-    total: 0,
-    totalPages: 0,
-  });
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
   const currentYear = new Date().getFullYear();
   const [yearFilter, setYearFilter] = useState(currentYear.toString());
-  const [userFilter, setUserFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [leaveTypeFilter, setLeaveTypeFilter] = useState('');
 
   // Initialize dialog state
@@ -81,33 +87,26 @@ export default function AdminLeaveBalancesPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set('p', pagination.page.toString());
-      params.set('ps', pagination.pageSize.toString());
+      params.set('ps', '1000'); // Fetch all balances for grouping
       params.set('year', yearFilter);
 
-      if (userFilter) params.set('userId', userFilter);
       if (leaveTypeFilter) params.set('leaveTypeId', leaveTypeFilter);
 
       const response = await fetch(`/api/leave/balances?${params}`);
       if (response.ok) {
         const data = await response.json();
         setBalances(data.balances);
-        setPagination(prev => ({
-          ...prev,
-          total: data.pagination.total,
-          totalPages: data.pagination.totalPages,
-        }));
       }
     } catch (error) {
       console.error('Failed to fetch balances:', error);
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.pageSize, yearFilter, userFilter, leaveTypeFilter]);
+  }, [yearFilter, leaveTypeFilter]);
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users?ps=1000');
+      const response = await fetch('/api/users?ps=1000&includeHrProfile=true');
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users || []);
@@ -138,9 +137,91 @@ export default function AdminLeaveBalancesPage() {
     fetchLeaveTypes();
   }, []);
 
+  // Helper to get effective entitlement (accrued for Annual Leave)
+  const getEffectiveEntitlement = (balance: LeaveBalance, dateOfJoining: Date | null) => {
+    if (balance.leaveType.name === 'Annual Leave' && dateOfJoining) {
+      const year = parseInt(yearFilter);
+      const annualDetails = getAnnualLeaveDetails(dateOfJoining, year, new Date());
+      return annualDetails.accrued;
+    }
+    return Number(balance.entitlement);
+  };
+
+  // Get user's dateOfJoining from the users array
+  const getUserDateOfJoining = (userId: string): Date | null => {
+    const user = users.find(u => u.id === userId);
+    if (user?.hrProfile?.dateOfJoining) {
+      return new Date(user.hrProfile.dateOfJoining);
+    }
+    return null;
+  };
+
+  // Group balances by user
+  const userGroups: UserGroup[] = (() => {
+    const groupMap = new Map<string, UserGroup>();
+
+    balances.forEach((balance) => {
+      const userId = balance.user.id;
+      if (!groupMap.has(userId)) {
+        groupMap.set(userId, {
+          user: balance.user,
+          balances: [],
+          totalEntitlement: 0,
+          totalUsed: 0,
+          totalPending: 0,
+          totalRemaining: 0,
+        });
+      }
+
+      const group = groupMap.get(userId)!;
+      group.balances.push(balance);
+
+      const dateOfJoining = getUserDateOfJoining(userId);
+      const effectiveEntitlement = getEffectiveEntitlement(balance, dateOfJoining);
+      const remaining = effectiveEntitlement + Number(balance.carriedForward) + Number(balance.adjustment) - Number(balance.used) - Number(balance.pending);
+
+      group.totalEntitlement += effectiveEntitlement;
+      group.totalUsed += Number(balance.used);
+      group.totalPending += Number(balance.pending);
+      group.totalRemaining += remaining;
+    });
+
+    return Array.from(groupMap.values());
+  })();
+
+  // Filter by search query
+  const filteredGroups = userGroups.filter((group) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      group.user.name?.toLowerCase().includes(query) ||
+      group.user.email.toLowerCase().includes(query)
+    );
+  });
+
+  const toggleExpand = (userId: string) => {
+    setExpandedUsers((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
+  const expandAll = () => {
+    setExpandedUsers(new Set(filteredGroups.map((g) => g.user.id)));
+  };
+
+  const collapseAll = () => {
+    setExpandedUsers(new Set());
+  };
+
   const handleInitializeBalance = async () => {
     if (!initUserId || !initLeaveTypeId) {
-      alert('Please select a user and leave type');
+      toast.error('Please select a user and leave type');
       return;
     }
 
@@ -162,14 +243,15 @@ export default function AdminLeaveBalancesPage() {
         setInitUserId('');
         setInitLeaveTypeId('');
         setInitEntitlement('');
+        toast.success('Leave balance created successfully');
         fetchBalances();
       } else {
         const data = await response.json();
-        alert(data.error || 'Failed to initialize balance');
+        toast.error(data.error || 'Failed to initialize balance');
       }
     } catch (error) {
       console.error('Failed to initialize balance:', error);
-      alert('An error occurred');
+      toast.error('An error occurred while creating balance');
     } finally {
       setInitSubmitting(false);
     }
@@ -185,7 +267,7 @@ export default function AdminLeaveBalancesPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Leave Balances</h1>
               <p className="text-gray-600">
-                View and manage employee leave balances
+                View and manage employee leave balances grouped by employee
               </p>
             </div>
             <Button onClick={() => setInitDialogOpen(true)}>
@@ -197,15 +279,37 @@ export default function AdminLeaveBalancesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>All Balances</CardTitle>
-            <CardDescription>
-              Filter and manage leave balances for all employees
-            </CardDescription>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle>Employee Balances ({filteredGroups.length})</CardTitle>
+                <CardDescription>
+                  Click on an employee to view their leave balance breakdown
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={expandAll}>
+                  Expand All
+                </Button>
+                <Button variant="outline" size="sm" onClick={collapseAll}>
+                  Collapse All
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {/* Filters */}
             <div className="flex flex-wrap gap-4 mb-6">
-              <Select value={yearFilter} onValueChange={(v) => { setYearFilter(v); setPagination(p => ({ ...p, page: 1 })); }}>
+              <div className="relative flex-1 min-w-[200px] max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search employees..."
+                  className="pl-9"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <Select value={yearFilter} onValueChange={setYearFilter}>
                 <SelectTrigger className="w-[100px]">
                   <SelectValue placeholder="Year" />
                 </SelectTrigger>
@@ -216,21 +320,7 @@ export default function AdminLeaveBalancesPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={userFilter} onValueChange={(v) => { setUserFilter(v === 'all' ? '' : v); setPagination(p => ({ ...p, page: 1 })); }}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="All Employees" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Employees</SelectItem>
-                  {users.map(user => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name || user.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={leaveTypeFilter} onValueChange={(v) => { setLeaveTypeFilter(v === 'all' ? '' : v); setPagination(p => ({ ...p, page: 1 })); }}>
+              <Select value={leaveTypeFilter} onValueChange={(v) => setLeaveTypeFilter(v === 'all' ? '' : v)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="All Leave Types" />
                 </SelectTrigger>
@@ -248,121 +338,178 @@ export default function AdminLeaveBalancesPage() {
               </Select>
             </div>
 
-            {/* Table */}
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Leave Type</TableHead>
-                    <TableHead className="text-right">Entitlement</TableHead>
-                    <TableHead className="text-right">Carried Forward</TableHead>
-                    <TableHead className="text-right">Adjustment</TableHead>
-                    <TableHead className="text-right">Used</TableHead>
-                    <TableHead className="text-right">Pending</TableHead>
-                    <TableHead className="text-right">Remaining</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8">
-                        Loading...
-                      </TableCell>
-                    </TableRow>
-                  ) : balances.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                        No balances found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    balances.map((balance) => {
-                      const remaining = calculateRemainingBalance(
-                        balance.entitlement,
-                        balance.used,
-                        balance.pending,
-                        balance.carriedForward,
-                        balance.adjustment
-                      );
+            {/* Employee Groups */}
+            {loading ? (
+              <div className="text-center py-12 text-gray-500">Loading...</div>
+            ) : filteredGroups.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                No balances found
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredGroups.map((group) => {
+                  const isExpanded = expandedUsers.has(group.user.id);
 
-                      return (
-                        <TableRow key={balance.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{balance.user.name || 'N/A'}</div>
-                              <div className="text-xs text-gray-500">{balance.user.email}</div>
+                  return (
+                    <div
+                      key={group.user.id}
+                      className="border rounded-lg overflow-hidden"
+                    >
+                      {/* Employee Header */}
+                      <div
+                        className="flex items-center justify-between p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => toggleExpand(group.user.id)}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            <User className="h-5 w-5 text-gray-500" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {group.user.name || 'No Name'}
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-2.5 h-2.5 rounded-full"
-                                style={{ backgroundColor: balance.leaveType.color }}
-                              />
-                              {balance.leaveType.name}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">{Number(balance.entitlement)}</TableCell>
-                          <TableCell className="text-right text-blue-600">
-                            {Number(balance.carriedForward) > 0 ? `+${Number(balance.carriedForward)}` : '-'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {Number(balance.adjustment) !== 0 ? (
-                              <span className={Number(balance.adjustment) >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                {Number(balance.adjustment) >= 0 ? '+' : ''}{Number(balance.adjustment)}
-                              </span>
-                            ) : '-'}
-                          </TableCell>
-                          <TableCell className="text-right text-red-600">{Number(balance.used)}</TableCell>
-                          <TableCell className="text-right text-amber-600">{Number(balance.pending)}</TableCell>
-                          <TableCell className="text-right font-semibold">{remaining.toFixed(1)}</TableCell>
-                          <TableCell className="text-right">
-                            <AdjustBalanceDialog
-                              balanceId={balance.id}
-                              userName={balance.user.name || balance.user.email}
-                              leaveTypeName={balance.leaveType.name}
-                              currentBalance={remaining}
-                              onAdjusted={fetchBalances}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                            <div className="text-sm text-gray-500">{group.user.email}</div>
+                          </div>
+                        </div>
 
-            {/* Pagination */}
-            {pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-gray-500">
-                  Showing {((pagination.page - 1) * pagination.pageSize) + 1} to{' '}
-                  {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{' '}
-                  {pagination.total} results
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                    disabled={pagination.page === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                    disabled={pagination.page >= pagination.totalPages}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
+                        <div className="flex items-center gap-6">
+                          {/* Summary Stats */}
+                          <div className="hidden md:flex items-center gap-6 text-sm">
+                            <div className="text-center">
+                              <div className="text-gray-500">Entitlement</div>
+                              <div className="font-semibold">{group.totalEntitlement}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-gray-500">Used</div>
+                              <div className="font-semibold text-red-600">{group.totalUsed}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-gray-500">Pending</div>
+                              <div className="font-semibold text-amber-600">{group.totalPending}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-gray-500">Remaining</div>
+                              <div className="font-semibold text-green-600">{group.totalRemaining.toFixed(1)}</div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/admin/employees/${group.user.id}?tab=leave`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Button variant="ghost" size="sm" title="View Employee Profile">
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            {isExpanded ? (
+                              <ChevronUp className="h-5 w-5 text-gray-400" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-gray-400" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Content - Leave Type Breakdown */}
+                      {isExpanded && (
+                        <div className="p-4 border-t bg-white">
+                          <div className="grid gap-3">
+                            {group.balances.map((balance) => {
+                              const dateOfJoining = getUserDateOfJoining(group.user.id);
+                              const isAnnualLeave = balance.leaveType.name === 'Annual Leave';
+                              const effectiveEntitlement = getEffectiveEntitlement(balance, dateOfJoining);
+
+                              // Get annual leave details for display
+                              let annualDetails: { annualEntitlement: number; monthsWorked: number } | null = null;
+                              if (isAnnualLeave && dateOfJoining) {
+                                const year = parseInt(yearFilter);
+                                annualDetails = getAnnualLeaveDetails(dateOfJoining, year, new Date());
+                              }
+
+                              const total = effectiveEntitlement + Number(balance.carriedForward) + Number(balance.adjustment);
+                              const remaining = total - Number(balance.used) - Number(balance.pending);
+                              const usedPercent = total > 0 ? (Number(balance.used) / total) * 100 : 0;
+
+                              return (
+                                <div
+                                  key={balance.id}
+                                  className="flex flex-col md:flex-row md:items-center justify-between p-3 bg-gray-50 rounded-lg gap-3"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div
+                                      className="w-3 h-3 rounded-full flex-shrink-0"
+                                      style={{ backgroundColor: balance.leaveType.color }}
+                                    />
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">{balance.leaveType.name}</span>
+                                      {balance.leaveType.isPaid === false && (
+                                        <Badge variant="outline" className="text-xs">Unpaid</Badge>
+                                      )}
+                                      {isAnnualLeave && annualDetails && (
+                                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                          Accrual ({annualDetails.monthsWorked} mo)
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center gap-4 text-sm">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-500">
+                                        {isAnnualLeave && annualDetails ? 'Accrued:' : 'Entitlement:'}
+                                      </span>
+                                      <span className="font-medium">
+                                        {effectiveEntitlement.toFixed(1)}
+                                        {isAnnualLeave && annualDetails && (
+                                          <span className="text-gray-400 text-xs ml-1">of {annualDetails.annualEntitlement}/yr</span>
+                                        )}
+                                      </span>
+                                    </div>
+                                    {Number(balance.carriedForward) > 0 && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-500">Carried:</span>
+                                        <span className="font-medium text-blue-600">+{Number(balance.carriedForward)}</span>
+                                      </div>
+                                    )}
+                                    {Number(balance.adjustment) !== 0 && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-500">Adj:</span>
+                                        <span className={`font-medium ${Number(balance.adjustment) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                          {Number(balance.adjustment) >= 0 ? '+' : ''}{Number(balance.adjustment)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-500">Used:</span>
+                                      <span className="font-medium text-red-600">{Number(balance.used)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-500">Pending:</span>
+                                      <span className="font-medium text-amber-600">{Number(balance.pending)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 font-semibold">
+                                      <span className="text-gray-500">Remaining:</span>
+                                      <span className="text-green-600">{remaining.toFixed(1)}</span>
+                                    </div>
+
+                                    <AdjustBalanceDialog
+                                      balanceId={balance.id}
+                                      userName={balance.user.name || balance.user.email}
+                                      leaveTypeName={balance.leaveType.name}
+                                      currentBalance={remaining}
+                                      onAdjusted={fetchBalances}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>

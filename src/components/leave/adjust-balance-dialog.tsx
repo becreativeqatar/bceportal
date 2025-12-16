@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Settings2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface AdjustBalanceDialogProps {
   balanceId: string;
@@ -73,6 +74,7 @@ export function AdjustBalanceDialog({
       setOpen(false);
       setAdjustment('');
       setNotes('');
+      toast.success('Balance adjusted successfully');
       onAdjusted?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
