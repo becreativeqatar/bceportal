@@ -30,6 +30,11 @@ export async function GET(request: NextRequest) {
         isSystemAccount: true,
         createdAt: true,
         updatedAt: true,
+        hrProfile: {
+          select: {
+            dateOfJoining: true,
+          },
+        },
         _count: {
           select: {
             assets: true,
