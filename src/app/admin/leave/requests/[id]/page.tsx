@@ -48,6 +48,7 @@ interface LeaveRequest {
     name: string;
     color: string;
     requiresDocument: boolean;
+    accrualBased?: boolean;
   };
   approver?: {
     id: string;
@@ -69,10 +70,20 @@ interface LeaveRequest {
   }>;
 }
 
+interface LeaveBalance {
+  id: string;
+  entitlement: number;
+  used: number;
+  pending: number;
+  carriedForward: number;
+  adjustment: number;
+}
+
 export default function AdminLeaveRequestDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [request, setRequest] = useState<LeaveRequest | null>(null);
+  const [balance, setBalance] = useState<LeaveBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,6 +98,20 @@ export default function AdminLeaveRequestDetailPage() {
       }
       const data = await response.json();
       setRequest(data);
+
+      // Fetch balance for this user and leave type
+      if (data.user?.id && data.leaveType?.id) {
+        const year = new Date(data.startDate).getFullYear();
+        const balanceResponse = await fetch(
+          `/api/leave/balances?userId=${data.user.id}&leaveTypeId=${data.leaveType.id}&year=${year}`
+        );
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json();
+          if (balanceData.balances && balanceData.balances.length > 0) {
+            setBalance(balanceData.balances[0]);
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -204,10 +229,12 @@ export default function AdminLeaveRequestDetailPage() {
                     <div className="text-sm text-gray-500">Duration</div>
                     <div className="font-medium">{formatLeaveDays(request.totalDays)}</div>
                   </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Request Type</div>
-                    <div className="font-medium">{getRequestTypeText(request.requestType)}</div>
-                  </div>
+                  {!request.leaveType.accrualBased && (
+                    <div>
+                      <div className="text-sm text-gray-500">Request Type</div>
+                      <div className="font-medium">{getRequestTypeText(request.requestType)}</div>
+                    </div>
+                  )}
                   <div>
                     <div className="text-sm text-gray-500">Submitted</div>
                     <div className="font-medium">
@@ -320,6 +347,57 @@ export default function AdminLeaveRequestDetailPage() {
                 </Link>
               </CardContent>
             </Card>
+
+            {/* Balance Summary */}
+            {balance && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Balance Summary
+                  </CardTitle>
+                  <CardDescription>
+                    {request.leaveType.name} - {new Date(request.startDate).getFullYear()}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Entitlement</span>
+                    <span className="font-medium">{balance.entitlement} days</span>
+                  </div>
+                  {balance.carriedForward > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Carried Forward</span>
+                      <span className="font-medium text-blue-600">+{balance.carriedForward} days</span>
+                    </div>
+                  )}
+                  {balance.adjustment !== 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Adjustment</span>
+                      <span className={`font-medium ${balance.adjustment > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {balance.adjustment > 0 ? '+' : ''}{balance.adjustment} days
+                      </span>
+                    </div>
+                  )}
+                  <hr className="my-2" />
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Used</span>
+                    <span className="font-medium text-red-600">-{balance.used} days</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Pending</span>
+                    <span className="font-medium text-amber-600">{balance.pending} days</span>
+                  </div>
+                  <hr className="my-2" />
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium">Remaining</span>
+                    <span className="font-bold text-green-600">
+                      {(balance.entitlement + balance.carriedForward + balance.adjustment - balance.used - balance.pending).toFixed(1)} days
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Emergency Contact */}
             {(request.emergencyContact || request.emergencyPhone) && (

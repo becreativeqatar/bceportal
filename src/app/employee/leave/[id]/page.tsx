@@ -18,6 +18,16 @@ import {
 import { LeaveRequestHistory } from '@/components/leave/leave-request-history';
 import { CancelLeaveDialog } from '@/components/leave/cancel-leave-dialog';
 import { LeaveStatus, LeaveRequestType } from '@prisma/client';
+import { CardDescription } from '@/components/ui/card';
+
+interface LeaveBalance {
+  id: string;
+  entitlement: number;
+  used: number;
+  pending: number;
+  carriedForward: number;
+  adjustment: number;
+}
 
 interface LeaveRequest {
   id: string;
@@ -48,6 +58,7 @@ interface LeaveRequest {
     name: string;
     color: string;
     requiresDocument: boolean;
+    accrualBased?: boolean;
   };
   approver?: {
     id: string;
@@ -73,6 +84,7 @@ export default function EmployeeLeaveRequestDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [request, setRequest] = useState<LeaveRequest | null>(null);
+  const [balance, setBalance] = useState<LeaveBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,6 +102,20 @@ export default function EmployeeLeaveRequestDetailPage() {
       }
       const data = await response.json();
       setRequest(data);
+
+      // Fetch balance for this leave type
+      if (data.leaveType?.id) {
+        const year = new Date(data.startDate).getFullYear();
+        const balanceResponse = await fetch(
+          `/api/leave/balances?leaveTypeId=${data.leaveType.id}&year=${year}`
+        );
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json();
+          if (balanceData.balances && balanceData.balances.length > 0) {
+            setBalance(balanceData.balances[0]);
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -205,10 +231,12 @@ export default function EmployeeLeaveRequestDetailPage() {
                 <div className="text-sm text-gray-500">Duration</div>
                 <div className="font-medium">{formatLeaveDays(request.totalDays)}</div>
               </div>
-              <div>
-                <div className="text-sm text-gray-500">Request Type</div>
-                <div className="font-medium">{getRequestTypeText(request.requestType)}</div>
-              </div>
+              {!request.leaveType.accrualBased && (
+                <div>
+                  <div className="text-sm text-gray-500">Request Type</div>
+                  <div className="font-medium">{getRequestTypeText(request.requestType)}</div>
+                </div>
+              )}
             </div>
 
             {request.reason && (
@@ -252,6 +280,54 @@ export default function EmployeeLeaveRequestDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Balance Summary */}
+        {balance && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Balance Summary
+              </CardTitle>
+              <CardDescription>
+                {request.leaveType.name} - {new Date(request.startDate).getFullYear()}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <div className="text-2xl font-bold text-gray-900">
+                    {(balance.entitlement + balance.carriedForward + balance.adjustment).toFixed(1)}
+                  </div>
+                  <div className="text-sm text-gray-500">Total Entitlement</div>
+                </div>
+                <div className="text-center p-3 bg-red-50 rounded-lg">
+                  <div className="text-2xl font-bold text-red-600">
+                    {balance.used}
+                  </div>
+                  <div className="text-sm text-gray-500">Used</div>
+                </div>
+                <div className="text-center p-3 bg-amber-50 rounded-lg">
+                  <div className="text-2xl font-bold text-amber-600">
+                    {balance.pending}
+                  </div>
+                  <div className="text-sm text-gray-500">Pending</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">
+                    {(balance.entitlement + balance.carriedForward + balance.adjustment - balance.used - balance.pending).toFixed(1)}
+                  </div>
+                  <div className="text-sm text-gray-500">Remaining</div>
+                </div>
+              </div>
+              {balance.carriedForward > 0 && (
+                <div className="mt-3 text-sm text-gray-600">
+                  Includes {balance.carriedForward} days carried forward from previous year
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Status Details */}
         {(request.approverNotes || request.rejectionReason || request.cancellationReason) && (
