@@ -137,6 +137,9 @@ export const hrProfileSchema = z.object({
   // Onboarding tracking
   onboardingStep: z.coerce.number().int().min(0).max(10).optional(),
   onboardingComplete: z.boolean().optional(),
+
+  // Leave settings
+  bypassNoticeRequirement: z.boolean().optional(),
 }).passthrough(); // Allow extra fields (like id, userId, workEmail, etc.) to pass through
 
 // Schema for admin update (includes employeeId)

@@ -335,6 +335,7 @@ export function LeaveRequestForm({ leaveTypes, balances, onSuccess, isAdmin = fa
             value={form.watch('startDate')}
             onChange={(value) => form.setValue('startDate', value)}
             placeholder="DD/MM/YYYY"
+            minDate={new Date()}
           />
           {form.formState.errors.startDate && (
             <p className="text-sm text-red-500">{form.formState.errors.startDate.message}</p>
@@ -347,7 +348,7 @@ export function LeaveRequestForm({ leaveTypes, balances, onSuccess, isAdmin = fa
             id="endDate"
             value={form.watch('endDate')}
             onChange={(value) => form.setValue('endDate', value)}
-            minDate={form.watch('startDate') ? new Date(form.watch('startDate')) : undefined}
+            minDate={form.watch('startDate') ? new Date(form.watch('startDate')) : new Date()}
             placeholder="DD/MM/YYYY"
           />
           {form.formState.errors.endDate && (

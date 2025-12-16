@@ -608,6 +608,7 @@ model HRProfile {
   designation    String?
   dateOfJoining  DateTime?
   hajjLeaveTaken Boolean   @default(false) // Qatar law: Hajj leave can only be taken once during employment
+  bypassNoticeRequirement Boolean @default(false) // Admin override: bypass advance notice requirements for leave requests
 
   // Bank & Payroll
   bankName String?

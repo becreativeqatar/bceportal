@@ -177,6 +177,7 @@ export async function POST(request: NextRequest) {
         dateOfJoining: true,
         hajjLeaveTaken: true,
         gender: true,
+        bypassNoticeRequirement: true,
       },
     });
 
@@ -279,8 +280,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Check minimum notice days (admin can override with adminOverrideNotice flag)
-    const skipNoticeCheck = isAdmin && data.adminOverrideNotice === true;
+    // Check minimum notice days (skip if: admin override OR user has bypass flag set by admin)
+    const skipNoticeCheck = (isAdmin && data.adminOverrideNotice === true) || hrProfile?.bypassNoticeRequirement === true;
     if (!skipNoticeCheck && !meetsNoticeDaysRequirement(startDate, leaveType.minNoticeDays)) {
       return NextResponse.json({
         error: `This leave type requires at least ${leaveType.minNoticeDays} days advance notice`,
