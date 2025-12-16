@@ -13,6 +13,7 @@ import {
   formatLeaveDays,
   getRequestTypeText,
   canCancelLeaveRequest,
+  getAnnualLeaveDetails,
 } from '@/lib/leave-utils';
 import { LeaveApprovalActions } from '@/components/leave/leave-approval-actions';
 import { LeaveRequestHistory } from '@/components/leave/leave-request-history';
@@ -84,6 +85,7 @@ export default function AdminLeaveRequestDetailPage() {
   const router = useRouter();
   const [request, setRequest] = useState<LeaveRequest | null>(null);
   const [balance, setBalance] = useState<LeaveBalance | null>(null);
+  const [accrued, setAccrued] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,13 +104,25 @@ export default function AdminLeaveRequestDetailPage() {
       // Fetch balance for this user and leave type
       if (data.user?.id && data.leaveType?.id) {
         const year = new Date(data.startDate).getFullYear();
-        const balanceResponse = await fetch(
-          `/api/leave/balances?userId=${data.user.id}&leaveTypeId=${data.leaveType.id}&year=${year}`
-        );
+        const [balanceResponse, userResponse] = await Promise.all([
+          fetch(`/api/leave/balances?userId=${data.user.id}&leaveTypeId=${data.leaveType.id}&year=${year}`),
+          fetch(`/api/users/${data.user.id}`),
+        ]);
+
         if (balanceResponse.ok) {
           const balanceData = await balanceResponse.json();
           if (balanceData.balances && balanceData.balances.length > 0) {
             setBalance(balanceData.balances[0]);
+          }
+        }
+
+        // Calculate accrued for accrual-based leave types
+        if (data.leaveType.accrualBased && userResponse.ok) {
+          const userData = await userResponse.json();
+          if (userData.hrProfile?.dateOfJoining) {
+            const dateOfJoining = new Date(userData.hrProfile.dateOfJoining);
+            const annualDetails = getAnnualLeaveDetails(dateOfJoining, year, new Date());
+            setAccrued(annualDetails.accrued);
           }
         }
       }
@@ -365,6 +379,12 @@ export default function AdminLeaveRequestDetailPage() {
                     <span className="text-sm text-gray-500">Entitlement</span>
                     <span className="font-medium">{Number(balance.entitlement)} days</span>
                   </div>
+                  {request.leaveType.accrualBased && accrued !== null && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Accrued (Pro-rata)</span>
+                      <span className="font-medium text-blue-600">{accrued.toFixed(1)} days</span>
+                    </div>
+                  )}
                   {Number(balance.carriedForward) > 0 && (
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-500">Carried Forward</span>
@@ -392,7 +412,12 @@ export default function AdminLeaveRequestDetailPage() {
                   <div className="flex justify-between">
                     <span className="text-sm font-medium">Remaining</span>
                     <span className="font-bold text-green-600">
-                      {(Number(balance.entitlement) + Number(balance.carriedForward) + Number(balance.adjustment) - Number(balance.used) - Number(balance.pending)).toFixed(1)} days
+                      {(() => {
+                        const effectiveEntitlement = request.leaveType.accrualBased && accrued !== null
+                          ? accrued
+                          : Number(balance.entitlement);
+                        return (effectiveEntitlement + Number(balance.carriedForward) + Number(balance.adjustment) - Number(balance.used) - Number(balance.pending)).toFixed(1);
+                      })()} days
                     </span>
                   </div>
                 </CardContent>
