@@ -8,7 +8,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Clock, FileText } from 'lucide-react';
 import { LeaveBalanceCard } from '@/components/leave/leave-balance-card';
-import { getLeaveStatusVariant, getDateRangeText, formatLeaveDays } from '@/lib/leave-utils';
+import { getLeaveStatusVariant, getDateRangeText, formatLeaveDays, getAnnualLeaveDetails } from '@/lib/leave-utils';
 
 export default async function EmployeeLeavePage() {
   const session = await getServerSession(authOptions);
@@ -23,12 +23,37 @@ export default async function EmployeeLeavePage() {
   const sevenDaysFromNow = new Date(now);
   sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
+  // Get user's HR profile for gender check and date of joining (for accrual calculation)
+  const hrProfile = await prisma.hRProfile.findUnique({
+    where: { userId },
+    select: { gender: true, dateOfJoining: true },
+  });
+  const userGender = hrProfile?.gender?.toUpperCase();
+  const dateOfJoining = hrProfile?.dateOfJoining;
+
   // Fetch data for the employee
   const [balances, recentRequests, upcomingLeaves] = await Promise.all([
     prisma.leaveBalance.findMany({
       where: {
         userId,
         year: currentYear,
+        // Only show balances where:
+        // 1. Leave type is STANDARD or MEDICAL (auto-assigned)
+        // 2. OR it's a PARENTAL/RELIGIOUS that was specifically assigned
+        OR: [
+          { leaveType: { category: { in: ['STANDARD', 'MEDICAL'] } } },
+          // For PARENTAL/RELIGIOUS, they should only exist if admin assigned them
+          // But also filter by gender restriction
+          {
+            leaveType: {
+              category: { in: ['PARENTAL', 'RELIGIOUS'] },
+              OR: [
+                { genderRestriction: null },
+                { genderRestriction: userGender || 'NONE' },
+              ],
+            },
+          },
+        ],
       },
       include: {
         leaveType: {
@@ -37,6 +62,9 @@ export default async function EmployeeLeavePage() {
             name: true,
             color: true,
             isPaid: true,
+            category: true,
+            genderRestriction: true,
+            accrualBased: true,
           },
         },
       },
@@ -103,19 +131,34 @@ export default async function EmployeeLeavePage() {
             </Card>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {balances.map((balance) => (
-                <LeaveBalanceCard
-                  key={balance.id}
-                  balance={{
-                    ...balance,
-                    entitlement: Number(balance.entitlement),
-                    used: Number(balance.used),
-                    pending: Number(balance.pending),
-                    carriedForward: Number(balance.carriedForward),
-                    adjustment: Number(balance.adjustment),
-                  }}
-                />
-              ))}
+              {balances.map((balance) => {
+                // For accrual-based leave types, calculate accrued amount
+                let accrualInfo: { accrued?: number; annualEntitlement?: number; monthsWorked?: number } = {};
+
+                if (balance.leaveType.accrualBased && dateOfJoining) {
+                  const annualLeaveDetails = getAnnualLeaveDetails(dateOfJoining, currentYear, now);
+                  accrualInfo = {
+                    accrued: annualLeaveDetails.accrued,
+                    annualEntitlement: annualLeaveDetails.annualEntitlement,
+                    monthsWorked: annualLeaveDetails.monthsWorked,
+                  };
+                }
+
+                return (
+                  <LeaveBalanceCard
+                    key={balance.id}
+                    balance={{
+                      ...balance,
+                      entitlement: Number(balance.entitlement),
+                      used: Number(balance.used),
+                      pending: Number(balance.pending),
+                      carriedForward: Number(balance.carriedForward),
+                      adjustment: Number(balance.adjustment),
+                      ...accrualInfo,
+                    }}
+                  />
+                );
+              })}
             </div>
           )}
         </div>

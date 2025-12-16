@@ -531,7 +531,7 @@ describe('Task Management API Tests', () => {
   describe('Checklist API', () => {
     describe('GET /api/tasks/[id]/checklist', () => {
       it('should return checklist items', async () => {
-        const mockPrismaChecklist = prisma.taskChecklistItem as any;
+        const mockPrismaChecklist = prisma.checklistItem as any;
 
         const items = [
           { id: 'item-1', title: 'Step 1', isCompleted: true, position: 0 },
@@ -551,7 +551,7 @@ describe('Task Management API Tests', () => {
 
     describe('POST /api/tasks/[id]/checklist', () => {
       it('should create checklist item', async () => {
-        const mockPrismaChecklist = prisma.taskChecklistItem as any;
+        const mockPrismaChecklist = prisma.checklistItem as any;
 
         mockPrismaChecklist.create.mockResolvedValue({
           id: 'item-new',
@@ -570,7 +570,7 @@ describe('Task Management API Tests', () => {
 
     describe('PUT /api/tasks/[id]/checklist/[itemId]', () => {
       it('should toggle completion', async () => {
-        const mockPrismaChecklist = prisma.taskChecklistItem as any;
+        const mockPrismaChecklist = prisma.checklistItem as any;
 
         mockPrismaChecklist.update.mockResolvedValue({
           id: 'item-1',

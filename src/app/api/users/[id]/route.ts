@@ -29,6 +29,12 @@ export async function GET(
       include: {
         assets: true,
         subscriptions: true,
+        hrProfile: {
+          select: {
+            dateOfJoining: true,
+            gender: true,
+          },
+        },
         _count: {
           select: {
             assets: true,

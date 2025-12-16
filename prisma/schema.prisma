@@ -67,6 +67,13 @@ enum LeaveRequestType {
   HALF_DAY_PM
 }
 
+enum LeaveCategory {
+  STANDARD // Auto-initialized for all employees (Annual, Unpaid, Compassionate)
+  MEDICAL // Medical-related, balance created on request (Sick Leave)
+  PARENTAL // Gender-specific, balance created on request (Maternity, Paternity)
+  RELIGIOUS // Religious leave, balance created on request (Hajj)
+}
+
 enum AccreditationStatus {
   DRAFT
   PENDING
@@ -597,9 +604,10 @@ model HRProfile {
   sponsorshipType  String? // Company/Family/Work Permit
 
   // Employment Information
-  employeeId    String? // Admin-only editable
-  designation   String?
-  dateOfJoining DateTime?
+  employeeId     String? // Admin-only editable
+  designation    String?
+  dateOfJoining  DateTime?
+  hajjLeaveTaken Boolean   @default(false) // Qatar law: Hajj leave can only be taken once during employment
 
   // Bank & Payroll
   bankName String?
@@ -1070,7 +1078,7 @@ model PurchaseRequestHistory {
 
 model LeaveType {
   id                  String  @id @default(cuid())
-  name                String  @unique // Annual, Sick, Maternity, Paternity, Unpaid, Compassionate
+  name                String  @unique // Annual, Sick, Maternity, Hajj, Paternity, Unpaid, Compassionate
   description         String?
   color               String  @default("#3B82F6") // For calendar display
   defaultDays         Int     @default(0) // Default annual entitlement
@@ -1083,6 +1091,15 @@ model LeaveType {
   allowCarryForward   Boolean @default(false)
   maxCarryForwardDays Int?
 
+  // Qatar Labor Law Fields
+  minimumServiceMonths    Int           @default(0) // Minimum months of service required (e.g., 3 for sick, 12 for annual/Hajj)
+  isOnceInEmployment      Boolean       @default(false) // Can only use once (Hajj leave)
+  serviceBasedEntitlement Json? // Service-based days: {"12": 21, "60": 28} (months: days) for annual leave
+  payTiers                Json? // For sick leave: [{"days": 14, "payPercent": 100}, {"days": 28, "payPercent": 50}, {"days": 42, "payPercent": 0}]
+  category                LeaveCategory @default(STANDARD) // STANDARD auto-init, others admin-assigned
+  genderRestriction       String? // "MALE", "FEMALE", or null for any
+  accrualBased            Boolean       @default(false) // If true, entitlement accrues monthly
+
   leaveRequests LeaveRequest[]
   leaveBalances LeaveBalance[]
 
@@ -1090,6 +1107,7 @@ model LeaveType {
   updatedAt DateTime @updatedAt
 
   @@index([isActive])
+  @@index([category])
 }
 
 model LeaveBalance {

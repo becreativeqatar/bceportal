@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { logAction, ActivityActions } from '@/lib/activity';
 import { hrProfileSchema } from '@/lib/validations/hr-profile';
 import { Role } from '@prisma/client';
+import { reinitializeUserLeaveBalances } from '@/lib/leave-balance-init';
 
 // GET /api/users/[id]/hr-profile - Get a user's HR profile (admin only)
 export async function GET(
@@ -167,6 +168,16 @@ export async function PATCH(
         changes: Object.keys(data),
       }
     );
+
+    // If dateOfJoining was updated, reinitialize leave balances
+    if ('dateOfJoining' in data) {
+      try {
+        await reinitializeUserLeaveBalances(id);
+      } catch (leaveError) {
+        console.error('[Leave] Failed to reinitialize leave balances:', leaveError);
+        // Don't fail the request if leave balance reinitialization fails
+      }
+    }
 
     return NextResponse.json({
       ...hrProfile,

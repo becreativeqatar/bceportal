@@ -6,7 +6,21 @@ import { redirect } from 'next/navigation';
 import { Role } from '@prisma/client';
 import { formatBillingCycle } from '@/lib/utils/format-billing-cycle';
 import Link from 'next/link';
-import { Activity, Users, Package, CreditCard, Building2, IdCard } from 'lucide-react';
+import {
+  Activity,
+  Users,
+  Package,
+  CreditCard,
+  Building2,
+  IdCard,
+  ShoppingCart,
+  LayoutGrid,
+  UserCheck,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  FileText
+} from 'lucide-react';
 
 export default async function AdminReportsPage() {
   const session = await getServerSession(authOptions);
@@ -52,6 +66,29 @@ export default async function AdminReportsPage() {
     totalScans,
     validScans,
     invalidScans,
+
+    // Purchase Requests
+    totalPurchaseRequests,
+    purchaseRequestsByStatus,
+    purchaseRequestsByPriority,
+    purchaseRequestsByCostType,
+    purchaseRequestsValue,
+    pendingPurchaseRequests,
+
+    // Tasks/Boards
+    totalBoards,
+    totalTasks,
+    tasksByPriority,
+    completedTasks,
+    overdueTasks,
+    tasksByColumn,
+
+    // Employees/HR
+    totalEmployees,
+    employeesWithHRProfile,
+    pendingChangeRequests,
+    expiringDocuments,
+    incompleteOnboarding,
 
     // Activity Logs
     recentActivity,
@@ -135,6 +172,70 @@ export default async function AdminReportsPage() {
     prisma.accreditationScan.count({ where: { wasValid: true } }),
     prisma.accreditationScan.count({ where: { wasValid: false } }),
 
+    // Purchase Requests queries
+    prisma.purchaseRequest.count(),
+    prisma.purchaseRequest.groupBy({
+      by: ['status'],
+      _count: { status: true },
+    }),
+    prisma.purchaseRequest.groupBy({
+      by: ['priority'],
+      _count: { priority: true },
+    }),
+    prisma.purchaseRequest.groupBy({
+      by: ['costType'],
+      _count: { costType: true },
+    }),
+    prisma.purchaseRequest.aggregate({
+      _sum: { totalAmount: true },
+    }),
+    prisma.purchaseRequest.count({
+      where: { status: 'PENDING' },
+    }),
+
+    // Tasks/Boards queries
+    prisma.board.count({ where: { isArchived: false } }),
+    prisma.task.count(),
+    prisma.task.groupBy({
+      by: ['priority'],
+      _count: { priority: true },
+    }),
+    prisma.task.count({
+      where: { completedAt: { not: null } },
+    }),
+    prisma.task.count({
+      where: {
+        completedAt: null,
+        dueDate: { lt: new Date() },
+      },
+    }),
+    // Get tasks grouped by column, then we'll aggregate by board
+    prisma.task.groupBy({
+      by: ['columnId'],
+      _count: { columnId: true },
+    }),
+
+    // Employees/HR queries
+    prisma.user.count({
+      where: { role: { in: ['ADMIN', 'EMPLOYEE'] } },
+    }),
+    prisma.hRProfile.count(),
+    prisma.profileChangeRequest.count({
+      where: { status: 'PENDING' },
+    }),
+    prisma.hRProfile.count({
+      where: {
+        OR: [
+          { qidExpiry: { lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), gte: new Date() } },
+          { passportExpiry: { lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), gte: new Date() } },
+          { healthCardExpiry: { lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), gte: new Date() } },
+        ],
+      },
+    }),
+    prisma.hRProfile.count({
+      where: { onboardingStep: { lt: 10 } },
+    }),
+
     // Activity Logs queries
     prisma.activityLog.findMany({
       take: 20,
@@ -173,6 +274,37 @@ export default async function AdminReportsPage() {
     };
   });
 
+  // Get board names for task stats by aggregating column data
+  const columnIds = tasksByColumn.map(t => t.columnId);
+  const columns = await prisma.taskColumn.findMany({
+    where: { id: { in: columnIds } },
+    select: { id: true, boardId: true, board: { select: { id: true, title: true } } },
+  });
+
+  // Aggregate tasks by board
+  const boardTaskCounts = new Map<string, { title: string; count: number }>();
+  tasksByColumn.forEach(stat => {
+    const column = columns.find(c => c.id === stat.columnId);
+    if (column?.board) {
+      const existing = boardTaskCounts.get(column.boardId);
+      if (existing) {
+        existing.count += stat._count.columnId;
+      } else {
+        boardTaskCounts.set(column.boardId, {
+          title: column.board.title,
+          count: stat._count.columnId,
+        });
+      }
+    }
+  });
+
+  const taskBoardStats = Array.from(boardTaskCounts.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // Calculate task completion rate
+  const taskCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-7xl mx-auto">
@@ -188,8 +320,8 @@ export default async function AdminReportsPage() {
           </div>
         </div>
 
-        {/* Overview Stats */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        {/* Overview Stats - Row 1 */}
+        <div className="grid md:grid-cols-4 gap-6 mb-4">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -246,6 +378,69 @@ export default async function AdminReportsPage() {
               <div className="text-3xl font-bold text-gray-900">{activeUsers}</div>
               <p className="text-xs text-gray-500 mt-1">
                 {totalUsers} total (including deleted)
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Overview Stats - Row 2 */}
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-gray-600">Purchase Requests</CardTitle>
+                <ShoppingCart className="h-4 w-4 text-pink-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">{totalPurchaseRequests}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {pendingPurchaseRequests} pending approval
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-gray-600">Tasks</CardTitle>
+                <LayoutGrid className="h-4 w-4 text-cyan-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">{totalTasks}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {taskCompletionRate}% completion rate
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-gray-600">Employees</CardTitle>
+                <UserCheck className="h-4 w-4 text-emerald-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">{totalEmployees}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {employeesWithHRProfile} with HR profile
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-gray-600">Accreditations</CardTitle>
+                <IdCard className="h-4 w-4 text-indigo-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">{totalAccreditations}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {totalScans} total scans
               </p>
             </CardContent>
           </Card>
@@ -395,6 +590,263 @@ export default async function AdminReportsPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Purchase Requests Reports */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <ShoppingCart className="h-6 w-6 text-pink-500" />
+            Purchase Requests Reports
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>By Status</CardTitle>
+                <CardDescription>Request status breakdown</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {purchaseRequestsByStatus.map((item) => (
+                    <div key={item.status} className="flex justify-between items-center">
+                      <span className="capitalize text-gray-700">{item.status.replace('_', ' ').toLowerCase()}</span>
+                      <span className="font-semibold">{item._count.status}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>By Priority</CardTitle>
+                <CardDescription>Priority distribution</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {purchaseRequestsByPriority.map((item) => (
+                    <div key={item.priority} className="flex justify-between items-center">
+                      <span className="capitalize text-gray-700">{item.priority.toLowerCase()}</span>
+                      <span className="font-semibold">{item._count.priority}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>By Cost Type</CardTitle>
+                <CardDescription>Operating vs Project costs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {purchaseRequestsByCostType.map((item) => (
+                    <div key={item.costType} className="flex justify-between items-center">
+                      <span className="text-gray-700">{item.costType === 'OPERATING_COST' ? 'Operating Cost' : 'Project Cost'}</span>
+                      <span className="font-semibold">{item._count.costType}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Total Request Value</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-900">
+                  QAR {(Number(purchaseRequestsValue._sum.totalAmount || 0)).toLocaleString()}
+                </div>
+                <p className="text-sm text-gray-600 mt-1">All time total</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Pending Approval</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-orange-600">{pendingPurchaseRequests}</div>
+                <p className="text-sm text-gray-600 mt-1">Requests awaiting review</p>
+                <Link href="/admin/purchase-requests" className="text-sm text-blue-600 hover:underline mt-2 inline-block">
+                  View details →
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Tasks & Boards Reports */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <LayoutGrid className="h-6 w-6 text-cyan-500" />
+            Tasks & Boards Reports
+          </h2>
+
+          <div className="grid md:grid-cols-4 gap-6 mb-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Total Boards</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-900">{totalBoards}</div>
+                <p className="text-sm text-gray-600 mt-1">Active kanban boards</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Total Tasks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-900">{totalTasks}</div>
+                <p className="text-sm text-gray-600 mt-1">Across all boards</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Completed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-600">{completedTasks}</div>
+                <p className="text-sm text-gray-600 mt-1">{taskCompletionRate}% completion rate</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Overdue</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-red-600">{overdueTasks}</div>
+                <p className="text-sm text-gray-600 mt-1">Past due date</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Tasks by Priority</CardTitle>
+                <CardDescription>Priority distribution</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {tasksByPriority.map((item) => (
+                    <div key={item.priority} className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        {item.priority === 'URGENT' && <AlertTriangle className="h-4 w-4 text-red-500" />}
+                        {item.priority === 'HIGH' && <Clock className="h-4 w-4 text-orange-500" />}
+                        {item.priority === 'MEDIUM' && <Clock className="h-4 w-4 text-yellow-500" />}
+                        {item.priority === 'LOW' && <Clock className="h-4 w-4 text-gray-400" />}
+                        <span className="capitalize text-gray-700">{item.priority.toLowerCase()}</span>
+                      </div>
+                      <span className="font-semibold">{item._count.priority}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Boards by Tasks</CardTitle>
+                <CardDescription>Most active boards</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {taskBoardStats.map((item, index) => (
+                    <div key={index} className="flex justify-between items-center">
+                      <span className="text-gray-700 truncate max-w-[200px]">{item.title}</span>
+                      <span className="font-semibold">{item.count}</span>
+                    </div>
+                  ))}
+                  {taskBoardStats.length === 0 && (
+                    <p className="text-sm text-gray-500">No tasks yet</p>
+                  )}
+                </div>
+                <Link href="/admin/tasks/boards" className="text-sm text-blue-600 hover:underline mt-4 inline-block">
+                  View all boards →
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Employees/HR Reports */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <UserCheck className="h-6 w-6 text-emerald-500" />
+            Employees & HR Reports
+          </h2>
+
+          <div className="grid md:grid-cols-4 gap-6 mb-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Total Employees</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-900">{totalEmployees}</div>
+                <p className="text-sm text-gray-600 mt-1">Admin + Employee roles</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">HR Profiles</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-900">{employeesWithHRProfile}</div>
+                <p className="text-sm text-gray-600 mt-1">Profiles created</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Expiring Documents</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-orange-600">{expiringDocuments}</div>
+                <p className="text-sm text-gray-600 mt-1">Next 30 days</p>
+                <Link href="/admin/employees/document-expiry" className="text-sm text-blue-600 hover:underline mt-2 inline-block">
+                  View details →
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Incomplete Onboarding</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-yellow-600">{incompleteOnboarding}</div>
+                <p className="text-sm text-gray-600 mt-1">Not fully onboarded</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Pending Change Requests</CardTitle>
+              <CardDescription>Employee profile updates awaiting approval</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="text-4xl font-bold text-purple-600">{pendingChangeRequests}</div>
+                <div>
+                  <p className="text-sm text-gray-600">Pending review</p>
+                  <Link href="/admin/employees/change-requests" className="text-sm text-blue-600 hover:underline">
+                    Review requests →
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Users Reports */}

@@ -32,6 +32,7 @@ interface LeaveBalance {
     name: string;
     color: string;
     isPaid?: boolean;
+    accrualBased?: boolean;
   };
 }
 
@@ -137,9 +138,9 @@ export default function AdminLeaveBalancesPage() {
     fetchLeaveTypes();
   }, []);
 
-  // Helper to get effective entitlement (accrued for Annual Leave)
+  // Helper to get effective entitlement (accrued for accrual-based leave types)
   const getEffectiveEntitlement = (balance: LeaveBalance, dateOfJoining: Date | null) => {
-    if (balance.leaveType.name === 'Annual Leave' && dateOfJoining) {
+    if (balance.leaveType.accrualBased && dateOfJoining) {
       const year = parseInt(yearFilter);
       const annualDetails = getAnnualLeaveDetails(dateOfJoining, year, new Date());
       return annualDetails.accrued;
@@ -417,12 +418,12 @@ export default function AdminLeaveBalancesPage() {
                           <div className="grid gap-3">
                             {group.balances.map((balance) => {
                               const dateOfJoining = getUserDateOfJoining(group.user.id);
-                              const isAnnualLeave = balance.leaveType.name === 'Annual Leave';
+                              const isAccrualBased = balance.leaveType.accrualBased === true;
                               const effectiveEntitlement = getEffectiveEntitlement(balance, dateOfJoining);
 
-                              // Get annual leave details for display
+                              // Get accrual details for display
                               let annualDetails: { annualEntitlement: number; monthsWorked: number } | null = null;
-                              if (isAnnualLeave && dateOfJoining) {
+                              if (isAccrualBased && dateOfJoining) {
                                 const year = parseInt(yearFilter);
                                 annualDetails = getAnnualLeaveDetails(dateOfJoining, year, new Date());
                               }
@@ -446,7 +447,7 @@ export default function AdminLeaveBalancesPage() {
                                       {balance.leaveType.isPaid === false && (
                                         <Badge variant="outline" className="text-xs">Unpaid</Badge>
                                       )}
-                                      {isAnnualLeave && annualDetails && (
+                                      {isAccrualBased && annualDetails && (
                                         <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                                           Accrual ({annualDetails.monthsWorked} mo)
                                         </Badge>
@@ -457,11 +458,11 @@ export default function AdminLeaveBalancesPage() {
                                   <div className="flex flex-wrap items-center gap-4 text-sm">
                                     <div className="flex items-center gap-1">
                                       <span className="text-gray-500">
-                                        {isAnnualLeave && annualDetails ? 'Accrued:' : 'Entitlement:'}
+                                        {isAccrualBased && annualDetails ? 'Accrued:' : 'Entitlement:'}
                                       </span>
                                       <span className="font-medium">
                                         {effectiveEntitlement.toFixed(1)}
-                                        {isAnnualLeave && annualDetails && (
+                                        {isAccrualBased && annualDetails && (
                                           <span className="text-gray-400 text-xs ml-1">of {annualDetails.annualEntitlement}/yr</span>
                                         )}
                                       </span>

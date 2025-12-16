@@ -1,10 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/header";
 import { Providers } from "@/components/providers";
 import MainContent from "@/components/main-content";
-// Force rebuild to generate new chunk hashes
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,11 +15,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#475569",
+};
+
 export const metadata: Metadata = {
   title: "Be Creative Portal",
   description: "Be Creative business operations and management portal",
   manifest: "/manifest.json",
-  themeColor: "#475569",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -31,12 +37,6 @@ export const metadata: Metadata = {
   },
   icons: {
     apple: "/logo.png",
-  },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
   },
 };
 

@@ -9,7 +9,7 @@ import { redirect, notFound } from 'next/navigation';
 import { Role } from '@prisma/client';
 import Link from 'next/link';
 import { formatDate, formatDateTime } from '@/lib/date-format';
-import { ArrowLeft, Edit, User, AlertTriangle, CheckCircle, XCircle, Package, CreditCard, FileText, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, User, AlertTriangle, CheckCircle, XCircle, Package, CreditCard, FileText, Trash2, Calendar } from 'lucide-react';
 import { EmployeeHRViewSection } from '@/components/employees/employee-hr-view';
 import { getUserSubscriptionHistory } from '@/lib/subscription-lifecycle';
 import { getUserAssetHistory } from '@/lib/asset-lifecycle';
@@ -17,6 +17,7 @@ import { UserSubscriptionHistory } from '@/components/users/user-subscription-hi
 import { UserAssetHistory } from '@/components/users/user-asset-history';
 import { DeleteUserButton } from '@/components/users/delete-user-button';
 import { ExportUserPDFButton } from '@/components/users/export-user-pdf-button';
+import { EmployeeLeaveSection } from '@/components/employees/employee-leave-section';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -247,7 +248,7 @@ export default async function AdminEmployeeDetailPage({ params }: Props) {
 
             {/* Tabbed Content */}
             <Tabs defaultValue="hr" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="hr" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   Profile
@@ -259,6 +260,10 @@ export default async function AdminEmployeeDetailPage({ params }: Props) {
                 <TabsTrigger value="subscriptions" className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
                   Subscriptions ({employee._count.subscriptions})
+                </TabsTrigger>
+                <TabsTrigger value="leave" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Leave
                 </TabsTrigger>
               </TabsList>
 
@@ -272,6 +277,10 @@ export default async function AdminEmployeeDetailPage({ params }: Props) {
 
               <TabsContent value="subscriptions" className="mt-6">
                 <UserSubscriptionHistory subscriptions={subscriptionHistory as any} />
+              </TabsContent>
+
+              <TabsContent value="leave" className="mt-6">
+                <EmployeeLeaveSection userId={id} />
               </TabsContent>
             </Tabs>
 

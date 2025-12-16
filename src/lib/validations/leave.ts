@@ -1,7 +1,23 @@
 import { z } from 'zod';
-import { LeaveStatus, LeaveRequestType } from '@prisma/client';
+import { LeaveStatus, LeaveRequestType, LeaveCategory } from '@prisma/client';
 
 // ===== Leave Type Schemas =====
+
+// Schema for pay tiers (e.g., sick leave tiers in Qatar)
+const payTierSchema = z.object({
+  days: z.number().int().min(1, 'Days must be at least 1'),
+  payPercent: z.number().int().min(0).max(100, 'Pay percent must be 0-100'),
+  label: z.string().min(1, 'Label is required').max(100, 'Label is too long'),
+});
+
+// Schema for service-based entitlement (e.g., annual leave tiers based on years of service)
+const serviceBasedEntitlementSchema = z.record(
+  z.string(), // Months of service as string key
+  z.number().int().min(0, 'Entitlement must be 0 or more')
+);
+
+// Leave category enum values
+const leaveCategorySchema = z.nativeEnum(LeaveCategory);
 
 export const createLeaveTypeSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
@@ -16,6 +32,14 @@ export const createLeaveTypeSchema = z.object({
   minNoticeDays: z.number().int().min(0).default(0),
   allowCarryForward: z.boolean().default(false),
   maxCarryForwardDays: z.number().int().min(0).optional().nullable(),
+  // Qatar Labor Law fields
+  minimumServiceMonths: z.number().int().min(0, 'Minimum service months must be 0 or more').default(0),
+  isOnceInEmployment: z.boolean().default(false),
+  serviceBasedEntitlement: serviceBasedEntitlementSchema.optional().nullable(),
+  payTiers: z.array(payTierSchema).optional().nullable(),
+  category: leaveCategorySchema.default('STANDARD'),
+  genderRestriction: z.enum(['MALE', 'FEMALE']).optional().nullable(),
+  accrualBased: z.boolean().default(false),
 }).refine(
   (data) => {
     // If allowCarryForward is true, maxCarryForwardDays should be specified
@@ -43,6 +67,8 @@ export const createLeaveRequestSchema = z.object({
   documentUrl: z.string().url('Invalid document URL').optional().nullable(),
   emergencyContact: z.string().max(100, 'Emergency contact name is too long').optional().nullable(),
   emergencyPhone: z.string().max(20, 'Emergency phone is too long').optional().nullable(),
+  // Admin can override advance notice requirement
+  adminOverrideNotice: z.boolean().optional().default(false),
 }).refine(
   (data) => {
     const start = new Date(data.startDate);
@@ -129,7 +155,7 @@ export const leaveBalanceQuerySchema = z.object({
   leaveTypeId: z.string().optional(),
   year: z.coerce.number().int().min(2000).max(2100).optional(),
   p: z.coerce.number().min(1).default(1),
-  ps: z.coerce.number().min(1).max(100).default(50),
+  ps: z.coerce.number().min(1).max(1000).default(50),
 });
 
 export const teamCalendarQuerySchema = z.object({

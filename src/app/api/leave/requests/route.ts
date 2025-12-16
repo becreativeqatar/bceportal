@@ -97,6 +97,7 @@ export async function GET(request: NextRequest) {
               id: true,
               name: true,
               color: true,
+              accrualBased: true,
             },
           },
           approver: {

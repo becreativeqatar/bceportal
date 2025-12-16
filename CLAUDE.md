@@ -60,7 +60,7 @@ npm run check-deployment    # Pre-deployment validation checks
 ### Route Structure
 
 - `/admin/*` - Admin dashboard (assets, subscriptions, suppliers, users, settings, accreditation)
-- `/employee/*` - Employee views (my-assets, my-subscriptions, suppliers)
+- `/employee/*` - Employee views (my-assets, my-subscriptions, suppliers, leave requests)
 - `/validator/*` - QR code scanning for accreditation verification
 - `/verify/[token]` - Public accreditation verification page
 - `/suppliers/register` - Public supplier registration form
@@ -95,6 +95,13 @@ API conventions:
    - Uses `@dnd-kit` for drag-and-drop
 6. **Employees/HR** - Employee profiles with document tracking (QID, passport, visa expiry alerts)
 7. **Purchase Requests** - Internal procurement workflow with approval process, cost tracking (operating vs project costs), multi-currency support
+8. **Leave Management** - Employee leave requests with approval workflow (`/admin/leave/`, `/employee/leave/`):
+   - Leave types configuration (annual, sick, unpaid, etc.)
+   - Employee leave balances tracking
+   - Request submission with supporting documents
+   - Manager approval/rejection workflow
+   - Team calendar view
+   - Utilities in `src/lib/leave-utils.ts`
 
 ### Key Libraries
 
@@ -174,8 +181,9 @@ Key Prisma models (see `prisma/schema.prisma`):
 - `Board`, `TaskColumn`, `Task`, `TaskAssignee` - Kanban task management
 - `PurchaseRequest`, `PurchaseRequestItem` - Procurement workflow
 - `HRProfile`, `ProfileChangeRequest` - Employee HR data
+- `LeaveType`, `LeaveBalance`, `LeaveRequest` - Leave management system
 
-Enums: `Role`, `AssetStatus`, `SubscriptionStatus`, `SupplierStatus`, `AccreditationStatus`, `BillingCycle`, `TaskPriority`, `PurchaseRequestStatus`
+Enums: `Role`, `AssetStatus`, `SubscriptionStatus`, `SupplierStatus`, `AccreditationStatus`, `BillingCycle`, `TaskPriority`, `PurchaseRequestStatus`, `LeaveRequestStatus`
 
 ## Form Handling Pattern
 

@@ -8,30 +8,51 @@ import { logAction, ActivityActions } from '@/lib/activity';
 import { withErrorHandler } from '@/lib/http/handler';
 import { sendEmail } from '@/lib/email';
 import { welcomeUserEmail } from '@/lib/email-templates';
+import { initializeUserLeaveBalances } from '@/lib/leave-balance-init';
 
 async function getUsersHandler(request: NextRequest) {
   // Parse query parameters
   const { searchParams } = new URL(request.url);
   const role = searchParams.get('role');
+  const includeHrProfile = searchParams.get('includeHrProfile') === 'true';
 
   // Build where clause
   const where: any = {};
   if (role) where.role = role;
 
+  // Build include clause
+  const include: any = {
+    _count: {
+      select: {
+        assets: true,
+        subscriptions: true,
+      },
+    },
+  };
+
+  // Include HR profile if requested (for date of joining, etc.)
+  if (includeHrProfile) {
+    include.hrProfile = {
+      select: {
+        dateOfJoining: true,
+        employeeId: true,
+        designation: true,
+      },
+    };
+  }
+
   // Fetch users
   const users = await prisma.user.findMany({
     where,
-    include: {
-      _count: {
-        select: {
-          assets: true,
-          subscriptions: true,
-        },
-      },
-    },
+    include,
     orderBy: { createdAt: 'desc' },
   });
 
+  // Return wrapped format when includeHrProfile is used for consistency with other APIs
+  // Otherwise return array directly for backward compatibility
+  if (includeHrProfile) {
+    return NextResponse.json({ users });
+  }
   return NextResponse.json(users);
 }
 
@@ -121,6 +142,14 @@ async function createUserHandler(request: NextRequest) {
       user.id,
       { userName: user.name, userEmail: user.email, userRole: user.role }
     );
+  }
+
+  // Initialize leave balances for the new user (non-blocking)
+  try {
+    await initializeUserLeaveBalances(user.id);
+  } catch (leaveError) {
+    console.error('[Leave] Failed to initialize leave balances:', leaveError);
+    // Don't fail the request if leave balance initialization fails
   }
 
   // Send welcome email to the new user (non-blocking)

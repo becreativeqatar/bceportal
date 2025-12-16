@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { isActive, includeInactive } = validation.data;
+    const isAdmin = session.user.role === Role.ADMIN;
 
     // Build where clause
     const where: Record<string, unknown> = {};
@@ -36,10 +37,63 @@ export async function GET(request: NextRequest) {
       where.isActive = true;
     }
 
-    const leaveTypes = await prisma.leaveType.findMany({
+    let leaveTypes = await prisma.leaveType.findMany({
       where,
       orderBy: { name: 'asc' },
     });
+
+    // For non-admin users, filter out PARENTAL and RELIGIOUS leave types
+    // unless they have an assigned balance for them
+    if (!isAdmin) {
+      const userId = session.user.id;
+      const currentYear = new Date().getFullYear();
+
+      // Get user's assigned balances for special leave types
+      const assignedSpecialBalances = await prisma.leaveBalance.findMany({
+        where: {
+          userId,
+          year: currentYear,
+          leaveType: {
+            category: { in: ['PARENTAL', 'RELIGIOUS'] },
+          },
+        },
+        select: { leaveTypeId: true },
+      });
+
+      const assignedSpecialLeaveTypeIds = new Set(assignedSpecialBalances.map(b => b.leaveTypeId));
+
+      // Get user's gender from HR profile for additional filtering
+      const hrProfile = await prisma.hRProfile.findUnique({
+        where: { userId },
+        select: { gender: true },
+      });
+      const userGender = hrProfile?.gender?.toUpperCase();
+
+      // Filter leave types for employees
+      leaveTypes = leaveTypes.filter(lt => {
+        // Always show STANDARD and MEDICAL category leave types
+        if (lt.category === 'STANDARD' || lt.category === 'MEDICAL') {
+          return true;
+        }
+
+        // For PARENTAL and RELIGIOUS categories, only show if admin has assigned a balance
+        if (lt.category === 'PARENTAL' || lt.category === 'RELIGIOUS') {
+          // Must have an assigned balance
+          if (!assignedSpecialLeaveTypeIds.has(lt.id)) {
+            return false;
+          }
+
+          // Additionally check gender restriction matches
+          if (lt.genderRestriction && userGender !== lt.genderRestriction) {
+            return false;
+          }
+
+          return true;
+        }
+
+        return true;
+      });
+    }
 
     return NextResponse.json({ leaveTypes });
   } catch (error) {
@@ -81,8 +135,15 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Handle JSON fields properly - convert null to undefined for Prisma
+    const createData = {
+      ...data,
+      serviceBasedEntitlement: data.serviceBasedEntitlement ?? undefined,
+      payTiers: data.payTiers ?? undefined,
+    };
+
     const leaveType = await prisma.leaveType.create({
-      data,
+      data: createData,
     });
 
     await logAction(

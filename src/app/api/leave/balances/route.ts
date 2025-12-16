@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
               name: true,
               color: true,
               isPaid: true,
+              accrualBased: true,
             },
           },
         },

@@ -244,21 +244,49 @@ async function main() {
 
   // Create leave types
   for (const leaveType of DEFAULT_LEAVE_TYPES) {
+    // Handle JSON fields properly - convert null to undefined for Prisma
+    const createData = {
+      name: leaveType.name,
+      description: leaveType.description,
+      color: leaveType.color,
+      defaultDays: leaveType.defaultDays,
+      requiresApproval: leaveType.requiresApproval,
+      requiresDocument: leaveType.requiresDocument,
+      isPaid: leaveType.isPaid,
+      isActive: leaveType.isActive,
+      maxConsecutiveDays: 'maxConsecutiveDays' in leaveType ? leaveType.maxConsecutiveDays : undefined,
+      minNoticeDays: leaveType.minNoticeDays,
+      allowCarryForward: leaveType.allowCarryForward,
+      maxCarryForwardDays: 'maxCarryForwardDays' in leaveType ? leaveType.maxCarryForwardDays : undefined,
+      minimumServiceMonths: leaveType.minimumServiceMonths,
+      isOnceInEmployment: leaveType.isOnceInEmployment,
+      serviceBasedEntitlement: 'serviceBasedEntitlement' in leaveType ? (leaveType.serviceBasedEntitlement as object) : undefined,
+      payTiers: 'payTiers' in leaveType ? (leaveType.payTiers as object[]) : undefined,
+      category: leaveType.category as 'STANDARD' | 'MEDICAL' | 'PARENTAL' | 'RELIGIOUS',
+      genderRestriction: 'genderRestriction' in leaveType ? (leaveType.genderRestriction as string) : undefined,
+      accrualBased: 'accrualBased' in leaveType ? (leaveType.accrualBased as boolean) : false,
+    };
+
     await prisma.leaveType.upsert({
       where: { name: leaveType.name },
       update: {},
-      create: leaveType,
+      create: createData,
     });
   }
 
   console.log('✅ Created leave types');
 
-  // Create leave balances for employees
-  const leaveTypes = await prisma.leaveType.findMany({ where: { isActive: true } });
+  // Create leave balances for employees (only STANDARD and MEDICAL categories)
+  const standardLeaveTypes = await prisma.leaveType.findMany({
+    where: {
+      isActive: true,
+      category: { in: ['STANDARD', 'MEDICAL'] },
+    },
+  });
   const currentYear = new Date().getFullYear();
 
   for (const employee of employees) {
-    for (const leaveType of leaveTypes) {
+    for (const leaveType of standardLeaveTypes) {
       await prisma.leaveBalance.upsert({
         where: {
           userId_leaveTypeId_year: {
@@ -278,7 +306,7 @@ async function main() {
     }
   }
 
-  console.log('✅ Created leave balances');
+  console.log('✅ Created leave balances (STANDARD and MEDICAL categories only)');
   console.log('🎉 Seeding completed successfully!');
 }
 

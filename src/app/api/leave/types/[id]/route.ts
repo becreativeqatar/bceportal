@@ -88,9 +88,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Handle JSON fields properly - convert null to undefined for Prisma
+    const updateData = {
+      ...data,
+      serviceBasedEntitlement: data.serviceBasedEntitlement === null ? undefined : data.serviceBasedEntitlement,
+      payTiers: data.payTiers === null ? undefined : data.payTiers,
+    };
+
     const leaveType = await prisma.leaveType.update({
       where: { id },
-      data,
+      data: updateData,
     });
 
     await logAction(
