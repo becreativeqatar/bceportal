@@ -363,36 +363,36 @@ export default function AdminLeaveRequestDetailPage() {
                 <CardContent className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-500">Entitlement</span>
-                    <span className="font-medium">{balance.entitlement} days</span>
+                    <span className="font-medium">{Number(balance.entitlement)} days</span>
                   </div>
-                  {balance.carriedForward > 0 && (
+                  {Number(balance.carriedForward) > 0 && (
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-500">Carried Forward</span>
-                      <span className="font-medium text-blue-600">+{balance.carriedForward} days</span>
+                      <span className="font-medium text-blue-600">+{Number(balance.carriedForward)} days</span>
                     </div>
                   )}
-                  {balance.adjustment !== 0 && (
+                  {Number(balance.adjustment) !== 0 && (
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-500">Adjustment</span>
-                      <span className={`font-medium ${balance.adjustment > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {balance.adjustment > 0 ? '+' : ''}{balance.adjustment} days
+                      <span className={`font-medium ${Number(balance.adjustment) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {Number(balance.adjustment) > 0 ? '+' : ''}{Number(balance.adjustment)} days
                       </span>
                     </div>
                   )}
                   <hr className="my-2" />
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-500">Used</span>
-                    <span className="font-medium text-red-600">-{balance.used} days</span>
+                    <span className="font-medium text-red-600">-{Number(balance.used)} days</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-500">Pending</span>
-                    <span className="font-medium text-amber-600">{balance.pending} days</span>
+                    <span className="font-medium text-amber-600">{Number(balance.pending)} days</span>
                   </div>
                   <hr className="my-2" />
                   <div className="flex justify-between">
                     <span className="text-sm font-medium">Remaining</span>
                     <span className="font-bold text-green-600">
-                      {(balance.entitlement + balance.carriedForward + balance.adjustment - balance.used - balance.pending).toFixed(1)} days
+                      {(Number(balance.entitlement) + Number(balance.carriedForward) + Number(balance.adjustment) - Number(balance.used) - Number(balance.pending)).toFixed(1)} days
                     </span>
                   </div>
                 </CardContent>

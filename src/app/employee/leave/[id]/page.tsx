@@ -297,32 +297,32 @@ export default function EmployeeLeaveRequestDetailPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
                   <div className="text-2xl font-bold text-gray-900">
-                    {(balance.entitlement + balance.carriedForward + balance.adjustment).toFixed(1)}
+                    {(Number(balance.entitlement) + Number(balance.carriedForward) + Number(balance.adjustment)).toFixed(1)}
                   </div>
                   <div className="text-sm text-gray-500">Total Entitlement</div>
                 </div>
                 <div className="text-center p-3 bg-red-50 rounded-lg">
                   <div className="text-2xl font-bold text-red-600">
-                    {balance.used}
+                    {Number(balance.used)}
                   </div>
                   <div className="text-sm text-gray-500">Used</div>
                 </div>
                 <div className="text-center p-3 bg-amber-50 rounded-lg">
                   <div className="text-2xl font-bold text-amber-600">
-                    {balance.pending}
+                    {Number(balance.pending)}
                   </div>
                   <div className="text-sm text-gray-500">Pending</div>
                 </div>
                 <div className="text-center p-3 bg-green-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
-                    {(balance.entitlement + balance.carriedForward + balance.adjustment - balance.used - balance.pending).toFixed(1)}
+                    {(Number(balance.entitlement) + Number(balance.carriedForward) + Number(balance.adjustment) - Number(balance.used) - Number(balance.pending)).toFixed(1)}
                   </div>
                   <div className="text-sm text-gray-500">Remaining</div>
                 </div>
               </div>
-              {balance.carriedForward > 0 && (
+              {Number(balance.carriedForward) > 0 && (
                 <div className="mt-3 text-sm text-gray-600">
-                  Includes {balance.carriedForward} days carried forward from previous year
+                  Includes {Number(balance.carriedForward)} days carried forward from previous year
                 </div>
               )}
             </CardContent>
