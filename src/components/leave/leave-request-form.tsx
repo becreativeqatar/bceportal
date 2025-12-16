@@ -313,7 +313,13 @@ export function LeaveRequestForm({ leaveTypes, balances, onSuccess, isAdmin = fa
           <Label htmlFor="requestType">Request Type</Label>
           <Select
             value={form.watch('requestType') || 'FULL_DAY'}
-            onValueChange={(value) => form.setValue('requestType', value as LeaveRequestType)}
+            onValueChange={(value) => {
+              form.setValue('requestType', value as LeaveRequestType);
+              // For half-day requests, auto-set end date to match start date
+              if (value !== 'FULL_DAY' && form.watch('startDate')) {
+                form.setValue('endDate', form.watch('startDate'));
+              }
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select request type" />
@@ -327,35 +333,50 @@ export function LeaveRequestForm({ leaveTypes, balances, onSuccess, isAdmin = fa
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="startDate">Start Date *</Label>
-          <DatePicker
-            id="startDate"
-            value={form.watch('startDate')}
-            onChange={(value) => form.setValue('startDate', value)}
-            placeholder="DD/MM/YYYY"
-            minDate={new Date()}
-          />
-          {form.formState.errors.startDate && (
-            <p className="text-sm text-red-500">{form.formState.errors.startDate.message}</p>
-          )}
-        </div>
+      {(() => {
+        const requestType = form.watch('requestType') || 'FULL_DAY';
+        const isHalfDay = requestType !== 'FULL_DAY';
 
-        <div className="space-y-2">
-          <Label htmlFor="endDate">End Date *</Label>
-          <DatePicker
-            id="endDate"
-            value={form.watch('endDate')}
-            onChange={(value) => form.setValue('endDate', value)}
-            minDate={form.watch('startDate') ? new Date(form.watch('startDate')) : new Date()}
-            placeholder="DD/MM/YYYY"
-          />
-          {form.formState.errors.endDate && (
-            <p className="text-sm text-red-500">{form.formState.errors.endDate.message}</p>
-          )}
-        </div>
-      </div>
+        return (
+          <div className={isHalfDay ? '' : 'grid grid-cols-2 gap-4'}>
+            <div className="space-y-2">
+              <Label htmlFor="startDate">{isHalfDay ? 'Date *' : 'Start Date *'}</Label>
+              <DatePicker
+                id="startDate"
+                value={form.watch('startDate')}
+                onChange={(value) => {
+                  form.setValue('startDate', value);
+                  // For half-day, auto-sync end date
+                  if (isHalfDay) {
+                    form.setValue('endDate', value);
+                  }
+                }}
+                placeholder="DD/MM/YYYY"
+                minDate={new Date()}
+              />
+              {form.formState.errors.startDate && (
+                <p className="text-sm text-red-500">{form.formState.errors.startDate.message}</p>
+              )}
+            </div>
+
+            {!isHalfDay && (
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date *</Label>
+                <DatePicker
+                  id="endDate"
+                  value={form.watch('endDate')}
+                  onChange={(value) => form.setValue('endDate', value)}
+                  minDate={form.watch('startDate') ? new Date(form.watch('startDate')) : new Date()}
+                  placeholder="DD/MM/YYYY"
+                />
+                {form.formState.errors.endDate && (
+                  <p className="text-sm text-red-500">{form.formState.errors.endDate.message}</p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {calculatedDays !== null && (
         <div className={`p-3 rounded-md text-center ${exceedsBalance || exceedsMaxConsecutiveDays ? 'bg-red-50' : 'bg-blue-50'}`}>
