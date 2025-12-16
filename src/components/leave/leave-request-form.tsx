@@ -49,6 +49,7 @@ interface LeaveBalance {
     name: string;
     color: string;
     isPaid?: boolean;
+    accrualBased?: boolean;
   };
   // Accrual info for annual leave
   accrued?: number;
