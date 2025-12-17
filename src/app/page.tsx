@@ -42,23 +42,13 @@ export default async function Home() {
     const thirtyDaysFromNow = new Date(today);
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
+    // Batch 1: Main data queries
     const [
       allSubscriptions,
       recentActivity,
-      monthlySpendData,
       totalAssets,
       activeUsers,
       totalSubscriptions,
-      totalSuppliers,
-      pendingAccreditations,
-      pendingSuppliers,
-      pendingPurchaseRequests,
-      pendingChangeRequests,
-      pendingLeaveRequests,
-      expiringDocuments,
-      incompleteOnboarding,
-      overdueTasks,
-      totalProjects,
     ] = await Promise.all([
       prisma.subscription.findMany({
         where: {
@@ -80,17 +70,35 @@ export default async function Home() {
           },
         },
       }),
-      getMonthlySpendData(),
       prisma.asset.count(),
       prisma.user.count({ where: { role: { in: ['ADMIN', 'EMPLOYEE'] } } }),
       prisma.subscription.count({ where: { status: 'ACTIVE' } }),
+    ]);
+
+    // Batch 2: Counts and pending items
+    const [
+      totalSuppliers,
+      pendingAccreditations,
+      pendingSuppliers,
+      pendingPurchaseRequests,
+      pendingChangeRequests,
+    ] = await Promise.all([
       prisma.supplier.count(),
       prisma.accreditation.count({ where: { status: 'PENDING' } }),
       prisma.supplier.count({ where: { status: 'PENDING' } }),
       prisma.purchaseRequest.count({ where: { status: 'PENDING' } }),
       prisma.profileChangeRequest.count({ where: { status: 'PENDING' } }),
+    ]);
+
+    // Batch 3: HR, tasks, projects
+    const [
+      pendingLeaveRequests,
+      expiringDocuments,
+      incompleteOnboarding,
+      overdueTasks,
+      totalProjects,
+    ] = await Promise.all([
       prisma.leaveRequest.count({ where: { status: 'PENDING' } }),
-      // Count employees with documents expiring within 30 days
       prisma.hRProfile.count({
         where: {
           OR: [
@@ -100,20 +108,20 @@ export default async function Home() {
           ],
         },
       }),
-      // Count incomplete onboarding profiles
       prisma.hRProfile.count({
         where: { onboardingComplete: false },
       }),
-      // Count overdue tasks
       prisma.task.count({
         where: {
           dueDate: { lt: today },
           isCompleted: false,
         },
       }),
-      // Count total projects
       prisma.project.count(),
     ]);
+
+    // Batch 4: Monthly spend data (has internal queries)
+    const monthlySpendData = await getMonthlySpendData();
 
     statsData = {
       totalAssets,
