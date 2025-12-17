@@ -12,75 +12,56 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { CheckCircle, XCircle } from 'lucide-react';
-
-interface LeaveApprovalActionsProps {
-  requestId: string;
-  onApproved?: () => void;
-  onRejected?: () => void;
-}
+import { approveLeaveRequest, rejectLeaveRequest } from '@/lib/api/leave';
+import { useSubmitAction } from '@/lib/hooks';
+import type { LeaveApprovalActionsProps } from '@/lib/types/leave';
 
 export function LeaveApprovalActions({ requestId, onApproved, onRejected }: LeaveApprovalActionsProps) {
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [approveNotes, setApproveNotes] = useState('');
   const [rejectReason, setRejectReason] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleApprove = async () => {
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/leave/requests/${requestId}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: approveNotes || null }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to approve request');
-      }
-
+  const approveAction = useSubmitAction({
+    action: async () => approveLeaveRequest(requestId, approveNotes || undefined),
+    successMessage: 'Leave request approved',
+    onSuccess: () => {
       setApproveOpen(false);
       setApproveNotes('');
       onApproved?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+    showToast: false,
+  });
 
-  const handleReject = async () => {
-    if (!rejectReason.trim()) {
-      setError('Rejection reason is required');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/leave/requests/${requestId}/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: rejectReason }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to reject request');
+  const rejectAction = useSubmitAction({
+    action: async () => {
+      if (!rejectReason.trim()) {
+        throw new Error('Rejection reason is required');
       }
-
+      return rejectLeaveRequest(requestId, rejectReason);
+    },
+    successMessage: 'Leave request rejected',
+    onSuccess: () => {
       setRejectOpen(false);
       setRejectReason('');
       onRejected?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsSubmitting(false);
+    },
+    showToast: false,
+  });
+
+  const handleApproveOpenChange = (isOpen: boolean) => {
+    setApproveOpen(isOpen);
+    if (!isOpen) {
+      setApproveNotes('');
+      approveAction.resetError();
+    }
+  };
+
+  const handleRejectOpenChange = (isOpen: boolean) => {
+    setRejectOpen(isOpen);
+    if (!isOpen) {
+      setRejectReason('');
+      rejectAction.resetError();
     }
   };
 
@@ -104,7 +85,7 @@ export function LeaveApprovalActions({ requestId, onApproved, onRejected }: Leav
       </div>
 
       {/* Approve Dialog */}
-      <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
+      <Dialog open={approveOpen} onOpenChange={handleApproveOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Approve Leave Request</DialogTitle>
@@ -113,9 +94,9 @@ export function LeaveApprovalActions({ requestId, onApproved, onRejected }: Leav
             </DialogDescription>
           </DialogHeader>
 
-          {error && (
+          {approveAction.error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
-              {error}
+              {approveAction.error}
             </div>
           )}
 
@@ -132,23 +113,23 @@ export function LeaveApprovalActions({ requestId, onApproved, onRejected }: Leav
             <Button
               variant="outline"
               onClick={() => setApproveOpen(false)}
-              disabled={isSubmitting}
+              disabled={approveAction.isSubmitting}
             >
               Cancel
             </Button>
             <Button
-              onClick={handleApprove}
-              disabled={isSubmitting}
+              onClick={() => approveAction.execute(undefined)}
+              disabled={approveAction.isSubmitting}
               className="bg-green-600 hover:bg-green-700"
             >
-              {isSubmitting ? 'Approving...' : 'Approve Request'}
+              {approveAction.isSubmitting ? 'Approving...' : 'Approve Request'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Reject Dialog */}
-      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+      <Dialog open={rejectOpen} onOpenChange={handleRejectOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reject Leave Request</DialogTitle>
@@ -157,9 +138,9 @@ export function LeaveApprovalActions({ requestId, onApproved, onRejected }: Leav
             </DialogDescription>
           </DialogHeader>
 
-          {error && (
+          {rejectAction.error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
-              {error}
+              {rejectAction.error}
             </div>
           )}
 
@@ -177,16 +158,16 @@ export function LeaveApprovalActions({ requestId, onApproved, onRejected }: Leav
             <Button
               variant="outline"
               onClick={() => setRejectOpen(false)}
-              disabled={isSubmitting}
+              disabled={rejectAction.isSubmitting}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
-              onClick={handleReject}
-              disabled={isSubmitting}
+              onClick={() => rejectAction.execute(undefined)}
+              disabled={rejectAction.isSubmitting}
             >
-              {isSubmitting ? 'Rejecting...' : 'Reject Request'}
+              {rejectAction.isSubmitting ? 'Rejecting...' : 'Reject Request'}
             </Button>
           </DialogFooter>
         </DialogContent>

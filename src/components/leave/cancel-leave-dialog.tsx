@@ -13,53 +13,44 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Ban } from 'lucide-react';
+import { cancelLeaveRequest } from '@/lib/api/leave';
+import { useSubmitAction } from '@/lib/hooks';
+import type { CancelLeaveDialogProps } from '@/lib/types/leave';
 
-interface CancelLeaveDialogProps {
-  requestId: string;
-  requestNumber: string;
-  onCancelled?: () => void;
+interface Props extends CancelLeaveDialogProps {
   trigger?: React.ReactNode;
 }
 
-export function CancelLeaveDialog({ requestId, requestNumber, onCancelled, trigger }: CancelLeaveDialogProps) {
+export function CancelLeaveDialog({ requestId, requestNumber, onCancelled, trigger }: Props) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleCancel = async () => {
-    if (!reason.trim()) {
-      setError('Cancellation reason is required');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/leave/requests/${requestId}/cancel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to cancel request');
+  const { isSubmitting, error, execute, resetError } = useSubmitAction({
+    action: async () => {
+      if (!reason.trim()) {
+        throw new Error('Cancellation reason is required');
       }
-
+      return cancelLeaveRequest(requestId, reason);
+    },
+    successMessage: 'Leave request cancelled',
+    onSuccess: () => {
       setOpen(false);
       setReason('');
       onCancelled?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsSubmitting(false);
+    },
+    showToast: false, // We'll show error inline
+  });
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      setReason('');
+      resetError();
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger || (
           <Button variant="outline" size="sm">
@@ -103,7 +94,7 @@ export function CancelLeaveDialog({ requestId, requestNumber, onCancelled, trigg
           </Button>
           <Button
             variant="destructive"
-            onClick={handleCancel}
+            onClick={() => execute(undefined)}
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Cancelling...' : 'Cancel Request'}
