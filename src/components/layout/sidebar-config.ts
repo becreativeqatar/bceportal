@@ -26,6 +26,7 @@ import {
   Palmtree,
   Plus,
   CheckSquare,
+  Briefcase,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -99,6 +100,7 @@ export const adminSidebarConfig: SidebarConfig = {
       collapsible: true,
       defaultOpen: false,
       items: [
+        { label: 'Projects', href: '/admin/projects', icon: Briefcase },
         { label: 'Task Boards', href: '/admin/tasks', icon: Kanban },
         { label: 'Accreditation', href: '/admin/accreditation', icon: BadgeCheck, badgeKey: 'pendingAccreditations' },
         { label: 'Purchase Requests', href: '/admin/purchase-requests', icon: ShoppingCart, badgeKey: 'pendingPurchaseRequests' },

@@ -83,6 +83,69 @@ enum AccreditationStatus {
   ISSUED // Temporary - will be migrated to APPROVED
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROJECT MODULE ENUMS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum ClientType {
+  INTERNAL
+  EXTERNAL
+  SUPPLIER
+}
+
+enum BudgetItemStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  DUE
+  OVERDUE
+  PENDING_REIMBURSEMENT
+  CANCELLED
+}
+
+enum PaymentTrancheStatus {
+  PENDING
+  SCHEDULED
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum RevenueStatus {
+  DRAFT
+  INVOICED
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  CANCELLED
+  WRITTEN_OFF
+}
+
+enum AssetCostType {
+  FULL_VALUE
+  DEPRECIATED
+  RENTAL_RATE
+  CUSTOM
+  NO_COST
+}
+
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -176,6 +239,15 @@ model User {
   createdLoans            EmployeeLoan[]           @relation("LoanCreator")
   recordedRepayments      LoanRepayment[]          @relation("RepaymentRecorder")
 
+  // Project Management relations
+  managedProjects             Project[]             @relation("ProjectManager")
+  createdProjects             Project[]             @relation("ProjectCreator")
+  createdBudgetItems          ProjectBudgetItem[]
+  createdProjectPayments      ProjectPayment[]
+  createdProjectRevenues      ProjectRevenue[]
+  createdProjectAssets        ProjectAsset[]
+  createdProjectSubscriptions ProjectSubscription[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -220,6 +292,7 @@ model Asset {
   // Relations & Metadata
   history            AssetHistory[]
   maintenanceRecords MaintenanceRecord[]
+  projectAllocations ProjectAsset[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -287,6 +360,7 @@ model Subscription {
   cancelledAt           DateTime? // When it was cancelled
   reactivatedAt         DateTime? // When it was last reactivated
   history               SubscriptionHistory[]
+  projectAllocations    ProjectSubscription[]
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
 
@@ -384,6 +458,8 @@ model Supplier {
   approvedById           String?
   approvedBy             User?                @relation("SupplierApprover", fields: [approvedById], references: [id])
   engagements            SupplierEngagement[]
+  projects               Project[]
+  budgetItems            ProjectBudgetItem[]
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
 
@@ -437,7 +513,12 @@ model AccreditationProject {
 
   accreditations Accreditation[]
 
+  // Link to Project module
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
   @@index([isActive]) // For filtering active projects
+  @@index([projectId])
   @@index([bumpInStart]) // For date-based queries
   @@index([liveStart]) // For date-based queries
   @@index([code]) // For project code lookups
@@ -775,11 +856,16 @@ model Board {
   columns TaskColumn[]
   labels  TaskLabel[]
 
+  // Link to Project module
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([ownerId])
   @@index([isArchived])
+  @@index([projectId])
   @@index([createdAt])
 }
 
@@ -1021,9 +1107,14 @@ model PurchaseRequest {
   completedAt     DateTime?
   completionNotes String?
 
+  // Link to Project module
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
   // Relations
-  items   PurchaseRequestItem[]
-  history PurchaseRequestHistory[]
+  items       PurchaseRequestItem[]
+  history     PurchaseRequestHistory[]
+  budgetItems ProjectBudgetItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1034,6 +1125,7 @@ model PurchaseRequest {
   @@index([createdAt])
   @@index([purchaseType])
   @@index([costType])
+  @@index([projectId])
 }
 
 model PurchaseRequestItem {
@@ -1514,4 +1606,290 @@ model LoanRepayment {
 
   @@index([loanId])
   @@index([paymentDate])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROJECT MODULE - Cross-cutting financial entity
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model Project {
+  id          String        @id @default(cuid())
+  code        String        @unique // "PRJ-2025-0001" or custom like "MCITFN25"
+  name        String
+  description String?
+  status      ProjectStatus @default(PLANNING)
+
+  // Client & Contract
+  clientType    ClientType @default(INTERNAL)
+  supplierId    String?
+  supplier      Supplier?  @relation(fields: [supplierId], references: [id])
+  clientName    String? // For external clients not in Supplier table
+  clientContact String?
+
+  // Revenue (Contract Value)
+  contractValue    Decimal? @db.Decimal(12, 2)
+  contractCurrency String   @default("QAR")
+  contractValueQAR Decimal? @db.Decimal(12, 2)
+
+  // Budget
+  budgetAmount    Decimal? @db.Decimal(12, 2)
+  budgetCurrency  String   @default("QAR")
+  budgetAmountQAR Decimal? @db.Decimal(12, 2)
+
+  // Timeline
+  startDate DateTime?
+  endDate   DateTime?
+
+  // Ownership
+  managerId       String
+  manager         User    @relation("ProjectManager", fields: [managerId], references: [id])
+  documentHandler String? // Name of person handling documentation
+
+  // Budget tracking relations
+  budgetCategories ProjectBudgetCategory[]
+  budgetItems      ProjectBudgetItem[]
+  revenues         ProjectRevenue[]
+
+  // Cross-module relations (optional links)
+  purchaseRequests        PurchaseRequest[]
+  assetAllocations        ProjectAsset[]
+  subscriptionAllocations ProjectSubscription[]
+  accreditationProjects   AccreditationProject[]
+  taskBoards              Board[]
+
+  // Audit
+  createdById String
+  createdBy   User     @relation("ProjectCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([code])
+  @@index([managerId])
+  @@index([startDate, endDate])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// BUDGET CATEGORIES - Top level groupings (A, B, C, D, E, F)
+// ─────────────────────────────────────────────────────────────────
+
+model ProjectBudgetCategory {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  code        String // "A", "B", "C", etc.
+  name        String // "Lighting Production and Special Effects"
+  description String?
+  sortOrder   Int     @default(0)
+
+  // Category-level budget allocation
+  budgetedRevenue Decimal? @db.Decimal(12, 2) // Revenue expected from this category
+  budgetedCost    Decimal? @db.Decimal(12, 2) // Cost budget for this category
+
+  items ProjectBudgetItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, code])
+  @@index([projectId])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// BUDGET LINE ITEMS - Individual expenses (A1, B1, B2, F15, etc.)
+// ─────────────────────────────────────────────────────────────────
+
+model ProjectBudgetItem {
+  id         String                 @id @default(cuid())
+  projectId  String
+  project    Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   ProjectBudgetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // Identification
+  costCode    String // "A1", "B3", "F15"
+  description String // "Haze machine and operator"
+  sortOrder   Int    @default(0)
+
+  // Budget vs Actual
+  budgetedAmount  Decimal? @db.Decimal(12, 2)
+  actualAmount    Decimal? @db.Decimal(12, 2)
+  currency        String   @default("QAR")
+  actualAmountQAR Decimal? @db.Decimal(12, 2)
+
+  // Supplier & Procurement
+  supplierId   String?
+  supplier     Supplier? @relation(fields: [supplierId], references: [id])
+  supplierName String? // Manual entry if not in Supplier table
+
+  // Link to Purchase Request (optional)
+  purchaseRequestId String?
+  purchaseRequest   PurchaseRequest? @relation(fields: [purchaseRequestId], references: [id])
+
+  // Procurement references
+  prNumber      String? // "BCE-PRF-25-038"
+  lpoNumber     String? // "BCE-PO-25/007"
+  invoiceNumber String? // "INV-MPQ/0358/2025"
+
+  // Payment tracking
+  payments      ProjectPayment[]
+  paymentStatus PaymentStatus    @default(PENDING)
+
+  // Status
+  status BudgetItemStatus @default(DRAFT)
+
+  // Notes and attachments
+  notes         String?
+  attachmentUrl String?
+
+  // Audit
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([projectId, costCode])
+  @@index([projectId])
+  @@index([categoryId])
+  @@index([paymentStatus])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PAYMENT TRANCHES - Multi-payment support (P1, P2, P3)
+// ─────────────────────────────────────────────────────────────────
+
+model ProjectPayment {
+  id           String            @id @default(cuid())
+  budgetItemId String
+  budgetItem   ProjectBudgetItem @relation(fields: [budgetItemId], references: [id], onDelete: Cascade)
+
+  // Payment details
+  tranche    Int // 1, 2, 3 (P1, P2, P3)
+  amount     Decimal  @db.Decimal(12, 2)
+  currency   String   @default("QAR")
+  amountQAR  Decimal  @db.Decimal(12, 2)
+  percentage Decimal? @db.Decimal(5, 2) // 50%, 100%
+
+  // Dates
+  dueDate  DateTime?
+  paidDate DateTime?
+  status   PaymentTrancheStatus @default(PENDING)
+
+  // Bank details
+  bankIban      String?
+  bankName      String?
+  bankSwift     String?
+  accountNumber String?
+  paymentMethod String? // "QIIB - TT", "ARB - Bank Authorization", "Paid by BCE CC"
+
+  // Reference
+  reference String?
+  notes     String?
+
+  // Audit
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([budgetItemId, tranche])
+  @@index([budgetItemId])
+  @@index([status])
+  @@index([paidDate])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PROJECT REVENUE - Income tracking (invoices to client)
+// ─────────────────────────────────────────────────────────────────
+
+model ProjectRevenue {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  description   String
+  invoiceNumber String?
+  amount        Decimal @db.Decimal(12, 2)
+  currency      String  @default("QAR")
+  amountQAR     Decimal @db.Decimal(12, 2)
+
+  invoiceDate DateTime?
+  dueDate     DateTime?
+  paidDate    DateTime?
+  status      RevenueStatus @default(DRAFT)
+
+  attachmentUrl String?
+  notes         String?
+
+  // Audit
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+  @@index([invoiceDate])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// JUNCTION TABLES - Link standalone modules to projects
+// ─────────────────────────────────────────────────────────────────
+
+// Asset allocation to projects (assets remain standalone)
+model ProjectAsset {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assetId   String
+  asset     Asset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  // How to calculate cost for this project
+  costType        AssetCostType @default(FULL_VALUE)
+  customAmount    Decimal?      @db.Decimal(12, 2) // If CUSTOM
+  customAmountQAR Decimal?      @db.Decimal(12, 2)
+
+  // Allocation period
+  startDate DateTime?
+  endDate   DateTime?
+
+  notes String?
+
+  // Audit
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([projectId, assetId])
+  @@index([projectId])
+  @@index([assetId])
+}
+
+// Subscription allocation to projects (with % split)
+model ProjectSubscription {
+  id             String       @id @default(cuid())
+  projectId      String
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  // % of subscription cost allocated to this project
+  allocationPercent Decimal @default(100) @db.Decimal(5, 2)
+
+  // Allocation period
+  startDate DateTime?
+  endDate   DateTime?
+
+  notes String?
+
+  // Audit
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([projectId, subscriptionId])
+  @@index([projectId])
+  @@index([subscriptionId])
 }

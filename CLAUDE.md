@@ -46,6 +46,17 @@ npm run check-deployment    # Pre-deployment validation checks
 
 ## Architecture
 
+### Domain Organization
+
+The codebase is organized by business domain with four main areas:
+
+| Domain | Modules | Description |
+|--------|---------|-------------|
+| **HR** | Employees, Leave, Payroll | Human resources, leave management, payroll processing |
+| **Operations** | Assets, Subscriptions, Suppliers | Physical/digital assets, SaaS tracking, vendor management |
+| **Projects** | Tasks, Accreditation, Purchase Requests | Kanban boards, event credentials, procurement |
+| **System** | Users, Settings, Reports, Activity | Administration and configuration |
+
 ### Authentication & Authorization
 
 - **NextAuth.js** with Azure AD OAuth provider (`src/lib/auth.ts`)
@@ -59,8 +70,31 @@ npm run check-deployment    # Pre-deployment validation checks
 
 ### Route Structure
 
-- `/admin/*` - Admin dashboard (assets, subscriptions, suppliers, users, settings, accreditation)
-- `/employee/*` - Employee views (my-assets, my-subscriptions, suppliers, leave requests)
+Routes use Next.js route groups `(domain)` for logical organization without affecting URLs:
+
+```
+src/app/admin/
+├── layout.tsx                 # Admin shell with sidebar
+├── (hr)/                      # HR domain routes
+│   ├── employees/
+│   ├── leave/
+│   └── payroll/
+├── (operations)/              # Operations domain routes
+│   ├── assets/
+│   ├── subscriptions/
+│   └── suppliers/
+├── (projects)/                # Projects domain routes
+│   ├── tasks/
+│   ├── accreditation/
+│   └── purchase-requests/
+└── (system)/                  # System domain routes
+    ├── users/
+    ├── settings/
+    ├── reports/
+    └── activity/
+```
+
+Public routes:
 - `/validator/*` - QR code scanning for accreditation verification
 - `/verify/[token]` - Public accreditation verification page
 - `/suppliers/register` - Public supplier registration form
@@ -169,12 +203,52 @@ await logAction(userId, ActivityActions.ASSET_CREATED, 'Asset', assetId, payload
 
 ## Key Directories
 
-- `src/lib/` - Core utilities, validation schemas, security middleware
-- `src/lib/validations/` - Zod schemas for API input validation
-- `src/lib/http/` - API handler wrapper, error formatting
-- `src/lib/security/` - Rate limiting, security utilities
-- `src/components/ui/` - shadcn/ui base components
-- `src/components/forms/` - Form components with react-hook-form
+### Lib Structure (Domain-Based)
+
+```
+src/lib/
+├── domains/                     # Business domain utilities
+│   ├── hr/
+│   │   ├── employees/hr-utils.ts
+│   │   ├── leave/leave-utils.ts, leave-balance-init.ts
+│   │   └── payroll/gratuity.ts, wps.ts, leave-deduction.ts
+│   ├── operations/
+│   │   ├── assets/asset-utils.ts, asset-lifecycle.ts, asset-history.ts
+│   │   ├── subscriptions/subscription-lifecycle.ts
+│   │   └── suppliers/supplier-utils.ts
+│   └── projects/
+│       ├── tasks/board-access.ts, task-history.ts
+│       └── purchase-requests/purchase-request-utils.ts
+├── validations/                 # Zod schemas by domain
+│   ├── core/upload.ts, users.ts
+│   ├── hr/hr-profile.ts, leave.ts, payroll.ts
+│   ├── operations/assets.ts, subscriptions.ts, suppliers.ts
+│   └── projects/tasks.ts, accreditation.ts, purchase-request.ts
+├── http/                        # API handler wrapper, error formatting
+├── security/                    # Rate limiting, security utilities
+└── storage/                     # Supabase file storage
+```
+
+### Components Structure (Domain-Based)
+
+```
+src/components/
+├── ui/                          # shadcn/ui base components
+├── layout/                      # App shell, sidebar navigation
+│   ├── sidebar.tsx, sidebar-config.ts
+│   ├── app-shell.tsx
+│   └── mobile-sidebar.tsx
+├── dashboard/                   # Domain cards for dashboard
+├── domains/                     # Feature components by domain
+│   ├── hr/employees, leave, payroll, profile, onboarding
+│   ├── operations/assets, subscriptions, suppliers
+│   ├── projects/tasks, accreditation, purchase-requests
+│   └── system/users, settings, admin, reports
+└── shared/                      # Cross-domain components
+```
+
+### Other Directories
+
 - `scripts/cron/` - Scheduled tasks (subscription renewals, warranty alerts, employee expiry)
 - `scripts/backup/` - Database and file backup utilities
 - `scripts/ops/` - Operational maintenance scripts
@@ -217,3 +291,28 @@ const form = useForm<AssetFormData>({
 - Forms typically have a `*Form` component that handles validation and submission
 - Detail pages follow pattern: `src/app/admin/[module]/[id]/page.tsx`
 - Edit pages follow pattern: `src/app/admin/[module]/[id]/edit/page.tsx`
+
+### Sidebar Navigation
+
+Admin and employee portals use collapsible sidebar navigation configured in `src/components/layout/sidebar-config.ts`:
+- Domain groups: HR, Operations, Projects, System
+- Badge counts for pending items (leave requests, supplier approvals, etc.)
+- Mobile-responsive with drawer mode
+
+### Server/Client Component Pattern
+
+When passing data from Server Components to Client Components, avoid passing functions or class instances:
+
+```tsx
+// ❌ Wrong - can't pass icon function to client component
+<DomainCard icon={Users} ... />
+
+// ✅ Correct - pass icon name, resolve in client component
+<DomainCard iconName="users" ... />
+
+// In client component, use icon mapping:
+const iconMap = { users: Users, package: Package, ... };
+const Icon = iconMap[iconName];
+```
+
+See `src/components/dashboard/domain-card.tsx` for the full pattern.
