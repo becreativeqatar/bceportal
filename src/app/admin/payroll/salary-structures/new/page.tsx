@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -14,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Loader2, Calculator } from 'lucide-react';
+import { ArrowLeft, Loader2, Calculator, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/payroll/utils';
 
@@ -31,11 +32,35 @@ interface Employee {
   } | null;
 }
 
+interface Percentages {
+  basic: number;
+  housing: number;
+  transport: number;
+  food: number;
+  phone: number;
+  other: number;
+}
+
+const DEFAULT_PERCENTAGES: Percentages = {
+  basic: 60,
+  housing: 20,
+  transport: 10,
+  food: 5,
+  phone: 3,
+  other: 2,
+};
+
 export default function NewSalaryStructurePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
+
+  // Mode toggle
+  const [useAutoCalculate, setUseAutoCalculate] = useState(true);
+  const [totalSalary, setTotalSalary] = useState('');
+  const [percentages, setPercentages] = useState<Percentages>(DEFAULT_PERCENTAGES);
+  const [showCustomPercentages, setShowCustomPercentages] = useState(false);
 
   const [userId, setUserId] = useState('');
   const [basicSalary, setBasicSalary] = useState('');
@@ -48,11 +73,24 @@ export default function NewSalaryStructurePage() {
     new Date().toISOString().split('T')[0]
   );
 
+  // Load default percentages from settings
+  useEffect(() => {
+    fetch('/api/settings/payroll-percentages')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.percentages) {
+          setPercentages(data.percentages);
+        }
+      })
+      .catch(() => {
+        // Use default percentages
+      });
+  }, []);
+
   useEffect(() => {
     fetch('/api/users?includeAll=true')
       .then((res) => res.json())
       .then((data) => {
-        // Filter out employees who already have salary structures
         const availableEmployees = (data.users || []).filter(
           (emp: Employee) => !emp.salaryStructure
         );
@@ -62,7 +100,26 @@ export default function NewSalaryStructurePage() {
       .finally(() => setLoadingEmployees(false));
   }, []);
 
-  // Calculate totals
+  // Auto-calculate components when total salary or percentages change
+  const calculateComponents = useCallback(() => {
+    if (!useAutoCalculate) return;
+
+    const total = parseFloat(totalSalary) || 0;
+    if (total <= 0) return;
+
+    setBasicSalary(((total * percentages.basic) / 100).toFixed(2));
+    setHousingAllowance(((total * percentages.housing) / 100).toFixed(2));
+    setTransportAllowance(((total * percentages.transport) / 100).toFixed(2));
+    setFoodAllowance(((total * percentages.food) / 100).toFixed(2));
+    setPhoneAllowance(((total * percentages.phone) / 100).toFixed(2));
+    setOtherAllowances(((total * percentages.other) / 100).toFixed(2));
+  }, [totalSalary, percentages, useAutoCalculate]);
+
+  useEffect(() => {
+    calculateComponents();
+  }, [calculateComponents]);
+
+  // Calculate totals for display
   const basic = parseFloat(basicSalary) || 0;
   const housing = parseFloat(housingAllowance) || 0;
   const transport = parseFloat(transportAllowance) || 0;
@@ -71,6 +128,9 @@ export default function NewSalaryStructurePage() {
   const other = parseFloat(otherAllowances) || 0;
   const totalAllowances = housing + transport + food + phone + other;
   const grossSalary = basic + totalAllowances;
+
+  const percentageTotal = Object.values(percentages).reduce((sum, val) => sum + val, 0);
+  const percentagesValid = Math.abs(percentageTotal - 100) < 0.01;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,9 +180,14 @@ export default function NewSalaryStructurePage() {
 
   const selectedEmployee = employees.find((emp) => emp.id === userId);
 
+  const updatePercentage = (key: keyof Percentages, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    setPercentages((prev) => ({ ...prev, [key]: numValue }));
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Button asChild variant="ghost" size="icon">
             <Link href="/admin/payroll/salary-structures">
@@ -138,9 +203,9 @@ export default function NewSalaryStructurePage() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6">
             {/* Employee Selection */}
-            <Card className="md:col-span-2">
+            <Card>
               <CardHeader>
                 <CardTitle>Employee</CardTitle>
                 <CardDescription>
@@ -207,93 +272,224 @@ export default function NewSalaryStructurePage() {
               </CardContent>
             </Card>
 
-            {/* Salary Components */}
+            {/* Salary Input Mode */}
             <Card>
               <CardHeader>
-                <CardTitle>Salary Components</CardTitle>
-                <CardDescription>
-                  Enter monthly salary amounts in QAR
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Salary Entry Mode</CardTitle>
+                    <CardDescription>
+                      Choose how to enter salary information
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="auto-calc" className="text-sm">
+                      {useAutoCalculate ? 'Auto-calculate from total' : 'Manual entry'}
+                    </Label>
+                    <Switch
+                      id="auto-calc"
+                      checked={useAutoCalculate}
+                      onCheckedChange={setUseAutoCalculate}
+                    />
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="basicSalary">Basic Salary *</Label>
-                  <Input
-                    id="basicSalary"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={basicSalary}
-                    onChange={(e) => setBasicSalary(e.target.value)}
-                    required
-                  />
-                </div>
+              <CardContent>
+                {useAutoCalculate ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="totalSalary" className="text-lg font-medium">
+                        Total Monthly Salary (Gross)
+                      </Label>
+                      <Input
+                        id="totalSalary"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Enter total salary"
+                        value={totalSalary}
+                        onChange={(e) => setTotalSalary(e.target.value)}
+                        className="text-lg h-12"
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Components will be auto-calculated based on percentages
+                      </p>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="housingAllowance">Housing Allowance</Label>
-                  <Input
-                    id="housingAllowance"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={housingAllowance}
-                    onChange={(e) => setHousingAllowance(e.target.value)}
-                  />
-                </div>
+                    {/* Custom Percentages Toggle */}
+                    <div className="pt-4 border-t">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Settings2 className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Customize Percentages</span>
+                        </div>
+                        <Switch
+                          checked={showCustomPercentages}
+                          onCheckedChange={setShowCustomPercentages}
+                        />
+                      </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="transportAllowance">Transport Allowance</Label>
-                  <Input
-                    id="transportAllowance"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={transportAllowance}
-                    onChange={(e) => setTransportAllowance(e.target.value)}
-                  />
-                </div>
+                      {showCustomPercentages && (
+                        <div className="space-y-4">
+                          <div className="grid gap-3 md:grid-cols-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Basic %</Label>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                value={percentages.basic}
+                                onChange={(e) => updatePercentage('basic', e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Housing %</Label>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                value={percentages.housing}
+                                onChange={(e) => updatePercentage('housing', e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Transport %</Label>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                value={percentages.transport}
+                                onChange={(e) => updatePercentage('transport', e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Food %</Label>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                value={percentages.food}
+                                onChange={(e) => updatePercentage('food', e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Phone %</Label>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                value={percentages.phone}
+                                onChange={(e) => updatePercentage('phone', e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Other %</Label>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                value={percentages.other}
+                                onChange={(e) => updatePercentage('other', e.target.value)}
+                              />
+                            </div>
+                          </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="foodAllowance">Food Allowance</Label>
-                  <Input
-                    id="foodAllowance"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={foodAllowance}
-                    onChange={(e) => setFoodAllowance(e.target.value)}
-                  />
-                </div>
+                          <div className={`p-2 rounded text-sm ${percentagesValid ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                            Total: {percentageTotal.toFixed(1)}%
+                            {!percentagesValid && ' (must equal 100%)'}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="basicSalary">Basic Salary *</Label>
+                      <Input
+                        id="basicSalary"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={basicSalary}
+                        onChange={(e) => setBasicSalary(e.target.value)}
+                        required
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phoneAllowance">Phone Allowance</Label>
-                  <Input
-                    id="phoneAllowance"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={phoneAllowance}
-                    onChange={(e) => setPhoneAllowance(e.target.value)}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="housingAllowance">Housing Allowance</Label>
+                      <Input
+                        id="housingAllowance"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={housingAllowance}
+                        onChange={(e) => setHousingAllowance(e.target.value)}
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="otherAllowances">Other Allowances</Label>
-                  <Input
-                    id="otherAllowances"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={otherAllowances}
-                    onChange={(e) => setOtherAllowances(e.target.value)}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="transportAllowance">Transport Allowance</Label>
+                      <Input
+                        id="transportAllowance"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={transportAllowance}
+                        onChange={(e) => setTransportAllowance(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="foodAllowance">Food Allowance</Label>
+                      <Input
+                        id="foodAllowance"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={foodAllowance}
+                        onChange={(e) => setFoodAllowance(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneAllowance">Phone Allowance</Label>
+                      <Input
+                        id="phoneAllowance"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={phoneAllowance}
+                        onChange={(e) => setPhoneAllowance(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="otherAllowances">Other Allowances</Label>
+                      <Input
+                        id="otherAllowances"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={otherAllowances}
+                        onChange={(e) => setOtherAllowances(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -305,64 +501,50 @@ export default function NewSalaryStructurePage() {
                   Salary Summary
                 </CardTitle>
                 <CardDescription>
-                  Monthly breakdown preview
+                  Final breakdown
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-muted-foreground">Basic Salary</span>
-                    <span className="font-medium">{formatCurrency(basic)}</span>
-                  </div>
-
-                  {housing > 0 && (
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-3">
                     <div className="flex justify-between py-2 border-b">
-                      <span className="text-muted-foreground">Housing</span>
+                      <span className="text-muted-foreground">Basic Salary</span>
+                      <span className="font-medium">{formatCurrency(basic)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-muted-foreground">Housing Allowance</span>
                       <span className="font-medium">{formatCurrency(housing)}</span>
                     </div>
-                  )}
-
-                  {transport > 0 && (
                     <div className="flex justify-between py-2 border-b">
-                      <span className="text-muted-foreground">Transport</span>
+                      <span className="text-muted-foreground">Transport Allowance</span>
                       <span className="font-medium">{formatCurrency(transport)}</span>
                     </div>
-                  )}
-
-                  {food > 0 && (
+                  </div>
+                  <div className="space-y-3">
                     <div className="flex justify-between py-2 border-b">
-                      <span className="text-muted-foreground">Food</span>
+                      <span className="text-muted-foreground">Food Allowance</span>
                       <span className="font-medium">{formatCurrency(food)}</span>
                     </div>
-                  )}
-
-                  {phone > 0 && (
                     <div className="flex justify-between py-2 border-b">
-                      <span className="text-muted-foreground">Phone</span>
+                      <span className="text-muted-foreground">Phone Allowance</span>
                       <span className="font-medium">{formatCurrency(phone)}</span>
                     </div>
-                  )}
-
-                  {other > 0 && (
                     <div className="flex justify-between py-2 border-b">
-                      <span className="text-muted-foreground">Other</span>
+                      <span className="text-muted-foreground">Other Allowances</span>
                       <span className="font-medium">{formatCurrency(other)}</span>
                     </div>
-                  )}
-
-                  <div className="flex justify-between py-2 border-b font-medium">
-                    <span>Total Allowances</span>
-                    <span>{formatCurrency(totalAllowances)}</span>
-                  </div>
-
-                  <div className="flex justify-between py-3 text-lg font-semibold">
-                    <span>Gross Salary</span>
-                    <span className="text-green-600">{formatCurrency(grossSalary)}</span>
                   </div>
                 </div>
 
-                <div className="pt-4">
-                  <Button type="submit" className="w-full" disabled={isLoading || !userId}>
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-medium text-green-800">Gross Monthly Salary</span>
+                    <span className="text-2xl font-bold text-green-700">{formatCurrency(grossSalary)}</span>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <Button type="submit" className="w-full" disabled={isLoading || !userId || basic <= 0}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Salary Structure
                   </Button>

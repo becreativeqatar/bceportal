@@ -9,6 +9,7 @@ import { ExchangeRateSettings } from '@/components/settings/exchange-rate-settin
 import { DatabaseStats } from '@/components/settings/database-stats';
 import { DataDeletion } from '@/components/settings/data-deletion';
 import { BackupDownload } from '@/components/settings/backup-download';
+import { PayrollSettings } from '@/components/settings/payroll-settings';
 import { prisma } from '@/lib/prisma';
 
 export default async function SettingsPage() {
@@ -114,6 +115,7 @@ export default async function SettingsPage() {
             {/* System Config Tab */}
             <TabsContent value="system" className="space-y-6">
               <ExchangeRateSettings />
+              <PayrollSettings />
             </TabsContent>
           </Tabs>
         </div>
