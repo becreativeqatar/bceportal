@@ -58,6 +58,7 @@ export default async function Home() {
       expiringDocuments,
       incompleteOnboarding,
       overdueTasks,
+      totalProjects,
     ] = await Promise.all([
       prisma.subscription.findMany({
         where: {
@@ -110,6 +111,8 @@ export default async function Home() {
           isCompleted: false,
         },
       }),
+      // Count total projects
+      prisma.project.count(),
     ]);
 
     statsData = {
@@ -117,6 +120,7 @@ export default async function Home() {
       activeUsers,
       totalSubscriptions,
       totalSuppliers,
+      totalProjects,
     };
 
     const subscriptionsWithNextRenewal = allSubscriptions.map(sub => {
@@ -304,9 +308,10 @@ export default async function Home() {
                 <DomainCard
                   domain="Projects"
                   iconName="folder-kanban"
-                  href="/admin/tasks"
+                  href="/admin/projects"
                   color="purple"
                   modules={[
+                    { name: 'Projects', href: '/admin/projects', count: statsData?.totalProjects },
                     { name: 'Task Boards', href: '/admin/tasks' },
                     { name: 'Accreditation', href: '/admin/accreditation', badge: adminData?.pendingAccreditations },
                     { name: 'Purchase Requests', href: '/admin/purchase-requests', badge: adminData?.pendingPurchaseRequests },
