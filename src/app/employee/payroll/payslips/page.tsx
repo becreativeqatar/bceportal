@@ -77,15 +77,16 @@ export default async function EmployeePayslipsPage({ searchParams }: PageProps) 
   const availableYears = [...new Set(years.map((y) => y.payrollRun.year))].sort((a, b) => b - a);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button asChild variant="ghost" size="icon">
-          <Link href="/employee/payroll">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">My Payslips</h1>
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          <Button asChild variant="ghost" size="icon">
+            <Link href="/employee/payroll">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">My Payslips</h1>
           <p className="text-muted-foreground">
             View and download your payslips
           </p>
@@ -205,7 +206,8 @@ export default async function EmployeePayslipsPage({ searchParams }: PageProps) 
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

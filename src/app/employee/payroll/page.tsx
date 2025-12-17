@@ -72,9 +72,10 @@ export default async function EmployeePayrollPage() {
   const totalLoanRemaining = loans.reduce((sum, loan) => sum + Number(loan.remainingAmount), 0);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">My Payroll</h1>
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">My Payroll</h1>
         <p className="text-muted-foreground">
           View your salary details, payslips, and gratuity projection
         </p>
@@ -280,7 +281,8 @@ export default async function EmployeePayrollPage() {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

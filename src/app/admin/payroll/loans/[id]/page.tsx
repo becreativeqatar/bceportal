@@ -84,11 +84,12 @@ export default async function LoanDetailPage({ params }: PageProps) {
   const estimatedRemainingMonths = monthlyDeduction > 0 ? Math.ceil(remainingAmount / monthlyDeduction) : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button asChild variant="ghost" size="icon">
-            <Link href="/admin/payroll/loans">
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button asChild variant="ghost" size="icon">
+              <Link href="/admin/payroll/loans">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
@@ -312,7 +313,8 @@ export default async function LoanDetailPage({ params }: PageProps) {
             })}
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

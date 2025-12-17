@@ -35,7 +35,45 @@ export default async function EmployeeGratuityPage() {
   // Check if we can calculate gratuity
   if (!salaryStructure || !hrProfile?.dateOfJoining) {
     return (
-      <div className="space-y-6">
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex items-center gap-4">
+            <Button asChild variant="ghost" size="icon">
+              <Link href="/employee/payroll">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">Gratuity Projection</h1>
+              <p className="text-muted-foreground">
+                End of Service Benefits calculation
+              </p>
+            </div>
+          </div>
+
+          <Card>
+            <CardContent className="py-8 text-center">
+              <Info className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                {!salaryStructure
+                  ? 'Salary structure not set up. Please contact HR.'
+                  : 'Date of joining not recorded. Please contact HR.'}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const basicSalary = Number(salaryStructure.basicSalary);
+  const dateOfJoining = new Date(hrProfile.dateOfJoining);
+  const gratuityCalculation = calculateGratuity(basicSalary, dateOfJoining);
+  const projections = projectGratuity(basicSalary, dateOfJoining, [1, 2, 3, 5, 10]);
+
+  return (
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Button asChild variant="ghost" size="icon">
             <Link href="/employee/payroll">
@@ -50,42 +88,7 @@ export default async function EmployeeGratuityPage() {
           </div>
         </div>
 
-        <Card>
-          <CardContent className="py-8 text-center">
-            <Info className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">
-              {!salaryStructure
-                ? 'Salary structure not set up. Please contact HR.'
-                : 'Date of joining not recorded. Please contact HR.'}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const basicSalary = Number(salaryStructure.basicSalary);
-  const dateOfJoining = new Date(hrProfile.dateOfJoining);
-  const gratuityCalculation = calculateGratuity(basicSalary, dateOfJoining);
-  const projections = projectGratuity(basicSalary, dateOfJoining, [1, 2, 3, 5, 10]);
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button asChild variant="ghost" size="icon">
-          <Link href="/employee/payroll">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Gratuity Projection</h1>
-          <p className="text-muted-foreground">
-            End of Service Benefits calculation
-          </p>
-        </div>
-      </div>
-
-      {/* Current Gratuity */}
+        {/* Current Gratuity */}
       <Card>
         <CardHeader>
           <CardTitle>Current Gratuity Amount</CardTitle>
@@ -192,7 +195,8 @@ export default async function EmployeeGratuityPage() {
             Note: This is an estimate based on your current basic salary. The actual amount may vary based on company policies and applicable laws at the time of separation.
           </p>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

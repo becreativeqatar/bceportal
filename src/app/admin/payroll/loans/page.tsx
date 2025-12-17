@@ -107,8 +107,9 @@ export default async function LoansPage({ searchParams }: PageProps) {
   const completedCount = statsMap['COMPLETED']?.count || 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button asChild variant="ghost" size="icon">
             <Link href="/admin/payroll">
@@ -296,7 +297,8 @@ export default async function LoansPage({ searchParams }: PageProps) {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -59,10 +59,11 @@ export default function NewPayrollRunPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button asChild variant="ghost" size="icon">
-          <Link href="/admin/payroll/runs">
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          <Button asChild variant="ghost" size="icon">
+            <Link href="/admin/payroll/runs">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -135,7 +136,8 @@ export default function NewPayrollRunPage() {
             </div>
           </form>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

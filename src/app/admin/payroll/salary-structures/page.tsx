@@ -75,8 +75,9 @@ export default async function SalaryStructuresPage({ searchParams }: PageProps) 
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Salary Structures</h1>
           <p className="text-muted-foreground">
@@ -182,7 +183,8 @@ export default async function SalaryStructuresPage({ searchParams }: PageProps) 
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

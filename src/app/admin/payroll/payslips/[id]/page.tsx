@@ -68,14 +68,15 @@ export default async function AdminPayslipDetailPage({ params }: PageProps) {
   const netSalary = Number(payslip.netSalary);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button asChild variant="ghost" size="icon">
-            <Link href={`/admin/payroll/runs/${payslip.payrollRun.id}`}>
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button asChild variant="ghost" size="icon">
+              <Link href={`/admin/payroll/runs/${payslip.payrollRun.id}`}>
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">Payslip Details</h1>
@@ -285,7 +286,8 @@ export default async function AdminPayslipDetailPage({ params }: PageProps) {
             </div>
           </CardContent>
         </Card>
-      )}
+        )}
+      </div>
     </div>
   );
 }
