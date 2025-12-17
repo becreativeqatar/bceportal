@@ -48,6 +48,7 @@ export const mockPrisma = {
   taskAssignee: createModelMock(),
   taskLabel: createModelMock(),
   taskChecklist: createModelMock(),
+  checklistItem: createModelMock(),
   taskComment: createModelMock(),
   taskAttachment: createModelMock(),
   taskHistory: createModelMock(),

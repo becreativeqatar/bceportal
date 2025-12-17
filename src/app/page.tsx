@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { getNextRenewalDate, getDaysUntilRenewal } from '@/lib/utils/renewal-date';
 import { UpcomingRenewalsFilter } from '@/components/admin/upcoming-renewals-filter';
 import { ActivityDetailPopup } from '@/components/admin/activity-detail-popup';
+import { DomainCard } from '@/components/dashboard';
 import { redirect } from 'next/navigation';
 
 export default async function Home() {
@@ -268,243 +269,63 @@ export default async function Home() {
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Quick Access Modules</h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
             {isAdmin ? (
               <>
-                {/* Assets */}
-                <Link href="/admin/assets">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
-                    <CardHeader>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-4xl">📦</div>
-                        {statsData && <div className="text-2xl font-bold text-slate-700">{statsData.totalAssets}</div>}
-                      </div>
-                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
-                        Assets
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-gray-600">Manage physical and digital assets</CardDescription>
-                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
-                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                {/* HR Management Domain */}
+                <DomainCard
+                  domain="HR Management"
+                  iconName="users"
+                  href="/admin/employees"
+                  color="emerald"
+                  modules={[
+                    { name: 'Employees', href: '/admin/employees', count: statsData?.activeUsers },
+                    { name: 'Leave Requests', href: '/admin/leave/requests', badge: adminData?.pendingLeaveRequests },
+                    { name: 'Leave Types & Balances', href: '/admin/leave/types' },
+                    { name: 'Payroll', href: '/admin/payroll' },
+                    { name: 'Document Expiry', href: '/admin/employees/document-expiry' },
+                  ]}
+                />
 
-                {/* Subscriptions */}
-                <Link href="/admin/subscriptions">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
-                    <CardHeader>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-4xl">💳</div>
-                        {statsData && <div className="text-2xl font-bold text-slate-700">{statsData.totalSubscriptions}</div>}
-                      </div>
-                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
-                        Subscriptions
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-gray-600">Track software licenses and renewals</CardDescription>
-                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
-                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                {/* Operations Domain */}
+                <DomainCard
+                  domain="Operations"
+                  iconName="package"
+                  href="/admin/assets"
+                  color="blue"
+                  modules={[
+                    { name: 'Assets', href: '/admin/assets', count: statsData?.totalAssets },
+                    { name: 'Subscriptions', href: '/admin/subscriptions', count: statsData?.totalSubscriptions },
+                    { name: 'Suppliers', href: '/admin/suppliers', count: statsData?.totalSuppliers, badge: adminData?.pendingSuppliers },
+                  ]}
+                />
 
-                {/* Suppliers */}
-                <Link href="/admin/suppliers">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full relative">
-                    {adminData && adminData.pendingSuppliers > 0 && (
-                      <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5">
-                        {adminData.pendingSuppliers} pending
-                      </Badge>
-                    )}
-                    <CardHeader>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-4xl">🤝</div>
-                        {statsData && <div className="text-2xl font-bold text-slate-700">{statsData.totalSuppliers}</div>}
-                      </div>
-                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
-                        Suppliers
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-gray-600">Manage vendors and suppliers</CardDescription>
-                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
-                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                {/* Projects Domain */}
+                <DomainCard
+                  domain="Projects"
+                  iconName="folder-kanban"
+                  href="/admin/tasks"
+                  color="purple"
+                  modules={[
+                    { name: 'Task Boards', href: '/admin/tasks' },
+                    { name: 'Accreditation', href: '/admin/accreditation', badge: adminData?.pendingAccreditations },
+                    { name: 'Purchase Requests', href: '/admin/purchase-requests', badge: adminData?.pendingPurchaseRequests },
+                  ]}
+                />
 
-                {/* Accreditation */}
-                <Link href="/admin/accreditation">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full relative">
-                    {adminData && adminData.pendingAccreditations > 0 && (
-                      <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5">
-                        {adminData.pendingAccreditations} pending
-                      </Badge>
-                    )}
-                    <CardHeader>
-                      <div className="text-4xl mb-2">🎫</div>
-                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
-                        Accreditation
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-gray-600">Event badges and access control</CardDescription>
-                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
-                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                {/* Employees */}
-                <Link href="/admin/employees">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full relative">
-                    {adminData && adminData.pendingChangeRequests > 0 && (
-                      <Badge className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-0.5">
-                        {adminData.pendingChangeRequests} change req
-                      </Badge>
-                    )}
-                    <CardHeader>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-4xl">👥</div>
-                        {statsData && <div className="text-2xl font-bold text-slate-700">{statsData.activeUsers}</div>}
-                      </div>
-                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
-                        Employees
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-gray-600">Team members, HR profiles & document tracking</CardDescription>
-                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
-                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                {/* Reports */}
-                <Link href="/admin/reports">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
-                    <CardHeader>
-                      <div className="text-4xl mb-2">📊</div>
-                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
-                        Reports
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-gray-600">View analytics and generate reports</CardDescription>
-                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
-                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                {/* Task Management */}
-                <Link href="/admin/tasks">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
-                    <CardHeader>
-                      <div className="text-4xl mb-2">📋</div>
-                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
-                        Task Management
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-gray-600">Kanban boards and project tasks</CardDescription>
-                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
-                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                {/* Purchase Requests */}
-                <Link href="/admin/purchase-requests">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full relative">
-                    {adminData && adminData.pendingPurchaseRequests > 0 && (
-                      <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5">
-                        {adminData.pendingPurchaseRequests} pending
-                      </Badge>
-                    )}
-                    <CardHeader>
-                      <div className="text-4xl mb-2">🛒</div>
-                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
-                        Purchase Requests
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-gray-600">Review and manage employee purchase requests</CardDescription>
-                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
-                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                {/* Leave Management */}
-                <Link href="/admin/leave">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full relative">
-                    {adminData && adminData.pendingLeaveRequests > 0 && (
-                      <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5">
-                        {adminData.pendingLeaveRequests} pending
-                      </Badge>
-                    )}
-                    <CardHeader>
-                      <div className="text-4xl mb-2">🏖️</div>
-                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
-                        Leave Management
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-gray-600">Manage employee leave requests and balances</CardDescription>
-                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
-                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                {/* Payroll */}
-                <Link href="/admin/payroll">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
-                    <CardHeader>
-                      <div className="text-4xl mb-2">💰</div>
-                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
-                        Payroll
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-gray-600">Salary structures, payroll runs, loans & gratuity</CardDescription>
-                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
-                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                {/* Settings */}
-                <Link href="/admin/settings">
-                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
-                    <CardHeader>
-                      <div className="text-4xl mb-2">⚙️</div>
-                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
-                        Settings
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-gray-600">System configuration and data export/import</CardDescription>
-                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
-                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                {/* System Domain */}
+                <DomainCard
+                  domain="System"
+                  iconName="settings"
+                  href="/admin/settings"
+                  color="slate"
+                  modules={[
+                    { name: 'Users', href: '/admin/users' },
+                    { name: 'Reports', href: '/admin/reports' },
+                    { name: 'Activity Log', href: '/admin/activity' },
+                    { name: 'Settings', href: '/admin/settings' },
+                  ]}
+                />
               </>
             ) : (
               <>

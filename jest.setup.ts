@@ -61,6 +61,7 @@ jest.mock('@/lib/prisma', () => ({
     taskLabel: createModelMock(),
     taskLabelAssignment: createModelMock(),
     taskChecklistItem: createModelMock(),
+    checklistItem: createModelMock(),
     taskComment: createModelMock(),
     taskAttachment: createModelMock(),
     taskHistory: createModelMock(),

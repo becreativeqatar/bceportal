@@ -1,4 +1,2 @@
-export { EmployeeListTable } from './employee-list-table';
-export { EmployeeActions } from './employee-actions';
-export { EmployeeHRViewSection } from './employee-hr-view';
-export { EmployeeProfileViewOnly } from './employee-profile-view-only';
+// Re-export from new location for backward compatibility
+export * from '../domains/hr/employees';

@@ -1,1 +1,2 @@
-export { OnboardingWizard } from './onboarding-wizard';
+// Re-export from new location for backward compatibility
+export * from '../domains/hr/onboarding';

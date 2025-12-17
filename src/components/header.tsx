@@ -4,9 +4,14 @@ import { useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { theme } from '@/lib/theme';
+import { MobileSidebar } from '@/components/layout/mobile-sidebar';
+import { adminSidebarConfig, employeeSidebarConfig, type BadgeCounts } from '@/components/layout/sidebar-config';
 
-export default function Header() {
+interface HeaderProps {
+  badgeCounts?: BadgeCounts;
+}
+
+export default function Header({ badgeCounts = {} }: HeaderProps) {
   const { data: session, status } = useSession();
   const pathname = usePathname();
 
@@ -15,17 +20,30 @@ export default function Header() {
     return null;
   }
 
+  // Determine which sidebar config to use based on user role
+  const isAdmin = session?.user?.role === 'ADMIN';
+  const sidebarConfig = isAdmin ? adminSidebarConfig : employeeSidebarConfig;
+
+  // Show mobile sidebar only for authenticated users on admin/employee pages
+  const showMobileSidebar = session && (pathname?.startsWith('/admin') || pathname?.startsWith('/employee') || pathname === '/');
+
   return (
-    <header className="bg-gradient-to-r from-slate-800 to-slate-700 border-b border-slate-600 shadow-md">
+    <header className="bg-gradient-to-r from-slate-800 to-slate-700 border-b border-slate-600 shadow-md sticky top-0 z-30">
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
-          <Link href="/" className="flex items-center">
-            <img
-              src="/logo.png"
-              alt="Logo"
-              className="h-12 w-auto"
-            />
-          </Link>
+          <div className="flex items-center gap-3">
+            {/* Mobile sidebar trigger */}
+            {showMobileSidebar && (
+              <MobileSidebar config={sidebarConfig} badgeCounts={badgeCounts} />
+            )}
+            <Link href="/" className="flex items-center">
+              <img
+                src="/logo.png"
+                alt="Logo"
+                className="h-12 w-auto"
+              />
+            </Link>
+          </div>
 
           <div className="flex items-center gap-4" suppressHydrationWarning>
             {status === "loading" ? (

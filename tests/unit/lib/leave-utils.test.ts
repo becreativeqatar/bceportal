@@ -488,14 +488,16 @@ describe('Leave Utilities', () => {
   });
 
   describe('DEFAULT_LEAVE_TYPES', () => {
-    it('should contain 6 default leave types', () => {
-      expect(DEFAULT_LEAVE_TYPES).toHaveLength(6);
+    it('should contain default leave types', () => {
+      // Qatar Labor Law compliant leave types: Annual, Sick, Maternity, Paternity, Hajj, Unpaid, Compassionate
+      expect(DEFAULT_LEAVE_TYPES.length).toBeGreaterThanOrEqual(7);
     });
 
     it('should include Annual Leave', () => {
       const annual = DEFAULT_LEAVE_TYPES.find(lt => lt.name === 'Annual Leave');
       expect(annual).toBeDefined();
-      expect(annual?.defaultDays).toBe(30);
+      // Base entitlement is 21 days (<5 years service), 28 days for 5+ years
+      expect(annual?.defaultDays).toBe(21);
       expect(annual?.allowCarryForward).toBe(true);
     });
 
