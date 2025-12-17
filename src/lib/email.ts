@@ -1,7 +1,17 @@
 import { Resend } from 'resend';
 
-// Initialize Resend with API key
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization to avoid throwing at module load time when API key is missing
+let resendInstance: Resend | null = null;
+
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) {
+    return null;
+  }
+  if (!resendInstance) {
+    resendInstance = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendInstance;
+}
 
 // Default from address - must use a verified domain in Resend
 const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL || 'Be Creative Portal <noreply@becreative.qa>';
@@ -50,6 +60,11 @@ export async function sendEmail({ to, subject, text, html, from }: EmailOptions)
       emailPayload.text = subject;
     }
 
+    const resend = getResend();
+    if (!resend) {
+      console.log('[Email] Resend not available');
+      return { success: false, error: 'Email service not configured' };
+    }
     const { data, error } = await resend.emails.send(emailPayload as any);
 
     if (error) {
