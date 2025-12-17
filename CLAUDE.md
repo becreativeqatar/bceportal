@@ -102,6 +102,15 @@ API conventions:
    - Manager approval/rejection workflow
    - Team calendar view
    - Utilities in `src/lib/leave-utils.ts`
+9. **Payroll Management** - Full payroll processing workflow (`/admin/payroll/`):
+   - Salary structures with configurable allowances (housing, transport, food, phone, other)
+   - Percentage-based auto-calculation for allowances
+   - Payroll runs with status workflow: DRAFT → SUBMITTED → APPROVED → PAID (or CANCELLED)
+   - Employee loans and advances with installment tracking
+   - Gratuity calculation based on Qatar labor law
+   - WPS (Wage Protection System) file generation
+   - Payslip generation with deductions (unpaid leave, loans, advances)
+   - Validation schemas in `src/lib/validations/payroll.ts`
 
 ### Key Libraries
 
@@ -182,8 +191,11 @@ Key Prisma models (see `prisma/schema.prisma`):
 - `PurchaseRequest`, `PurchaseRequestItem` - Procurement workflow
 - `HRProfile`, `ProfileChangeRequest` - Employee HR data
 - `LeaveType`, `LeaveBalance`, `LeaveRequest` - Leave management system
+- `SalaryStructure`, `SalaryStructureHistory` - Employee salary components
+- `PayrollRun`, `Payslip`, `PayslipDeduction` - Payroll processing
+- `EmployeeLoan`, `LoanRepayment` - Loans and advances
 
-Enums: `Role`, `AssetStatus`, `SubscriptionStatus`, `SupplierStatus`, `AccreditationStatus`, `BillingCycle`, `TaskPriority`, `PurchaseRequestStatus`, `LeaveRequestStatus`
+Enums: `Role`, `AssetStatus`, `SubscriptionStatus`, `SupplierStatus`, `AccreditationStatus`, `BillingCycle`, `TaskPriority`, `PurchaseRequestStatus`, `LeaveRequestStatus`, `PayrollStatus`, `LoanStatus`, `DeductionType`
 
 ## Form Handling Pattern
 

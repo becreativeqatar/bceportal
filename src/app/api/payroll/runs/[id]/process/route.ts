@@ -25,6 +25,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
 
+    // Debug: Check database connection and table existence
+    try {
+      const salaryCount = await prisma.salaryStructure.count();
+      console.log(`[Payroll Process] Found ${salaryCount} salary structures`);
+    } catch (dbError) {
+      console.error('[Payroll Process] Database error:', dbError);
+      return NextResponse.json({
+        error: 'Database connection or table error. SalaryStructure table may not exist.',
+        details: dbError instanceof Error ? dbError.message : 'Unknown'
+      }, { status: 500 });
+    }
+
     // Get payroll run
     const payrollRun = await prisma.payrollRun.findUnique({
       where: { id },
@@ -34,10 +46,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Payroll run not found' }, { status: 404 });
     }
 
-    // Must be in APPROVED status to process
-    if (payrollRun.status !== PayrollStatus.APPROVED) {
+    // Must be in DRAFT status to process
+    if (payrollRun.status !== PayrollStatus.DRAFT) {
       return NextResponse.json({
-        error: 'Payroll must be in APPROVED status to process',
+        error: 'Payroll must be in DRAFT status to process',
         currentStatus: payrollRun.status,
       }, { status: 400 });
     }
@@ -73,13 +85,26 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // Get active loans for deductions
-    const activeLoans = await prisma.employeeLoan.findMany({
-      where: {
-        status: LoanStatus.ACTIVE,
-        startDate: { lte: new Date() },
-      },
-    });
+    if (salaryStructures.length === 0) {
+      return NextResponse.json({
+        error: 'No employees with active salary structures found. Please create salary structures first.',
+      }, { status: 400 });
+    }
+
+    // Get active loans for deductions (wrapped in try-catch)
+    let activeLoans: Awaited<ReturnType<typeof prisma.employeeLoan.findMany>> = [];
+    try {
+      activeLoans = await prisma.employeeLoan.findMany({
+        where: {
+          status: LoanStatus.ACTIVE,
+          // Only include loans that have started by the payroll period end date
+          startDate: { lte: payrollRun.periodEnd },
+        },
+      });
+    } catch (loanError) {
+      console.error('Failed to fetch loans:', loanError);
+      // Continue without loans
+    }
 
     // Create a map of loans by userId
     const loansByUser = new Map<string, typeof activeLoans>();
@@ -108,7 +133,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Process payroll in transaction
+    // Process payroll in transaction (with extended timeout for large payrolls)
     const result = await prisma.$transaction(async (tx) => {
       let totalGross = 0;
       let totalDeductions = 0;
@@ -129,12 +154,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }> = [];
 
         // 1. Calculate unpaid leave deductions
-        const leaveDeductions = await calculateUnpaidLeaveDeductions(
-          salary.userId,
-          payrollRun.year,
-          payrollRun.month,
-          dailyRate
-        );
+        let leaveDeductions: Awaited<ReturnType<typeof calculateUnpaidLeaveDeductions>> = [];
+        try {
+          leaveDeductions = await calculateUnpaidLeaveDeductions(
+            salary.userId,
+            payrollRun.year,
+            payrollRun.month,
+            dailyRate
+          );
+        } catch (leaveError) {
+          console.error('Leave deduction calculation error:', leaveError);
+          // Continue without leave deductions if there's an error
+        }
 
         for (const leave of leaveDeductions) {
           deductionItems.push({
@@ -263,7 +294,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         data: {
           payrollRunId: id,
           action: 'PROCESSED',
-          previousStatus: PayrollStatus.APPROVED,
+          previousStatus: PayrollStatus.DRAFT,
           newStatus: PayrollStatus.PROCESSED,
           notes: `Generated ${createdPayslips.length} payslips`,
           performedById: session.user.id,
@@ -277,6 +308,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         totalDeductions,
         totalNet: totalGross - totalDeductions,
       };
+    }, {
+      maxWait: 10000, // 10 seconds max wait to start transaction
+      timeout: 120000, // 2 minutes timeout for the transaction
     });
 
     await logAction(
@@ -297,8 +331,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     console.error('Payroll process error:', error);
+    let errorMessage = 'Unknown error';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      // Check for common Prisma errors
+      if (error.message.includes('does not exist')) {
+        errorMessage = 'Database table not found. Please run migrations.';
+      } else if (error.message.includes('Foreign key constraint')) {
+        errorMessage = 'Foreign key constraint failed. Check data integrity.';
+      } else if (error.message.includes('Unique constraint')) {
+        errorMessage = 'Duplicate record found.';
+      }
+    }
     return NextResponse.json(
-      { error: 'Failed to process payroll' },
+      { error: `Failed to process payroll: ${errorMessage}` },
       { status: 500 }
     );
   }

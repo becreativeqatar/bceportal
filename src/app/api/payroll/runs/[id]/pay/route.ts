@@ -31,9 +31,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Payroll run not found' }, { status: 404 });
     }
 
-    if (payrollRun.status !== PayrollStatus.PROCESSED) {
+    if (payrollRun.status !== PayrollStatus.APPROVED) {
       return NextResponse.json({
-        error: 'Can only mark PROCESSED payroll runs as paid',
+        error: 'Can only mark APPROVED payroll runs as paid',
         currentStatus: payrollRun.status,
       }, { status: 400 });
     }
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         data: {
           payrollRunId: id,
           action: 'PAID',
-          previousStatus: PayrollStatus.PROCESSED,
+          previousStatus: PayrollStatus.APPROVED,
           newStatus: PayrollStatus.PAID,
           notes: notes || (paymentReference ? `Payment Ref: ${paymentReference}` : undefined),
           performedById: session.user.id,

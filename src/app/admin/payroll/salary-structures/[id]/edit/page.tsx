@@ -215,11 +215,11 @@ export default function EditSalaryStructurePage() {
                   <Input
                     id="basicSalary"
                     type="number"
-                    step="0.01"
                     min="0"
                     placeholder="0.00"
                     value={basicSalary}
                     onChange={(e) => setBasicSalary(e.target.value)}
+                    onKeyDown={(e) => ['ArrowUp', 'ArrowDown'].includes(e.key) && e.preventDefault()}
                     required
                   />
                 </div>
@@ -229,11 +229,11 @@ export default function EditSalaryStructurePage() {
                   <Input
                     id="housingAllowance"
                     type="number"
-                    step="0.01"
                     min="0"
                     placeholder="0.00"
                     value={housingAllowance}
                     onChange={(e) => setHousingAllowance(e.target.value)}
+                    onKeyDown={(e) => ['ArrowUp', 'ArrowDown'].includes(e.key) && e.preventDefault()}
                   />
                 </div>
 
@@ -242,11 +242,11 @@ export default function EditSalaryStructurePage() {
                   <Input
                     id="transportAllowance"
                     type="number"
-                    step="0.01"
                     min="0"
                     placeholder="0.00"
                     value={transportAllowance}
                     onChange={(e) => setTransportAllowance(e.target.value)}
+                    onKeyDown={(e) => ['ArrowUp', 'ArrowDown'].includes(e.key) && e.preventDefault()}
                   />
                 </div>
 
@@ -255,11 +255,11 @@ export default function EditSalaryStructurePage() {
                   <Input
                     id="foodAllowance"
                     type="number"
-                    step="0.01"
                     min="0"
                     placeholder="0.00"
                     value={foodAllowance}
                     onChange={(e) => setFoodAllowance(e.target.value)}
+                    onKeyDown={(e) => ['ArrowUp', 'ArrowDown'].includes(e.key) && e.preventDefault()}
                   />
                 </div>
 
@@ -268,11 +268,11 @@ export default function EditSalaryStructurePage() {
                   <Input
                     id="phoneAllowance"
                     type="number"
-                    step="0.01"
                     min="0"
                     placeholder="0.00"
                     value={phoneAllowance}
                     onChange={(e) => setPhoneAllowance(e.target.value)}
+                    onKeyDown={(e) => ['ArrowUp', 'ArrowDown'].includes(e.key) && e.preventDefault()}
                   />
                 </div>
 
@@ -281,11 +281,11 @@ export default function EditSalaryStructurePage() {
                   <Input
                     id="otherAllowances"
                     type="number"
-                    step="0.01"
                     min="0"
                     placeholder="0.00"
                     value={otherAllowances}
                     onChange={(e) => setOtherAllowances(e.target.value)}
+                    onKeyDown={(e) => ['ArrowUp', 'ArrowDown'].includes(e.key) && e.preventDefault()}
                   />
                 </div>
               </CardContent>

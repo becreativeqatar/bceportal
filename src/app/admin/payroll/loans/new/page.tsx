@@ -49,7 +49,7 @@ export default function NewLoanPage() {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
-    fetch('/api/users?role=EMPLOYEE')
+    fetch('/api/users?includeHrProfile=true')
       .then((res) => res.json())
       .then((data) => setEmployees(data.users || []))
       .catch(() => toast.error('Failed to load employees'));
@@ -161,9 +161,9 @@ export default function NewLoanPage() {
                   id="principalAmount"
                   type="number"
                   min="0"
-                  step="0.01"
                   value={principalAmount}
                   onChange={(e) => setPrincipalAmount(e.target.value)}
+                  onKeyDown={(e) => ['ArrowUp', 'ArrowDown'].includes(e.key) && e.preventDefault()}
                   placeholder="0.00"
                   required
                 />
@@ -175,9 +175,9 @@ export default function NewLoanPage() {
                   id="monthlyDeduction"
                   type="number"
                   min="0"
-                  step="0.01"
                   value={monthlyDeduction}
                   onChange={(e) => setMonthlyDeduction(e.target.value)}
+                  onKeyDown={(e) => ['ArrowUp', 'ArrowDown'].includes(e.key) && e.preventDefault()}
                   placeholder="0.00"
                   required
                 />

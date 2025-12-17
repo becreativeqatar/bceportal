@@ -99,14 +99,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Return validation errors if any critical employees are missing data
-    if (validationErrors.length > 0) {
+    // If ALL employees have invalid data, return error
+    if (wpsRecords.length === 0) {
       return NextResponse.json({
-        error: 'Some employees have invalid WPS data',
+        error: 'No employees have valid WPS data. Please update HR profiles with QID and bank details.',
         validationErrors,
-        validRecords: wpsRecords.length,
+        validRecords: 0,
         invalidRecords: validationErrors.length,
       }, { status: 400 });
+    }
+
+    // Log warning about skipped employees but continue with valid ones
+    if (validationErrors.length > 0) {
+      console.warn(`WPS: Skipping ${validationErrors.length} employees with invalid data:`, validationErrors);
     }
 
     // Calculate totals

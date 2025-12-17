@@ -134,8 +134,23 @@ export function PayrollWorkflowActions({
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-2">
-          {/* Submit for Approval */}
+          {/* Process (Generate Payslips) - First step from DRAFT */}
           {currentStatus === PayrollStatus.DRAFT && (
+            <Button
+              onClick={() => handleAction('processed', 'process')}
+              disabled={isLoading !== null}
+            >
+              {isLoading === 'processed' ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="mr-2 h-4 w-4" />
+              )}
+              Generate Payslips
+            </Button>
+          )}
+
+          {/* Submit for Approval - After payslips are generated */}
+          {currentStatus === PayrollStatus.PROCESSED && hasPayslips && (
             <Button
               onClick={() => handleAction('submitted', 'submit')}
               disabled={isLoading !== null}
@@ -178,23 +193,8 @@ export function PayrollWorkflowActions({
             </>
           )}
 
-          {/* Process (Generate Payslips) */}
+          {/* Mark as Paid - After approval */}
           {currentStatus === PayrollStatus.APPROVED && (
-            <Button
-              onClick={() => handleAction('processed', 'process')}
-              disabled={isLoading !== null}
-            >
-              {isLoading === 'processed' ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="mr-2 h-4 w-4" />
-              )}
-              Generate Payslips
-            </Button>
-          )}
-
-          {/* Mark as Paid */}
-          {currentStatus === PayrollStatus.PROCESSED && hasPayslips && (
             <Button
               onClick={() => handleAction('paid', 'pay')}
               disabled={isLoading !== null}
@@ -209,7 +209,10 @@ export function PayrollWorkflowActions({
           )}
 
           {/* Generate WPS */}
-          {(currentStatus === PayrollStatus.PROCESSED || currentStatus === PayrollStatus.PAID) &&
+          {(currentStatus === PayrollStatus.PROCESSED ||
+            currentStatus === PayrollStatus.PENDING_APPROVAL ||
+            currentStatus === PayrollStatus.APPROVED ||
+            currentStatus === PayrollStatus.PAID) &&
             hasPayslips && (
               <Button
                 variant="outline"
@@ -275,19 +278,19 @@ export function PayrollWorkflowActions({
         {/* Status Description */}
         <div className="mt-4 p-4 bg-muted rounded-lg text-sm text-muted-foreground">
           {currentStatus === PayrollStatus.DRAFT && (
-            <p>This payroll run is in draft. Submit it for approval when ready.</p>
-          )}
-          {currentStatus === PayrollStatus.PENDING_APPROVAL && (
-            <p>This payroll run is pending approval. Review and approve or reject.</p>
-          )}
-          {currentStatus === PayrollStatus.APPROVED && (
-            <p>This payroll run is approved. Generate payslips to proceed.</p>
+            <p>This payroll run is in draft. Click &quot;Generate Payslips&quot; to calculate salaries for all employees.</p>
           )}
           {currentStatus === PayrollStatus.PROCESSED && (
             <p>
-              Payslips have been generated. Review them and mark as paid when payment is made.
+              Payslips have been generated. Review them and submit for approval when ready.
               You can also generate the WPS file for bank submission.
             </p>
+          )}
+          {currentStatus === PayrollStatus.PENDING_APPROVAL && (
+            <p>This payroll run is pending approval. Review payslips and approve or reject.</p>
+          )}
+          {currentStatus === PayrollStatus.APPROVED && (
+            <p>This payroll run is approved. Mark as paid when payment is made.</p>
           )}
           {currentStatus === PayrollStatus.PAID && (
             <p>This payroll run has been marked as paid. You can regenerate the WPS file if needed.</p>
