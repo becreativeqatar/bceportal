@@ -15,6 +15,7 @@ async function getUsersHandler(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const role = searchParams.get('role');
   const includeHrProfile = searchParams.get('includeHrProfile') === 'true';
+  const includeAll = searchParams.get('includeAll') === 'true';
 
   // Build where clause
   const where: any = {};
@@ -31,12 +32,21 @@ async function getUsersHandler(request: NextRequest) {
   };
 
   // Include HR profile if requested (for date of joining, etc.)
-  if (includeHrProfile) {
+  if (includeHrProfile || includeAll) {
     include.hrProfile = {
       select: {
         dateOfJoining: true,
         employeeId: true,
         designation: true,
+      },
+    };
+  }
+
+  // Include salary structure if includeAll (for payroll module)
+  if (includeAll) {
+    include.salaryStructure = {
+      select: {
+        id: true,
       },
     };
   }
@@ -48,9 +58,9 @@ async function getUsersHandler(request: NextRequest) {
     orderBy: { createdAt: 'desc' },
   });
 
-  // Return wrapped format when includeHrProfile is used for consistency with other APIs
+  // Return wrapped format when includeHrProfile or includeAll is used for consistency with other APIs
   // Otherwise return array directly for backward compatibility
-  if (includeHrProfile) {
+  if (includeHrProfile || includeAll) {
     return NextResponse.json({ users });
   }
   return NextResponse.json(users);
