@@ -239,7 +239,7 @@ export default function EditProjectPage({ params }: Props) {
               <div className="space-y-2">
                 <Label htmlFor="managerId">Project Manager *</Label>
                 <Select
-                  value={watch('managerId') || ''}
+                  value={watch('managerId') || undefined}
                   onValueChange={(value) => setValue('managerId', value)}
                 >
                   <SelectTrigger className={errors.managerId ? 'border-red-500' : ''}>
@@ -290,7 +290,7 @@ export default function EditProjectPage({ params }: Props) {
                 <div className="space-y-2">
                   <Label htmlFor="supplierId">Supplier *</Label>
                   <Select
-                    value={watch('supplierId') || ''}
+                    value={watch('supplierId') || undefined}
                     onValueChange={(value) => setValue('supplierId', value || null as any)}
                   >
                     <SelectTrigger>
