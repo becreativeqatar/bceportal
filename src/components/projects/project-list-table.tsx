@@ -47,7 +47,7 @@ interface Pagination {
 }
 
 const PROJECT_STATUSES = [
-  { value: '', label: 'All Statuses' },
+  { value: '__all__', label: 'All Statuses' },
   { value: 'PLANNING', label: 'Planning' },
   { value: 'ACTIVE', label: 'Active' },
   { value: 'ON_HOLD', label: 'On Hold' },
@@ -56,7 +56,7 @@ const PROJECT_STATUSES = [
 ];
 
 const CLIENT_TYPES = [
-  { value: '', label: 'All Types' },
+  { value: '__all__', label: 'All Types' },
   { value: 'INTERNAL', label: 'Internal' },
   { value: 'EXTERNAL', label: 'External' },
   { value: 'SUPPLIER', label: 'Supplier' },
@@ -72,8 +72,8 @@ export function ProjectListTable() {
 
   // Filter state
   const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [status, setStatus] = useState(searchParams.get('status') || '');
-  const [clientType, setClientType] = useState(searchParams.get('clientType') || '');
+  const [status, setStatus] = useState(searchParams.get('status') || '__all__');
+  const [clientType, setClientType] = useState(searchParams.get('clientType') || '__all__');
   const [page, setPage] = useState(parseInt(searchParams.get('page') || '1'));
 
   useEffect(() => {
@@ -85,8 +85,8 @@ export function ProjectListTable() {
     try {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
-      if (status) params.set('status', status);
-      if (clientType) params.set('clientType', clientType);
+      if (status && status !== '__all__') params.set('status', status);
+      if (clientType && clientType !== '__all__') params.set('clientType', clientType);
       params.set('page', page.toString());
       params.set('pageSize', '20');
 
@@ -155,7 +155,7 @@ export function ProjectListTable() {
           </SelectTrigger>
           <SelectContent>
             {PROJECT_STATUSES.map((s) => (
-              <SelectItem key={s.value || 'all'} value={s.value}>
+              <SelectItem key={s.value} value={s.value}>
                 {s.label}
               </SelectItem>
             ))}
@@ -167,7 +167,7 @@ export function ProjectListTable() {
           </SelectTrigger>
           <SelectContent>
             {CLIENT_TYPES.map((t) => (
-              <SelectItem key={t.value || 'all'} value={t.value}>
+              <SelectItem key={t.value} value={t.value}>
                 {t.label}
               </SelectItem>
             ))}

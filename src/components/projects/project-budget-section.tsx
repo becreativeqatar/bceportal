@@ -85,7 +85,7 @@ export function ProjectBudgetSection({ projectId }: ProjectBudgetSectionProps) {
   const [newItem, setNewItem] = useState({
     costCode: '',
     description: '',
-    categoryId: '',
+    categoryId: '__none__',
     budgetedAmount: '',
     actualAmount: '',
     currency: 'QAR',
@@ -148,7 +148,7 @@ export function ProjectBudgetSection({ projectId }: ProjectBudgetSectionProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...newItem,
-          categoryId: newItem.categoryId || null,
+          categoryId: newItem.categoryId === '__none__' ? null : (newItem.categoryId || null),
           budgetedAmount: newItem.budgetedAmount ? parseFloat(newItem.budgetedAmount) : null,
           actualAmount: newItem.actualAmount ? parseFloat(newItem.actualAmount) : null,
         }),
@@ -157,7 +157,7 @@ export function ProjectBudgetSection({ projectId }: ProjectBudgetSectionProps) {
       if (response.ok) {
         toast.success('Budget item added');
         setShowAddItem(false);
-        setNewItem({ costCode: '', description: '', categoryId: '', budgetedAmount: '', actualAmount: '', currency: 'QAR' });
+        setNewItem({ costCode: '', description: '', categoryId: '__none__', budgetedAmount: '', actualAmount: '', currency: 'QAR' });
         fetchData();
       } else {
         const error = await response.json();
@@ -323,7 +323,7 @@ export function ProjectBudgetSection({ projectId }: ProjectBudgetSectionProps) {
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No Category</SelectItem>
+                        <SelectItem value="__none__">No Category</SelectItem>
                         {categories.map((cat) => (
                           <SelectItem key={cat.id} value={cat.id}>
                             {cat.name}
