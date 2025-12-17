@@ -470,6 +470,24 @@ export default async function Home() {
                   </Card>
                 </Link>
 
+                {/* Payroll */}
+                <Link href="/admin/payroll">
+                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
+                    <CardHeader>
+                      <div className="text-4xl mb-2">💰</div>
+                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
+                        Payroll
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-gray-600">Salary structures, payroll runs, loans & gratuity</CardDescription>
+                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
+                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+
                 {/* Settings */}
                 <Link href="/admin/settings">
                   <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
@@ -585,6 +603,23 @@ export default async function Home() {
                     </CardHeader>
                     <CardContent>
                       <CardDescription className="text-gray-600">Request leave and view your balances</CardDescription>
+                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
+                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <Link href="/employee/payroll">
+                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">
+                    <CardHeader>
+                      <div className="text-4xl mb-2">💰</div>
+                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
+                        Payroll
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-gray-600">View payslips and gratuity estimate</CardDescription>
                       <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
                         Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
                       </div>
