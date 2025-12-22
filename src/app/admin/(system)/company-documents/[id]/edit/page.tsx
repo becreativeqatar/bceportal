@@ -29,35 +29,40 @@ export default async function EditCompanyDocumentPage({ params }: Props) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href={`/admin/company-documents/${document.id}`}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold">Edit Document</h1>
-          <p className="text-muted-foreground">
-            {document.documentType.name}
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="mb-8">
+            <div className="flex items-center gap-4">
+              <Link href={`/admin/company-documents/${document.id}`}>
+                <Button variant="ghost" size="icon">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Edit Document</h1>
+                <p className="text-gray-600">
+                  {document.documentType.name}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <CompanyDocumentForm
+            mode="edit"
+            initialData={{
+              id: document.id,
+              documentTypeId: document.documentTypeId,
+              referenceNumber: document.referenceNumber,
+              expiryDate: document.expiryDate,
+              documentUrl: document.documentUrl,
+              assetId: document.assetId,
+              renewalCost: document.renewalCost ? Number(document.renewalCost) : null,
+              notes: document.notes,
+            }}
+          />
         </div>
       </div>
-
-      <CompanyDocumentForm
-        mode="edit"
-        initialData={{
-          id: document.id,
-          documentTypeId: document.documentTypeId,
-          referenceNumber: document.referenceNumber,
-          issuedBy: document.issuedBy,
-          expiryDate: document.expiryDate,
-          documentUrl: document.documentUrl,
-          assetId: document.assetId,
-          renewalCost: document.renewalCost ? Number(document.renewalCost) : null,
-          notes: document.notes,
-        }}
-      />
     </div>
   );
 }

@@ -43,7 +43,6 @@ interface CompanyDocumentFormProps {
     id: string;
     documentTypeId: string;
     referenceNumber: string | null;
-    issuedBy: string | null;
     expiryDate: Date | string;
     documentUrl: string | null;
     assetId: string | null;
@@ -71,7 +70,6 @@ export function CompanyDocumentForm({ initialData, mode }: CompanyDocumentFormPr
     defaultValues: {
       documentTypeId: initialData?.documentTypeId || '',
       referenceNumber: initialData?.referenceNumber || '',
-      issuedBy: initialData?.issuedBy || '',
       expiryDate: formatDateForInput(initialData?.expiryDate),
       documentUrl: initialData?.documentUrl || '',
       assetId: initialData?.assetId || '',
@@ -197,16 +195,6 @@ export function CompanyDocumentForm({ initialData, mode }: CompanyDocumentFormPr
             />
           </div>
 
-          {/* Issued By */}
-          <div className="space-y-2">
-            <Label htmlFor="issuedBy">Issued By</Label>
-            <Input
-              id="issuedBy"
-              {...register('issuedBy')}
-              placeholder="e.g., Ministry of Commerce"
-            />
-          </div>
-
           {/* Expiry Date */}
           <div className="space-y-2">
             <Label htmlFor="expiryDate">Expiry Date *</Label>
@@ -226,14 +214,14 @@ export function CompanyDocumentForm({ initialData, mode }: CompanyDocumentFormPr
             <div className="space-y-2">
               <Label htmlFor="assetId">Linked Vehicle</Label>
               <Select
-                value={watch('assetId') || ''}
-                onValueChange={(value) => setValue('assetId', value)}
+                value={watch('assetId') || 'none'}
+                onValueChange={(value) => setValue('assetId', value === 'none' ? '' : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select vehicle (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No vehicle linked</SelectItem>
+                  <SelectItem value="none">No vehicle linked</SelectItem>
                   {vehicles.map((vehicle) => (
                     <SelectItem key={vehicle.id} value={vehicle.id}>
                       {vehicle.assetTag || `${vehicle.brand} ${vehicle.model}`}

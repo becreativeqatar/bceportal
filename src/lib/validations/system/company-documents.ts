@@ -30,7 +30,6 @@ export type CompanyDocumentTypeUpdateInput = z.infer<typeof companyDocumentTypeU
 export const companyDocumentSchema = z.object({
   documentTypeId: z.string().cuid('Invalid document type'),
   referenceNumber: z.string().max(100).optional().nullable(),
-  issuedBy: z.string().max(200).optional().nullable(),
   expiryDate: z.string().min(1, 'Expiry date is required'),
   documentUrl: z.string().url().optional().nullable().or(z.literal('')),
   assetId: z.string().cuid().optional().nullable().or(z.literal('')), // For vehicle documents

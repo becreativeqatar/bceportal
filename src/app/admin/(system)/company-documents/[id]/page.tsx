@@ -76,30 +76,34 @@ export default async function CompanyDocumentDetailPage({ params }: Props) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/company-documents">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">{document.documentType.name}</h1>
-            <p className="text-muted-foreground">
-              {document.documentType.category} Document
-            </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Link href="/admin/company-documents">
+                  <Button variant="ghost" size="icon">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">{document.documentType.name}</h1>
+                  <p className="text-gray-600">
+                    {document.documentType.category} Document
+                  </p>
+                </div>
+              </div>
+              <Link href={`/admin/company-documents/${document.id}/edit`}>
+                <Button>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Document
+                </Button>
+              </Link>
+            </div>
           </div>
-        </div>
-        <Link href={`/admin/company-documents/${document.id}/edit`}>
-          <Button>
-            <Edit className="mr-2 h-4 w-4" />
-            Edit Document
-          </Button>
-        </Link>
-      </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
         {/* Document Details */}
         <Card>
           <CardHeader>
@@ -120,13 +124,6 @@ export default async function CompanyDocumentDetailPage({ params }: Props) {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Reference Number</p>
                 <p className="text-lg font-mono">{document.referenceNumber}</p>
-              </div>
-            )}
-
-            {document.issuedBy && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Issued By</p>
-                <p>{document.issuedBy}</p>
               </div>
             )}
 
@@ -212,6 +209,8 @@ export default async function CompanyDocumentDetailPage({ params }: Props) {
             )}
           </CardContent>
         </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

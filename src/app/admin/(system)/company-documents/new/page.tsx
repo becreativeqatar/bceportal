@@ -2,15 +2,19 @@ import { CompanyDocumentForm } from '@/components/domains/system/company-documen
 
 export default function NewCompanyDocumentPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Add Company Document</h1>
-        <p className="text-muted-foreground">
-          Add a new company or vehicle document for tracking
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Add Company Document</h1>
+            <p className="text-gray-600">
+              Add a new company or vehicle document for tracking
+            </p>
+          </div>
 
-      <CompanyDocumentForm mode="create" />
+          <CompanyDocumentForm mode="create" />
+        </div>
+      </div>
     </div>
   );
 }

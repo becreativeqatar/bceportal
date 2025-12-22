@@ -195,25 +195,31 @@ async function DocumentList() {
 
 export default function CompanyDocumentsPage() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Company Documents</h1>
-          <p className="text-muted-foreground">
-            Track company licenses, registrations, and vehicle documents
-          </p>
-        </div>
-        <Link href="/admin/company-documents/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Document
-          </Button>
-        </Link>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Company Documents</h1>
+                <p className="text-gray-600">
+                  Track company licenses, registrations, and vehicle documents
+                </p>
+              </div>
+              <Link href="/admin/company-documents/new">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Document
+                </Button>
+              </Link>
+            </div>
+          </div>
 
-      <Suspense fallback={<div>Loading documents...</div>}>
-        <DocumentList />
-      </Suspense>
+          <Suspense fallback={<div>Loading documents...</div>}>
+            <DocumentList />
+          </Suspense>
+        </div>
+      </div>
     </div>
   );
 }

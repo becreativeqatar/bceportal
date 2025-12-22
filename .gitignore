@@ -78,6 +78,7 @@ temp-*.js
 
 # Cleanup folders
 /_TO_DELETE/
+/_workspace/
 /docs/email-mockups/
 /docs/mockups/
 /docs/status/
