@@ -307,6 +307,25 @@ async function main() {
   }
 
   console.log('✅ Created leave balances (STANDARD and MEDICAL categories only)');
+
+  // Create default company document types
+  const DEFAULT_DOCUMENT_TYPES = [
+    { name: 'Commercial Registration', code: 'CR', category: 'COMPANY', description: 'Company commercial registration certificate', sortOrder: 1 },
+    { name: 'Trade License', code: 'TRADE_LICENSE', category: 'COMPANY', description: 'Business trade license', sortOrder: 2 },
+    { name: 'Computer Card Municipality License', code: 'MUNICIPALITY_LICENSE', category: 'COMPANY', description: 'Municipality computer card license', sortOrder: 3 },
+    { name: 'Vehicle Insurance', code: 'VEHICLE_INSURANCE', category: 'VEHICLE', description: 'Vehicle insurance policy', sortOrder: 4 },
+    { name: 'Vehicle Istimara', code: 'VEHICLE_ISTIMARA', category: 'VEHICLE', description: 'Vehicle registration (Istimara)', sortOrder: 5 },
+  ];
+
+  for (const docType of DEFAULT_DOCUMENT_TYPES) {
+    await prisma.companyDocumentType.upsert({
+      where: { code: docType.code },
+      update: {},
+      create: docType,
+    });
+  }
+
+  console.log('✅ Created company document types');
   console.log('🎉 Seeding completed successfully!');
 }
 

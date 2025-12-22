@@ -115,6 +115,7 @@ export function HRProfileForm({ initialData, isAdmin = false, userId, onSave }: 
       passportCopyUrl: initialData?.passportCopyUrl || '',
       photoUrl: initialData?.photoUrl || '',
       contractCopyUrl: initialData?.contractCopyUrl || '',
+      contractExpiry: formatDateForPicker(initialData?.contractExpiry),
       hasDrivingLicense: initialData?.hasDrivingLicense || false,
       licenseExpiry: formatDateForPicker(initialData?.licenseExpiry),
       languagesKnown: initialData?.languagesKnown || '[]',
@@ -130,6 +131,7 @@ export function HRProfileForm({ initialData, isAdmin = false, userId, onSave }: 
   const passportExpiry = watch('passportExpiry');
   const healthCardExpiry = watch('healthCardExpiry');
   const licenseExpiry = watch('licenseExpiry');
+  const contractExpiry = watch('contractExpiry');
 
   const toggleSection = (section: string) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -757,16 +759,28 @@ export function HRProfileForm({ initialData, isAdmin = false, userId, onSave }: 
             description="JPG or PNG, max 5MB"
           />
 
-          {/* Contract hidden for now - will be added later
-          <DocumentUpload
-            id="contractCopy"
-            label="Contract Copy"
-            value={watch('contractCopyUrl')}
-            onChange={(url) => setValue('contractCopyUrl', url, { shouldDirty: true })}
-            accept="application/pdf"
-            description="PDF only, max 5MB"
-          />
-          */}
+          <div className="space-y-4">
+            <DocumentUpload
+              id="contractCopy"
+              label="Employment Contract / Work Permit"
+              value={watch('contractCopyUrl')}
+              onChange={(url) => setValue('contractCopyUrl', url, { shouldDirty: true })}
+              accept="application/pdf"
+              description="PDF only, max 5MB"
+            />
+            <div className="space-y-2">
+              <Label htmlFor="contractExpiry">Contract / Work Permit Expiry</Label>
+              <div className="flex items-center gap-2">
+                <DatePicker
+                  id="contractExpiry"
+                  value={watch('contractExpiry') || ''}
+                  onChange={(val) => setValue('contractExpiry', val, { shouldDirty: true })}
+                  placeholder="DD/MM/YYYY"
+                />
+                <ExpiryBadge date={contractExpiry} />
+              </div>
+            </div>
+          </div>
         </div>
       </SectionCard>
 

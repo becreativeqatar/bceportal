@@ -80,12 +80,14 @@ export default async function Home() {
       prisma.profileChangeRequest.count({ where: { status: 'PENDING' } }),
     ]);
 
-    // Batch 3: HR, projects
+    // Batch 3: HR, projects, company documents
     const [
       pendingLeaveRequests,
       expiringDocuments,
       incompleteOnboarding,
       totalProjects,
+      expiringCompanyDocs,
+      expiredCompanyDocs,
     ] = await Promise.all([
       prisma.leaveRequest.count({ where: { status: 'PENDING' } }),
       prisma.hRProfile.count({
@@ -101,6 +103,12 @@ export default async function Home() {
         where: { onboardingComplete: false },
       }),
       prisma.project.count(),
+      prisma.companyDocument.count({
+        where: { expiryDate: { gte: today, lte: thirtyDaysFromNow } },
+      }),
+      prisma.companyDocument.count({
+        where: { expiryDate: { lt: today } },
+      }),
     ]);
 
     // Batch 4: Monthly spend data (has internal queries)
@@ -140,6 +148,8 @@ export default async function Home() {
       pendingLeaveRequests,
       expiringDocuments,
       incompleteOnboarding,
+      expiringCompanyDocs,
+      expiredCompanyDocs,
     };
   }
 
@@ -595,7 +605,7 @@ export default async function Home() {
                 Needs Your Attention
               </h2>
 
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
 
                 {/* Upcoming Renewals */}
                 <Card className="bg-white border-l-4 border-l-orange-500 hover:shadow-lg transition-all">
@@ -746,6 +756,44 @@ export default async function Home() {
                         </Button>
                       </Link>
                     )}
+                  </CardContent>
+                </Card>
+
+                {/* Company Documents */}
+                <Card className="bg-white border-l-4 border-l-teal-500 hover:shadow-lg transition-all">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-semibold text-gray-900">Company Documents</CardTitle>
+                      <Badge variant="outline" className={`${(adminData.expiredCompanyDocs + adminData.expiringCompanyDocs) > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+                        {adminData.expiredCompanyDocs + adminData.expiringCompanyDocs > 0 ? `${adminData.expiredCompanyDocs + adminData.expiringCompanyDocs} Alerts` : 'OK'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      {adminData.expiredCompanyDocs > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Expired</span>
+                          <span className="text-red-600 font-medium">{adminData.expiredCompanyDocs}</span>
+                        </div>
+                      )}
+                      {adminData.expiringCompanyDocs > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Expiring Soon</span>
+                          <span className="text-orange-600 font-medium">{adminData.expiringCompanyDocs}</span>
+                        </div>
+                      )}
+                      {adminData.expiredCompanyDocs === 0 && adminData.expiringCompanyDocs === 0 && (
+                        <p className="text-gray-500 text-sm flex items-center gap-1">
+                          <CheckCircle className="h-4 w-4 text-green-500" /> All documents valid
+                        </p>
+                      )}
+                    </div>
+                    <Link href="/admin/company-documents">
+                      <Button variant="ghost" size="sm" className="w-full mt-4 text-slate-700 hover:bg-slate-50">
+                        View Company Documents →
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
 

@@ -49,6 +49,7 @@ async function checkEmployeeDocumentExpiry() {
         { passportExpiry: { lte: alertThreshold } },
         { healthCardExpiry: { lte: alertThreshold } },
         { licenseExpiry: { lte: alertThreshold } },
+        { contractExpiry: { lte: alertThreshold } },
       ],
     },
     include: {
@@ -115,6 +116,19 @@ async function checkEmployeeDocumentExpiry() {
         documents.push({
           name: 'Driving License',
           expiryDate: profile.licenseExpiry,
+          daysRemaining,
+          status: daysRemaining < 0 ? 'expired' : 'expiring',
+        });
+      }
+    }
+
+    // Check Employment Contract / Work Permit
+    if (profile.contractExpiry) {
+      const daysRemaining = getDaysRemaining(profile.contractExpiry);
+      if (daysRemaining <= maxWindow) {
+        documents.push({
+          name: 'Employment Contract / Work Permit',
+          expiryDate: profile.contractExpiry,
           daysRemaining,
           status: daysRemaining < 0 ? 'expired' : 'expiring',
         });

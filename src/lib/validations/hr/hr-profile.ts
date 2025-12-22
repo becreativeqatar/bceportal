@@ -126,6 +126,7 @@ export const hrProfileSchema = z.object({
   passportCopyUrl: optionalString,
   photoUrl: optionalString,
   contractCopyUrl: optionalString,
+  contractExpiry: optionalDateString, // Employment contract / work permit expiry
 
   // Additional Info
   hasDrivingLicense: z.boolean().optional().default(false),

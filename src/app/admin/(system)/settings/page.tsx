@@ -10,6 +10,7 @@ import { DatabaseStats } from '@/components/settings/database-stats';
 import { DataDeletion } from '@/components/settings/data-deletion';
 import { BackupDownload } from '@/components/settings/backup-download';
 import { PayrollSettings } from '@/components/settings/payroll-settings';
+import { DocumentTypeSettings } from '@/components/domains/system/settings/DocumentTypeSettings';
 import { prisma } from '@/lib/prisma';
 
 export default async function SettingsPage() {
@@ -63,10 +64,11 @@ export default async function SettingsPage() {
           </div>
 
           <Tabs defaultValue="backup" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7">
               <TabsTrigger value="backup">Backup</TabsTrigger>
               <TabsTrigger value="export">Data Export/Import</TabsTrigger>
               <TabsTrigger value="database">Database</TabsTrigger>
+              <TabsTrigger value="doctypes">Document Types</TabsTrigger>
               <TabsTrigger value="testing" className="text-red-600">Testing/Deletion</TabsTrigger>
               <TabsTrigger value="organization">Organization</TabsTrigger>
               <TabsTrigger value="system">System Config</TabsTrigger>
@@ -85,6 +87,11 @@ export default async function SettingsPage() {
             {/* Database Tab */}
             <TabsContent value="database" className="space-y-6">
               <DatabaseStats stats={dbStats} />
+            </TabsContent>
+
+            {/* Document Types Tab */}
+            <TabsContent value="doctypes" className="space-y-6">
+              <DocumentTypeSettings />
             </TabsContent>
 
             {/* Testing/Deletion Tab */}

@@ -1391,3 +1391,143 @@ Be Creative Procurement Team
 
   return { subject, html, text };
 }
+
+// ============================================================================
+// COMPANY DOCUMENT EXPIRY ALERT EMAIL (Admin Alert)
+// ============================================================================
+
+interface CompanyDocumentExpiryAlert {
+  documentType: string;
+  referenceNumber: string | null;
+  expiryDate: Date;
+  daysRemaining: number;
+  status: 'expired' | 'expiring';
+  assetInfo?: string | null; // For vehicle documents
+}
+
+interface CompanyDocumentExpiryAlertData {
+  documents: CompanyDocumentExpiryAlert[];
+  expiredCount: number;
+  expiringCount: number;
+}
+
+export function companyDocumentExpiryAlertEmail(data: CompanyDocumentExpiryAlertData): { subject: string; html: string; text: string } {
+  const subject = `Company Document Alert: ${data.expiredCount} Expired, ${data.expiringCount} Expiring Soon`;
+
+  const documentRows = data.documents.map(doc => {
+    const isExpired = doc.status === 'expired';
+    const bgColor = isExpired ? '#fef2f2' : '#fffbeb';
+    const borderColor = isExpired ? '#dc3545' : '#ffc107';
+    const badgeColor = isExpired ? '#dc3545' : '#ffc107';
+    const statusText = isExpired ? 'EXPIRED' : 'EXPIRING';
+    const daysText = isExpired
+      ? `${Math.abs(doc.daysRemaining)} days ago`
+      : `in ${doc.daysRemaining} days`;
+
+    return `
+      <tr>
+        <td style="padding: 0 0 10px 0;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: ${bgColor}; border-radius: 8px; border-left: 4px solid ${borderColor};">
+            <tr>
+              <td style="padding: 12px 16px;">
+                <div style="font-weight: bold; color: #333333; font-size: 14px; margin-bottom: 4px;">
+                  ${doc.documentType}
+                  <span style="display: inline-block; padding: 2px 8px; background-color: ${badgeColor}; color: #ffffff; font-size: 10px; border-radius: 10px; margin-left: 8px;">
+                    ${statusText}
+                  </span>
+                </div>
+                <div style="color: #555555; font-size: 13px;">
+                  Expires: ${formatDate(doc.expiryDate)} (${daysText})
+                </div>
+                ${doc.referenceNumber ? `<div style="color: #666666; font-size: 12px;">Ref: ${doc.referenceNumber}</div>` : ''}
+                ${doc.assetInfo ? `<div style="color: #666666; font-size: 12px;">Vehicle: ${doc.assetInfo}</div>` : ''}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  const html = emailWrapper(`
+    <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 20px;">Company Document Expiry Alert</h2>
+
+    <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+      The following company documents require your attention:
+    </p>
+
+    <!-- Summary Box -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8f9fa; border-radius: 8px; margin: 20px 0;">
+      <tr>
+        <td style="padding: 15px 20px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="text-align: center; padding: 10px;">
+                <div style="font-size: 28px; font-weight: bold; color: #dc3545;">${data.expiredCount}</div>
+                <div style="font-size: 12px; color: #666666;">Expired</div>
+              </td>
+              <td style="text-align: center; padding: 10px;">
+                <div style="font-size: 28px; font-weight: bold; color: #ffc107;">${data.expiringCount}</div>
+                <div style="font-size: 12px; color: #666666;">Expiring Soon</div>
+              </td>
+              <td style="text-align: center; padding: 10px;">
+                <div style="font-size: 28px; font-weight: bold; color: ${BRAND_COLOR};">${data.documents.length}</div>
+                <div style="font-size: 12px; color: #666666;">Total Documents</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Documents List -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 25px 0;">
+      ${documentRows}
+    </table>
+
+    <!-- CTA Button -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 25px 0;">
+      <tr>
+        <td align="center">
+          <a href="${PORTAL_URL}/admin/company-documents"
+             style="display: inline-block; padding: 14px 30px; background-color: ${BRAND_COLOR}; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: bold;">
+            View Company Documents
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="color: #888888; font-size: 12px; margin-top: 20px;">
+      Please renew these documents before they expire to avoid any compliance issues.
+    </p>
+  `);
+
+  const documentsList = data.documents.map(doc => {
+    const isExpired = doc.status === 'expired';
+    const daysText = isExpired
+      ? `(Expired ${Math.abs(doc.daysRemaining)} days ago)`
+      : `(Expires in ${doc.daysRemaining} days)`;
+    return `- ${doc.documentType}: ${formatDate(doc.expiryDate)} ${daysText}${doc.referenceNumber ? ` [${doc.referenceNumber}]` : ''}`;
+  }).join('\n');
+
+  const text = `
+Company Document Expiry Alert
+
+Summary:
+- Expired: ${data.expiredCount}
+- Expiring Soon: ${data.expiringCount}
+- Total: ${data.documents.length}
+
+Documents requiring attention:
+${documentsList}
+
+View documents at: ${PORTAL_URL}/admin/company-documents
+
+Please renew these documents before they expire to avoid any compliance issues.
+
+Best regards,
+Be Creative Portal
+`.trim();
+
+  return { subject, html, text };
+}

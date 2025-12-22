@@ -19,6 +19,7 @@
     "cron:subs": "tsx scripts/cron/subscriptionRenewalAlerts.ts",
     "cron:warranty": "tsx scripts/cron/warrantyAlerts.ts",
     "cron:employee-expiry": "tsx scripts/cron/employeeExpiryAlerts.ts",
+    "cron:company-docs": "tsx scripts/cron/companyDocumentExpiryAlerts.ts",
     "ops:purge-activity": "tsx scripts/ops/purgeOldActivity.ts",
     "backup:db": "tsx scripts/backup/database.ts",
     "backup:files": "tsx scripts/backup/files.ts",

@@ -198,6 +198,9 @@ model User {
   assetRequestsProcessed       AssetRequest[]        @relation("AssetRequestProcessor")
   assetRequestHistoryPerformed AssetRequestHistory[] @relation("AssetRequestHistoryPerformer")
 
+  // Company Document relations
+  companyDocumentsCreated CompanyDocument[] @relation("CompanyDocumentCreator")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -243,6 +246,7 @@ model Asset {
   history            AssetHistory[]
   maintenanceRecords MaintenanceRecord[]
   assetRequests      AssetRequest[]
+  companyDocuments   CompanyDocument[] // Vehicle documents (insurance, istimara)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -518,6 +522,7 @@ model HRProfile {
   passportCopyUrl String?
   photoUrl        String?
   contractCopyUrl String?
+  contractExpiry  DateTime? // Employment contract / work permit expiry
 
   // Additional Info
   hasDrivingLicense    Boolean   @default(false)
@@ -1266,4 +1271,60 @@ model AssetRequestHistory {
 
   @@index([assetRequestId])
   @@index([createdAt])
+}
+
+// ===== Company Document Management =====
+
+model CompanyDocumentType {
+  id          String  @id @default(cuid())
+  name        String  @unique // e.g., "Commercial Registration", "Trade License"
+  code        String  @unique // e.g., "CR", "TRADE_LICENSE" (for system use)
+  category    String  @default("COMPANY") // COMPANY or VEHICLE
+  description String?
+  isActive    Boolean @default(true)
+  sortOrder   Int     @default(0)
+
+  // Relations
+  documents CompanyDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model CompanyDocument {
+  id String @id @default(cuid())
+
+  // Document Classification (linked to admin-managed types)
+  documentTypeId  String
+  documentType    CompanyDocumentType @relation(fields: [documentTypeId], references: [id])
+  referenceNumber String? // Document number/ID
+
+  // Issuing Authority & Expiry
+  issuedBy   String? // e.g., "Ministry of Commerce"
+  expiryDate DateTime // Required - indexed for alerts
+
+  // File Storage
+  documentUrl String? // Supabase storage URL
+
+  // Vehicle Linking (optional - for VEHICLE category types)
+  assetId String?
+  asset   Asset?  @relation(fields: [assetId], references: [id])
+
+  // Status & Notes
+  renewalCost Decimal? @db.Decimal(12, 2)
+  notes       String?
+
+  // Audit
+  createdById String
+  createdBy   User   @relation("CompanyDocumentCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiryDate])
+  @@index([documentTypeId])
+  @@index([assetId])
 }

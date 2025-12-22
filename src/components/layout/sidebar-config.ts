@@ -26,6 +26,7 @@ import {
   CheckSquare,
   Briefcase,
   ArrowRightLeft,
+  FileCheck,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -112,6 +113,7 @@ export const adminSidebarConfig: SidebarConfig = {
       defaultOpen: false,
       items: [
         { label: 'Users', href: '/admin/users', icon: Users },
+        { label: 'Company Documents', href: '/admin/company-documents', icon: FileCheck },
         { label: 'Reports', href: '/admin/reports', icon: BarChart3 },
         { label: 'Activity Log', href: '/admin/activity', icon: Activity },
         { label: 'Settings', href: '/admin/settings', icon: Sliders },

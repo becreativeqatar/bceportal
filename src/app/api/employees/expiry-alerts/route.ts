@@ -36,6 +36,7 @@ export async function GET(_request: NextRequest) {
               { licenseExpiry: { lte: thirtyDaysFromNow } },
             ],
           },
+          { contractExpiry: { lte: thirtyDaysFromNow } },
         ],
       },
       include: {
@@ -98,6 +99,7 @@ export async function GET(_request: NextRequest) {
       if (profile.hasDrivingLicense) {
         addAlert(profile, 'Driving License', profile.licenseExpiry);
       }
+      addAlert(profile, 'Contract / Work Permit', profile.contractExpiry);
     });
 
     // Sort alerts: expired first (most negative), then by days remaining
