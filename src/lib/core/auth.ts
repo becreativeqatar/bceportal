@@ -23,27 +23,6 @@ const DEV_USERS: Record<string, { id: string; email: string; name: string; role:
     role: Role.EMPLOYEE,
     password: 'employee123',
   },
-  'validator@test.local': {
-    id: 'dev-validator-001',
-    email: 'validator@test.local',
-    name: 'Dev Validator',
-    role: Role.VALIDATOR,
-    password: 'validator123',
-  },
-  'adder@test.local': {
-    id: 'dev-adder-001',
-    email: 'adder@test.local',
-    name: 'Dev Accreditation Adder',
-    role: Role.ACCREDITATION_ADDER,
-    password: 'adder123',
-  },
-  'approver@test.local': {
-    id: 'dev-approver-001',
-    email: 'approver@test.local',
-    name: 'Dev Accreditation Approver',
-    role: Role.ACCREDITATION_APPROVER,
-    password: 'approver123',
-  },
 };
 
 // Build providers array based on environment

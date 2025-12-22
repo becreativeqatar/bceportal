@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import jsPDF from 'jspdf';
 
 interface Asset {
   id: string;
@@ -47,6 +46,9 @@ export function ExportUserPDFButton({ userId, userName, userEmail }: ExportUserP
       if (!response.ok) throw new Error('Failed to fetch user data');
 
       const user: UserExportData = await response.json();
+
+      // Dynamically import jspdf to reduce initial bundle size
+      const { default: jsPDF } = await import('jspdf');
 
       // Create PDF
       const doc = new jsPDF();

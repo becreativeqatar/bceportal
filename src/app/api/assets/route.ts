@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { Role } from '@prisma/client';
+import { Role, AssetStatus, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { createAssetSchema, assetQuerySchema } from '@/lib/validations/assets';
 import { logAction, ActivityActions } from '@/lib/activity';
@@ -10,6 +10,13 @@ import { recordAssetCreation } from '@/lib/asset-history';
 import { USD_TO_QAR_RATE } from '@/lib/constants';
 import { buildFilterWithSearch } from '@/lib/db/search-filter';
 import { withErrorHandler } from '@/lib/http/handler';
+
+// Type for asset list filters
+interface AssetFilters {
+  status?: AssetStatus;
+  type?: string;
+  category?: string;
+}
 
 async function getAssetsHandler(request: NextRequest) {
   // Check authentication
@@ -32,8 +39,8 @@ async function getAssetsHandler(request: NextRequest) {
 
   const { q, status, type, category, p, ps, sort, order } = validation.data;
 
-  // Build filters object
-  const filters: any = {};
+  // Build filters object with proper typing
+  const filters: AssetFilters = {};
   if (status) filters.status = status;
   if (type) filters.type = type;
   if (category) filters.category = category;
@@ -108,20 +115,6 @@ async function createAssetHandler(request: NextRequest) {
     assetTag = assetTag.toUpperCase();
   }
 
-  // Check if asset tag already exists
-  if (assetTag) {
-    const existingAsset = await prisma.asset.findFirst({
-      where: { assetTag },
-    });
-
-    if (existingAsset) {
-      return NextResponse.json({
-        error: 'Asset tag already exists',
-        details: [{ message: `Asset tag "${assetTag}" is already in use. Please use a unique asset tag.` }]
-      }, { status: 400 });
-    }
-  }
-
   // SAFEGUARD: Always calculate priceQAR to prevent data loss
   let priceQAR = data.priceQAR;
 
@@ -139,8 +132,8 @@ async function createAssetHandler(request: NextRequest) {
     }
   }
 
-  // Convert date strings to Date objects and handle empty strings
-  const assetData: any = {
+  // Build asset data with proper typing
+  const assetData: Prisma.AssetCreateInput = {
     assetTag,
     type: data.type,
     category: data.category || null,
@@ -153,48 +146,72 @@ async function createAssetHandler(request: NextRequest) {
     supplier: data.supplier || null,
     invoiceNumber: data.invoiceNumber || null,
     price: data.price || null,
-    priceCurrency: currency, // Use the calculated currency with default
-    priceQAR: priceQAR || null, // Ensure priceQAR is always calculated
+    priceCurrency: currency,
+    priceQAR: priceQAR || null,
     status: data.status,
     acquisitionType: data.acquisitionType,
     transferNotes: data.transferNotes || null,
-    assignedUserId: data.assignedUserId || null,
     notes: data.notes || null,
     location: data.location || null,
+    ...(data.assignedUserId && {
+      assignedUser: { connect: { id: data.assignedUserId } }
+    }),
   };
 
-  // Create asset
-  const asset = await prisma.asset.create({
-    data: assetData,
-    include: {
-      assignedUser: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+  try {
+    // Use transaction to ensure atomic creation of asset + history + activity log
+    const asset = await prisma.$transaction(async (tx) => {
+      // Create asset - unique constraint will handle duplicate tags
+      const newAsset = await tx.asset.create({
+        data: assetData,
+        include: {
+          assignedUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
         },
-      },
-    },
-  });
+      });
 
-  // Log activity
-  await logAction(
-    session.user.id,
-    ActivityActions.ASSET_CREATED,
-    'Asset',
-    asset.id,
-    { assetModel: asset.model, assetType: asset.type, assetTag: asset.assetTag }
-  );
+      // Record asset history within the same transaction
+      await tx.assetHistory.create({
+        data: {
+          assetId: newAsset.id,
+          action: 'CREATED',
+          toUserId: newAsset.assignedUserId,
+          toStatus: newAsset.status,
+          toLocation: newAsset.location,
+          performedBy: session.user.id,
+          notes: 'Asset created',
+        },
+      });
 
-  // Record asset history
-  await recordAssetCreation(
-    asset.id,
-    session.user.id,
-    asset.assignedUserId,
-    null
-  );
+      return newAsset;
+    });
 
-  return NextResponse.json(asset, { status: 201 });
+    // Log activity (outside transaction - non-critical)
+    await logAction(
+      session.user.id,
+      ActivityActions.ASSET_CREATED,
+      'Asset',
+      asset.id,
+      { assetModel: asset.model, assetType: asset.type, assetTag: asset.assetTag }
+    );
+
+    return NextResponse.json(asset, { status: 201 });
+  } catch (error) {
+    // Handle unique constraint violation (P2002)
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json({
+        error: 'Asset tag already exists',
+        details: [{ message: `Asset tag "${assetTag}" is already in use. Please use a unique asset tag.` }]
+      }, { status: 400 });
+    }
+    // Re-throw other errors to be handled by withErrorHandler
+    throw error;
+  }
 }
 
 export const POST = withErrorHandler(createAssetHandler, { requireAdmin: true, rateLimit: true });

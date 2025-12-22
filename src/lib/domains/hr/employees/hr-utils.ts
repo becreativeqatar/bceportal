@@ -261,8 +261,6 @@ export function calculateTenure(dateOfJoining: Date | string | null | undefined)
 export function getRoleBadgeVariant(role: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (role) {
     case 'ADMIN':
-    case 'VALIDATOR':
-    case 'ACCREDITATION_APPROVER':
       return 'destructive';
     case 'EMPLOYEE':
     case 'TEMP_STAFF':

@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { projectCreateSchema, type ProjectCreateInput } from '@/lib/validations/projects/project';
-import { USD_TO_QAR_RATE } from '@/lib/constants';
 
 const PROJECT_STATUSES = [
   { value: 'PLANNING', label: 'Planning' },
@@ -50,10 +49,6 @@ export default function NewProjectPage() {
       supplierId: null,
       clientName: '',
       clientContact: '',
-      contractValue: undefined,
-      contractCurrency: 'QAR',
-      budgetAmount: undefined,
-      budgetCurrency: 'QAR',
       startDate: undefined,
       endDate: undefined,
       managerId: '',
@@ -62,10 +57,6 @@ export default function NewProjectPage() {
   });
 
   const watchedClientType = watch('clientType');
-  const watchedContractValue = watch('contractValue');
-  const watchedContractCurrency = watch('contractCurrency');
-  const watchedBudgetAmount = watch('budgetAmount');
-  const watchedBudgetCurrency = watch('budgetCurrency');
   const watchedStartDate = watch('startDate');
 
   useEffect(() => {
@@ -119,22 +110,13 @@ export default function NewProjectPage() {
     }
   };
 
-  const formatCurrencyPreview = (amount: number | undefined, currency: string) => {
-    if (!amount) return null;
-    const otherCurrency = currency === 'QAR' ? 'USD' : 'QAR';
-    const converted = currency === 'QAR'
-      ? amount / USD_TO_QAR_RATE
-      : amount * USD_TO_QAR_RATE;
-    return `≈ ${otherCurrency} ${converted.toFixed(2)}`;
-  };
-
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Project</h1>
           <p className="text-gray-600">
-            Set up a new project with budget and timeline
+            Set up a new project with timeline and team
           </p>
         </div>
 
@@ -199,26 +181,36 @@ export default function NewProjectPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="managerId">Project Manager *</Label>
-                <Select
-                  value={watch('managerId') || undefined}
-                  onValueChange={(value) => setValue('managerId', value)}
-                >
-                  <SelectTrigger className={errors.managerId ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Select manager..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name || user.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.managerId && (
-                  <p className="text-sm text-red-500">{errors.managerId.message}</p>
-                )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="managerId">Project Manager *</Label>
+                  <Select
+                    value={watch('managerId') || undefined}
+                    onValueChange={(value) => setValue('managerId', value)}
+                  >
+                    <SelectTrigger className={errors.managerId ? 'border-red-500' : ''}>
+                      <SelectValue placeholder="Select manager..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name || user.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.managerId && (
+                    <p className="text-sm text-red-500">{errors.managerId.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="documentHandler">Document Handler</Label>
+                  <Input
+                    id="documentHandler"
+                    {...register('documentHandler')}
+                    placeholder="Person handling documents"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -290,90 +282,6 @@ export default function NewProjectPage() {
                   </div>
                 </>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Financial Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Information</CardTitle>
-              <CardDescription>Contract value and budget allocation</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="contractValue">Contract Value</Label>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <Input
-                        id="contractValue"
-                        type="number"
-                        step="0.01"
-                        {...register('contractValue', { valueAsNumber: true })}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <Select
-                      value={watchedContractCurrency || 'QAR'}
-                      onValueChange={(value) => setValue('contractCurrency', value)}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="QAR">QAR</SelectItem>
-                        <SelectItem value="USD">USD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {watchedContractValue && (
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrencyPreview(watchedContractValue, watchedContractCurrency || 'QAR')}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="budgetAmount">Budget Amount</Label>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <Input
-                        id="budgetAmount"
-                        type="number"
-                        step="0.01"
-                        {...register('budgetAmount', { valueAsNumber: true })}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <Select
-                      value={watchedBudgetCurrency || 'QAR'}
-                      onValueChange={(value) => setValue('budgetCurrency', value)}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="QAR">QAR</SelectItem>
-                        <SelectItem value="USD">USD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {watchedBudgetAmount && (
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrencyPreview(watchedBudgetAmount, watchedBudgetCurrency || 'QAR')}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="documentHandler">Document Handler</Label>
-                <Input
-                  id="documentHandler"
-                  {...register('documentHandler')}
-                  placeholder="Person handling invoices/documents"
-                />
-              </div>
             </CardContent>
           </Card>
 

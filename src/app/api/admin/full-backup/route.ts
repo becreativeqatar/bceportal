@@ -34,8 +34,6 @@ export async function GET(_request: NextRequest) {
       supplierEngagements,
       hrProfiles,
       profileChangeRequests,
-      accreditationProjects,
-      accreditations,
       purchaseRequests,
       purchaseRequestItems,
     ] = await Promise.all([
@@ -106,12 +104,6 @@ export async function GET(_request: NextRequest) {
           },
         },
       }), []),
-      prisma.accreditationProject.findMany(),
-      prisma.accreditation.findMany({
-        include: {
-          project: { select: { name: true } },
-        },
-      }),
       safeQuery(prisma.purchaseRequest.findMany({
         include: {
           requester: { select: { email: true, name: true } },
@@ -566,97 +558,7 @@ export async function GET(_request: NextRequest) {
       });
     });
 
-    // 12. Accreditation Projects Sheet
-    const accreditationProjectsSheet = workbook.addWorksheet('Accreditation Projects');
-    accreditationProjectsSheet.columns = [
-      { header: 'ID', key: 'id', width: 30 },
-      { header: 'Name', key: 'name', width: 30 },
-      { header: 'Code', key: 'code', width: 20 },
-      { header: 'Is Active', key: 'isActive', width: 15 },
-      { header: 'Bump In Start', key: 'bumpInStart', width: 20 },
-      { header: 'Bump In End', key: 'bumpInEnd', width: 20 },
-      { header: 'Live Start', key: 'liveStart', width: 20 },
-      { header: 'Live End', key: 'liveEnd', width: 20 },
-      { header: 'Bump Out Start', key: 'bumpOutStart', width: 20 },
-      { header: 'Bump Out End', key: 'bumpOutEnd', width: 20 },
-      { header: 'Access Groups', key: 'accessGroups', width: 40 },
-      { header: 'Created At', key: 'createdAt', width: 20 },
-      { header: 'Updated At', key: 'updatedAt', width: 20 },
-    ];
-    accreditationProjects.forEach(project => {
-      accreditationProjectsSheet.addRow({
-        id: project.id,
-        name: project.name,
-        code: project.code || '',
-        isActive: project.isActive ? 'Yes' : 'No',
-        bumpInStart: formatDate(project.bumpInStart),
-        bumpInEnd: formatDate(project.bumpInEnd),
-        liveStart: formatDate(project.liveStart),
-        liveEnd: formatDate(project.liveEnd),
-        bumpOutStart: formatDate(project.bumpOutStart),
-        bumpOutEnd: formatDate(project.bumpOutEnd),
-        accessGroups: project.accessGroups ? JSON.stringify(project.accessGroups) : '',
-        createdAt: formatDate(project.createdAt),
-        updatedAt: formatDate(project.updatedAt),
-      });
-    });
-
-    // 13. Accreditations Sheet
-    const accreditationsSheet = workbook.addWorksheet('Accreditations');
-    accreditationsSheet.columns = [
-      { header: 'ID', key: 'id', width: 30 },
-      { header: 'Accreditation Number', key: 'accreditationNumber', width: 25 },
-      { header: 'Project ID', key: 'projectId', width: 30 },
-      { header: 'Project Name', key: 'projectName', width: 30 },
-      { header: 'First Name', key: 'firstName', width: 20 },
-      { header: 'Last Name', key: 'lastName', width: 20 },
-      { header: 'Organization', key: 'organization', width: 25 },
-      { header: 'Job Title', key: 'jobTitle', width: 25 },
-      { header: 'Access Group', key: 'accessGroup', width: 20 },
-      { header: 'Status', key: 'status', width: 15 },
-      { header: 'QID Number', key: 'qidNumber', width: 20 },
-      { header: 'QID Expiry', key: 'qidExpiry', width: 20 },
-      { header: 'Passport Number', key: 'passportNumber', width: 20 },
-      { header: 'Passport Expiry', key: 'passportExpiry', width: 20 },
-      { header: 'QR Code Token', key: 'qrCodeToken', width: 30 },
-      { header: 'Has Bump In Access', key: 'hasBumpInAccess', width: 15 },
-      { header: 'Has Live Access', key: 'hasLiveAccess', width: 15 },
-      { header: 'Has Bump Out Access', key: 'hasBumpOutAccess', width: 15 },
-      { header: 'Approved At', key: 'approvedAt', width: 20 },
-      { header: 'Revoked At', key: 'revokedAt', width: 20 },
-      { header: 'Revocation Reason', key: 'revocationReason', width: 40 },
-      { header: 'Created At', key: 'createdAt', width: 20 },
-      { header: 'Updated At', key: 'updatedAt', width: 20 },
-    ];
-    accreditations.forEach(accreditation => {
-      accreditationsSheet.addRow({
-        id: accreditation.id,
-        accreditationNumber: accreditation.accreditationNumber,
-        projectId: accreditation.projectId,
-        projectName: accreditation.project?.name || '',
-        firstName: accreditation.firstName,
-        lastName: accreditation.lastName,
-        organization: accreditation.organization || '',
-        jobTitle: accreditation.jobTitle || '',
-        accessGroup: accreditation.accessGroup || '',
-        status: accreditation.status,
-        qidNumber: accreditation.qidNumber || '',
-        qidExpiry: formatDate(accreditation.qidExpiry),
-        passportNumber: accreditation.passportNumber || '',
-        passportExpiry: formatDate(accreditation.passportExpiry),
-        qrCodeToken: accreditation.qrCodeToken || '',
-        hasBumpInAccess: accreditation.hasBumpInAccess ? 'Yes' : 'No',
-        hasLiveAccess: accreditation.hasLiveAccess ? 'Yes' : 'No',
-        hasBumpOutAccess: accreditation.hasBumpOutAccess ? 'Yes' : 'No',
-        approvedAt: formatDate(accreditation.approvedAt),
-        revokedAt: formatDate(accreditation.revokedAt),
-        revocationReason: accreditation.revocationReason || '',
-        createdAt: formatDate(accreditation.createdAt),
-        updatedAt: formatDate(accreditation.updatedAt),
-      });
-    });
-
-    // 14. Purchase Requests Sheet
+    // 12. Purchase Requests Sheet
     const purchaseRequestsSheet = workbook.addWorksheet('Purchase Requests');
     purchaseRequestsSheet.columns = [
       { header: 'ID', key: 'id', width: 30 },
@@ -711,7 +613,7 @@ export async function GET(_request: NextRequest) {
       });
     });
 
-    // 15. Purchase Request Items Sheet
+    // 13. Purchase Request Items Sheet
     const purchaseRequestItemsSheet = workbook.addWorksheet('Purchase Request Items');
     purchaseRequestItemsSheet.columns = [
       { header: 'ID', key: 'id', width: 30 },
@@ -765,8 +667,6 @@ export async function GET(_request: NextRequest) {
       supplierEngagementsSheet,
       hrProfilesSheet,
       changeRequestsSheet,
-      accreditationProjectsSheet,
-      accreditationsSheet,
       purchaseRequestsSheet,
       purchaseRequestItemsSheet,
     ].forEach(sheet => {

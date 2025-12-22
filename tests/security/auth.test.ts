@@ -70,9 +70,9 @@ describe('Authentication Security Tests', () => {
       expect(userRole).not.toBe(requiredRole);
     });
 
-    it('should allow VALIDATOR to access validator resources', () => {
-      const userRole = Role.VALIDATOR;
-      const allowedRoles = [Role.ADMIN, Role.VALIDATOR];
+    it('should allow TEMP_STAFF to access their resources', () => {
+      const userRole = Role.TEMP_STAFF;
+      const allowedRoles = [Role.ADMIN, Role.EMPLOYEE, Role.TEMP_STAFF];
 
       expect(allowedRoles).toContain(userRole);
     });

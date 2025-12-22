@@ -178,10 +178,6 @@ export const isAdmin = (role: Role): boolean => {
   return role === Role.ADMIN;
 };
 
-export const isValidator = (role: Role): boolean => {
-  return role === Role.VALIDATOR;
-};
-
 export const isEmployee = (role: Role): boolean => {
   return role === Role.EMPLOYEE;
 };
@@ -205,7 +201,7 @@ export const wait = (ms: number): Promise<void> => {
 };
 
 // Mock data arrays
-export const mockRoles = [Role.ADMIN, Role.EMPLOYEE, Role.VALIDATOR];
+export const mockRoles = [Role.ADMIN, Role.EMPLOYEE, Role.TEMP_STAFF];
 
 export const mockAssetStatuses = ['AVAILABLE', 'ASSIGNED', 'MAINTENANCE', 'RETIRED'];
 

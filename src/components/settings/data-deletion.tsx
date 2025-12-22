@@ -55,12 +55,6 @@ export function DataDeletion() {
       warningText: 'This will delete all suppliers and their engagement records.',
     },
     {
-      key: 'accreditations',
-      title: 'Accreditations',
-      description: 'Delete all accreditation projects and records',
-      warningText: 'This will delete all accreditation projects, records, scans, and history.',
-    },
-    {
       key: 'activity',
       title: 'Activity Logs',
       description: 'Delete all activity logs',
@@ -159,7 +153,7 @@ export function DataDeletion() {
     if (currentModule === 'all') {
       return {
         title: 'Delete ALL Data',
-        warningText: 'This will PERMANENTLY delete ALL data from the entire database including users, assets, subscriptions, suppliers, accreditations, and all related records. This action CANNOT be undone!',
+        warningText: 'This will PERMANENTLY delete ALL data from the entire database including users, assets, subscriptions, suppliers, and all related records. This action CANNOT be undone!',
       };
     }
     return modules.find(m => m.key === currentModule);

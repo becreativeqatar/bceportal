@@ -29,14 +29,9 @@ export function UserListClient({ users, currentUserId }: UserListClientProps) {
     switch (role) {
       case 'ADMIN':
         return 'default';
-      case 'VALIDATOR':
-      case 'ACCREDITATION_APPROVER':
-        return 'destructive';
       case 'EMPLOYEE':
       case 'TEMP_STAFF':
         return 'secondary';
-      case 'ACCREDITATION_ADDER':
-        return 'outline';
       default:
         return 'outline';
     }

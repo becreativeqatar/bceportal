@@ -17,41 +17,6 @@ export default withAuth(
       // If authenticated but not admin, let the page component redirect to /forbidden
     }
 
-    // Protect validator routes
-    if (pathname.startsWith('/validator')) {
-      if (!token || (token.role !== 'VALIDATOR' && token.role !== 'ADMIN')) {
-        response = NextResponse.redirect(new URL('/login', req.url));
-      }
-    }
-
-    // Block validators from accessing other routes (modules, employee, etc.)
-    if (token && token.role === 'VALIDATOR') {
-      const allowedPaths = ['/validator', '/verify', '/api/auth', '/api/accreditation/verify'];
-      const isAllowedPath = allowedPaths.some(path => pathname.startsWith(path));
-
-      if (!isAllowedPath && pathname !== '/') {
-        response = NextResponse.redirect(new URL('/validator', req.url));
-      }
-    }
-
-    // Block ACCREDITATION_ADDER and ACCREDITATION_APPROVER from accessing non-accreditation routes
-    // They are external freelancers and should only access the accreditation module
-    if (token && (token.role === 'ACCREDITATION_ADDER' || token.role === 'ACCREDITATION_APPROVER')) {
-      const allowedPaths = [
-        '/admin/accreditation',
-        '/api/auth',
-        '/api/accreditation',
-        '/api/admin/projects',
-        '/api/admin/accreditations',
-        '/api/upload'
-      ];
-      const isAllowedPath = allowedPaths.some(path => pathname.startsWith(path));
-
-      if (!isAllowedPath && pathname !== '/' && pathname !== '/admin') {
-        response = NextResponse.redirect(new URL('/admin/accreditation', req.url));
-      }
-    }
-
     // Add basic security headers
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-Content-Type-Options', 'nosniff');
@@ -80,11 +45,6 @@ export default withAuth(
 
         // Allow public routes
         if (pathname === '/' || pathname === '/login' || pathname.startsWith('/api/auth') || pathname.startsWith('/api/health')) {
-          return true;
-        }
-
-        // Allow verification routes (for QR code scanning)
-        if (pathname.startsWith('/verify/')) {
           return true;
         }
 

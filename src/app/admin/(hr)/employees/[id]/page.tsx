@@ -92,9 +92,6 @@ export default async function AdminEmployeeDetailPage({ params }: Props) {
     switch (role) {
       case 'ADMIN':
         return 'destructive';
-      case 'VALIDATOR':
-      case 'ACCREDITATION_APPROVER':
-        return 'destructive';
       case 'EMPLOYEE':
       case 'TEMP_STAFF':
         return 'default';

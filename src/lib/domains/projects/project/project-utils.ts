@@ -57,29 +57,3 @@ export async function convertToQAR(amount: number, currency: string): Promise<nu
   return Math.round(amount * rate * 100) / 100;
 }
 
-/**
- * Calculate next cost code for a category
- */
-export async function generateCostCode(projectId: string, categoryCode: string): Promise<string> {
-  const lastItem = await prisma.projectBudgetItem.findFirst({
-    where: {
-      projectId,
-      costCode: { startsWith: categoryCode },
-    },
-    orderBy: { costCode: 'desc' },
-    select: { costCode: true },
-  });
-
-  if (!lastItem) {
-    return `${categoryCode}1`;
-  }
-
-  // Extract number from cost code (e.g., "A15" -> 15)
-  const match = lastItem.costCode.match(/^([A-Z]+)(\d+)$/);
-  if (match) {
-    const nextNum = parseInt(match[2], 10) + 1;
-    return `${categoryCode}${nextNum}`;
-  }
-
-  return `${categoryCode}1`;
-}

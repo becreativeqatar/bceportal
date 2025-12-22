@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
           } else {
             results.errors.push({
               row: rowNumber,
-              error: `Invalid role: ${roleStr}. Must be one of: ADMIN, EMPLOYEE, VALIDATOR, TEMP_STAFF, ACCREDITATION_ADDER, ACCREDITATION_APPROVER`,
+              error: `Invalid role: ${roleStr}. Must be one of: ADMIN, EMPLOYEE, TEMP_STAFF`,
               data: row,
             });
             results.failed++;

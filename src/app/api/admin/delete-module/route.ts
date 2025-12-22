@@ -56,14 +56,6 @@ export async function POST(request: NextRequest) {
         message = `Deleted ${deletedCount} suppliers and all related data`;
         break;
 
-      case 'accreditations':
-        await prisma.accreditationScan.deleteMany({});
-        await prisma.accreditationHistory.deleteMany({});
-        await prisma.accreditation.deleteMany({});
-        deletedCount = (await prisma.accreditationProject.deleteMany({})).count;
-        message = `Deleted ${deletedCount} accreditation projects and all related data`;
-        break;
-
       case 'activity':
         deletedCount = (await prisma.activityLog.deleteMany({})).count;
         message = `Deleted ${deletedCount} activity logs`;

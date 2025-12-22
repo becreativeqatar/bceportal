@@ -29,8 +29,7 @@ export default async function SettingsPage() {
     prisma.asset.count(),
     prisma.subscription.count(),
     prisma.supplier.count(),
-    prisma.accreditation.count(),
-    prisma.accreditationProject.count(),
+    prisma.project.count(),
     prisma.activityLog.count(),
   ]);
 
@@ -39,7 +38,6 @@ export default async function SettingsPage() {
     assetCount,
     subscriptionCount,
     supplierCount,
-    accreditationCount,
     projectCount,
     activityLogCount,
   ] = stats;
@@ -49,7 +47,6 @@ export default async function SettingsPage() {
     assets: assetCount,
     subscriptions: subscriptionCount,
     suppliers: supplierCount,
-    accreditations: accreditationCount,
     projects: projectCount,
     activityLogs: activityLogCount,
   };

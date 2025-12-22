@@ -105,6 +105,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('basic');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingMinimized, setOnboardingMinimized] = useState(false);
+  const [profileImageError, setProfileImageError] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -196,6 +197,7 @@ export default function ProfilePage() {
       }
 
       setImageFile(file);
+      setProfileImageError(false); // Reset error state for new image
 
       // Create preview URL
       const reader = new FileReader();
@@ -318,15 +320,10 @@ export default function ProfilePage() {
     switch (role) {
       case 'ADMIN':
         return 'destructive';
-      case 'VALIDATOR':
-      case 'ACCREDITATION_APPROVER':
-        return 'destructive';
       case 'EMPLOYEE':
         return 'default';
       case 'TEMP_STAFF':
         return 'secondary';
-      case 'ACCREDITATION_ADDER':
-        return 'outline';
       default:
         return 'secondary';
     }
@@ -338,14 +335,8 @@ export default function ProfilePage() {
         return 'Administrator';
       case 'EMPLOYEE':
         return 'Employee';
-      case 'VALIDATOR':
-        return 'Validator';
       case 'TEMP_STAFF':
         return 'Temporary Staff';
-      case 'ACCREDITATION_ADDER':
-        return 'Accreditation Adder';
-      case 'ACCREDITATION_APPROVER':
-        return 'Accreditation Approver';
       default:
         return role;
     }
@@ -429,15 +420,12 @@ export default function ProfilePage() {
                   <div className="space-y-4">
                     <div className="flex items-center space-x-4">
                       <div className="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {(imagePreview || profile.image) ? (
+                        {(imagePreview || profile.image) && !profileImageError ? (
                           <img
                             src={imagePreview || profile.image!}
                             alt="Profile"
                             className="h-full w-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              e.currentTarget.parentElement!.innerHTML = '<div class="text-4xl text-gray-400"><User /></div>';
-                            }}
+                            onError={() => setProfileImageError(true)}
                           />
                         ) : (
                           <User className="h-10 w-10 text-gray-400" />

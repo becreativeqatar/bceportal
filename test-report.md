@@ -1,53 +1,44 @@
 
 # Automated Test Report
-Generated: 2025-12-17T10:05:50.208Z
+Generated: 2025-12-22T08:33:35.564Z
 
 ## Summary
 - **Total Suites**: 5
-- **Passed**: 2 ✅
-- **Failed**: 3 ❌
-- **Success Rate**: 40.00%
-- **Total Duration**: 24.31s
+- **Passed**: 5 ✅
+- **Failed**: 0 ❌
+- **Success Rate**: 100.00%
+- **Total Duration**: 37.27s
 
 ## Test Results
 
 
 ### Security Tests (Auth, IDOR, Rate Limiting)
-- **Status**: ❌ FAILED
-- **Duration**: 3047ms
-- **Error**: ```
-Command failed: npm run test:security
+- **Status**: ✅ PASSED
+- **Duration**: 5251ms
 
-```
 
 
 ### API Endpoint Tests (Assets, Subscriptions, Users)
-- **Status**: ❌ FAILED
-- **Duration**: 2602ms
-- **Error**: ```
-Command failed: npm run test:api
+- **Status**: ✅ PASSED
+- **Duration**: 6712ms
 
-```
 
 
 ### Unit Tests (Components, Utilities)
-- **Status**: ❌ FAILED
-- **Duration**: 2639ms
-- **Error**: ```
-Command failed: npm run test:unit
+- **Status**: ✅ PASSED
+- **Duration**: 7211ms
 
-```
 
 
 ### ESLint Code Quality
 - **Status**: ✅ PASSED
-- **Duration**: 11378ms
+- **Duration**: 13057ms
 
 
 
 ### TypeScript Type Checking
 - **Status**: ✅ PASSED
-- **Duration**: 4642ms
+- **Duration**: 5040ms
 
 
 

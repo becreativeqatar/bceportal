@@ -212,11 +212,8 @@ export default function NewEmployeePage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                      <SelectItem value="VALIDATOR">Validator</SelectItem>
                       <SelectItem value="ADMIN">Admin</SelectItem>
                       <SelectItem value="TEMP_STAFF">Temporary Staff</SelectItem>
-                      <SelectItem value="ACCREDITATION_ADDER">Accreditation Adder</SelectItem>
-                      <SelectItem value="ACCREDITATION_APPROVER">Accreditation Approver</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.role && (
@@ -224,16 +221,13 @@ export default function NewEmployeePage() {
                   )}
                   <div className="text-sm text-gray-500 space-y-1">
                     <div><strong>Employee:</strong> Can view and manage their own assigned assets/subscriptions</div>
-                    <div><strong>Validator:</strong> Can verify accreditation QR codes only</div>
                     <div><strong>Admin:</strong> Full access to all features and user management</div>
                     <div><strong>Temporary Staff:</strong> No login access, only appears in assignment dropdowns</div>
-                    <div><strong>Accreditation Adder:</strong> Can create and manage accreditations (external freelancer)</div>
-                    <div><strong>Accreditation Approver:</strong> Can approve/reject accreditations (external freelancer)</div>
                   </div>
                 </div>
 
                 {/* Info Alert */}
-                {role !== 'TEMP_STAFF' && role !== 'ACCREDITATION_ADDER' && role !== 'ACCREDITATION_APPROVER' && (
+                {role !== 'TEMP_STAFF' && (
                   <Alert>
                     <AlertDescription>
                       <strong>Note:</strong> Employees will authenticate using Azure AD or the configured OAuth provider.
@@ -247,16 +241,6 @@ export default function NewEmployeePage() {
                     <AlertDescription>
                       <strong>Temporary Staff:</strong> This employee will appear in assignment dropdowns but will not be able to log in to the system.
                       Use a placeholder email (e.g., temp.name@company.local) if they don&apos;t have an actual company email.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {(role === 'ACCREDITATION_ADDER' || role === 'ACCREDITATION_APPROVER') && (
-                  <Alert>
-                    <AlertDescription>
-                      <strong>Accreditation Role:</strong> This employee will only have access to the accreditation module.
-                      They are treated as external freelancers and have no access to other system features like assets or subscriptions.
-                      {role === 'ACCREDITATION_ADDER' && ' They cannot approve accreditations.'}
                     </AlertDescription>
                   </Alert>
                 )}

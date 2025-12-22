@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { projectUpdateSchema, type ProjectUpdateInput } from '@/lib/validations/projects/project';
-import { USD_TO_QAR_RATE } from '@/lib/constants';
 
 const PROJECT_STATUSES = [
   { value: 'PLANNING', label: 'Planning' },
@@ -51,10 +50,6 @@ export default function EditProjectPage({ params }: Props) {
   });
 
   const watchedClientType = watch('clientType');
-  const watchedContractValue = watch('contractValue');
-  const watchedContractCurrency = watch('contractCurrency');
-  const watchedBudgetAmount = watch('budgetAmount');
-  const watchedBudgetCurrency = watch('budgetCurrency');
   const watchedStartDate = watch('startDate');
 
   useEffect(() => {
@@ -79,10 +74,6 @@ export default function EditProjectPage({ params }: Props) {
           supplierId: project.supplierId || null,
           clientName: project.clientName || '',
           clientContact: project.clientContact || '',
-          contractValue: project.contractValue ? Number(project.contractValue) : undefined,
-          contractCurrency: project.contractCurrency || 'QAR',
-          budgetAmount: project.budgetAmount ? Number(project.budgetAmount) : undefined,
-          budgetCurrency: project.budgetCurrency || 'QAR',
           startDate: project.startDate ? new Date(project.startDate) : undefined,
           endDate: project.endDate ? new Date(project.endDate) : undefined,
           managerId: project.managerId,
@@ -143,15 +134,6 @@ export default function EditProjectPage({ params }: Props) {
       console.error('Error updating project:', error);
       toast.error('Error updating project. Please try again.');
     }
-  };
-
-  const formatCurrencyPreview = (amount: number | undefined, currency: string) => {
-    if (!amount) return null;
-    const otherCurrency = currency === 'QAR' ? 'USD' : 'QAR';
-    const converted = currency === 'QAR'
-      ? amount / USD_TO_QAR_RATE
-      : amount * USD_TO_QAR_RATE;
-    return `≈ ${otherCurrency} ${converted.toFixed(2)}`;
   };
 
   if (loading) {
@@ -236,26 +218,35 @@ export default function EditProjectPage({ params }: Props) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="managerId">Project Manager *</Label>
-                <Select
-                  value={watch('managerId') || undefined}
-                  onValueChange={(value) => setValue('managerId', value)}
-                >
-                  <SelectTrigger className={errors.managerId ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Select manager..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name || user.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.managerId && (
-                  <p className="text-sm text-red-500">{errors.managerId.message as string}</p>
-                )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="managerId">Project Manager *</Label>
+                  <Select
+                    value={watch('managerId') || undefined}
+                    onValueChange={(value) => setValue('managerId', value)}
+                  >
+                    <SelectTrigger className={errors.managerId ? 'border-red-500' : ''}>
+                      <SelectValue placeholder="Select manager..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name || user.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.managerId && (
+                    <p className="text-sm text-red-500">{errors.managerId.message as string}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="documentHandler">Document Handler</Label>
+                  <Input
+                    id="documentHandler"
+                    {...register('documentHandler')}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -325,87 +316,6 @@ export default function EditProjectPage({ params }: Props) {
                   </div>
                 </>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Financial Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Information</CardTitle>
-              <CardDescription>Contract value and budget allocation</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="contractValue">Contract Value</Label>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <Input
-                        id="contractValue"
-                        type="number"
-                        step="0.01"
-                        {...register('contractValue', { valueAsNumber: true })}
-                      />
-                    </div>
-                    <Select
-                      value={watchedContractCurrency || 'QAR'}
-                      onValueChange={(value) => setValue('contractCurrency', value)}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="QAR">QAR</SelectItem>
-                        <SelectItem value="USD">USD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {watchedContractValue && (
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrencyPreview(watchedContractValue, watchedContractCurrency || 'QAR')}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="budgetAmount">Budget Amount</Label>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <Input
-                        id="budgetAmount"
-                        type="number"
-                        step="0.01"
-                        {...register('budgetAmount', { valueAsNumber: true })}
-                      />
-                    </div>
-                    <Select
-                      value={watchedBudgetCurrency || 'QAR'}
-                      onValueChange={(value) => setValue('budgetCurrency', value)}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="QAR">QAR</SelectItem>
-                        <SelectItem value="USD">USD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {watchedBudgetAmount && (
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrencyPreview(watchedBudgetAmount, watchedBudgetCurrency || 'QAR')}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="documentHandler">Document Handler</Label>
-                <Input
-                  id="documentHandler"
-                  {...register('documentHandler')}
-                />
-              </div>
             </CardContent>
           </Card>
 

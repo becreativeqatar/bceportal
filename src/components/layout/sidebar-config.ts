@@ -17,8 +17,6 @@ import {
   Gift,
   Box,
   Truck,
-  Kanban,
-  BadgeCheck,
   ShoppingCart,
   BarChart3,
   Activity,
@@ -101,8 +99,6 @@ export const adminSidebarConfig: SidebarConfig = {
       defaultOpen: false,
       items: [
         { label: 'Projects', href: '/admin/projects', icon: Briefcase },
-        { label: 'Task Boards', href: '/admin/tasks', icon: Kanban },
-        { label: 'Accreditation', href: '/admin/accreditation', icon: BadgeCheck, badgeKey: 'pendingAccreditations' },
         { label: 'Purchase Requests', href: '/admin/purchase-requests', icon: ShoppingCart, badgeKey: 'pendingPurchaseRequests' },
       ],
     },
@@ -158,12 +154,11 @@ export const employeeSidebarConfig: SidebarConfig = {
     },
     {
       id: 'projects',
-      label: 'Tasks & Requests',
+      label: 'Requests',
       icon: CheckSquare,
       collapsible: true,
       defaultOpen: false,
       items: [
-        { label: 'My Tasks', href: '/admin/tasks', icon: Kanban },
         { label: 'Purchase Requests', href: '/employee/purchase-requests', icon: ShoppingCart },
         { label: 'New Request', href: '/employee/purchase-requests/new', icon: Plus },
       ],
@@ -176,7 +171,6 @@ export const badgeKeys = [
   'pendingChangeRequests',
   'pendingLeaveRequests',
   'pendingSuppliers',
-  'pendingAccreditations',
   'pendingPurchaseRequests',
 ] as const;
 

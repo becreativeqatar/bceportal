@@ -36,32 +36,11 @@ export const mockUsers: Record<string, MockUser> = {
     role: Role.EMPLOYEE,
     image: null,
   },
-  validator: {
-    id: 'validator-user-789',
-    email: 'validator@example.com',
-    name: 'Validator User',
-    role: Role.VALIDATOR,
-    image: null,
-  },
   tempStaff: {
     id: 'temp-staff-user-101',
     email: 'temp@example.com',
     name: 'Temp Staff User',
     role: Role.TEMP_STAFF,
-    image: null,
-  },
-  accreditationAdder: {
-    id: 'accred-adder-user-102',
-    email: 'adder@example.com',
-    name: 'Accreditation Adder',
-    role: Role.ACCREDITATION_ADDER,
-    image: null,
-  },
-  accreditationApprover: {
-    id: 'accred-approver-user-103',
-    email: 'approver@example.com',
-    name: 'Accreditation Approver',
-    role: Role.ACCREDITATION_APPROVER,
     image: null,
   },
 };
@@ -79,10 +58,7 @@ export const createMockSession = (
 export const mockSessions: Record<string, MockSession> = {
   admin: createMockSession(mockUsers.admin),
   employee: createMockSession(mockUsers.employee),
-  validator: createMockSession(mockUsers.validator),
   tempStaff: createMockSession(mockUsers.tempStaff),
-  accreditationAdder: createMockSession(mockUsers.accreditationAdder),
-  accreditationApprover: createMockSession(mockUsers.accreditationApprover),
 };
 
 // Helper to create a custom session
@@ -117,11 +93,6 @@ export const setAdminSession = (): void => {
 // Helper to set up employee session
 export const setEmployeeSession = (): void => {
   setMockSession(mockSessions.employee);
-};
-
-// Helper to set up validator session
-export const setValidatorSession = (): void => {
-  setMockSession(mockSessions.validator);
 };
 
 // Helper to set up no session (unauthenticated)

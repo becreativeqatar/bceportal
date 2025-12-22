@@ -141,10 +141,7 @@ describe('User Validation Schemas', () => {
       const roles = [
         Role.ADMIN,
         Role.EMPLOYEE,
-        Role.VALIDATOR,
         Role.TEMP_STAFF,
-        Role.ACCREDITATION_ADDER,
-        Role.ACCREDITATION_APPROVER,
       ];
 
       roles.forEach(role => {
@@ -230,7 +227,7 @@ describe('User Validation Schemas', () => {
     it('should allow both name and role', () => {
       const update = {
         name: 'Updated Name',
-        role: Role.VALIDATOR,
+        role: Role.TEMP_STAFF,
       };
 
       const result = updateUserSchema.safeParse(update);

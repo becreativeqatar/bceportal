@@ -79,11 +79,8 @@ interface HRProfileData {
 
 const ROLES = [
   { value: 'EMPLOYEE', label: 'Employee', description: 'Can view and manage their own assigned assets/subscriptions' },
-  { value: 'VALIDATOR', label: 'Validator', description: 'Can verify accreditation QR codes only' },
   { value: 'ADMIN', label: 'Admin', description: 'Full access to all features and user management' },
   { value: 'TEMP_STAFF', label: 'Temporary Staff', description: 'No login access, only appears in assignment dropdowns' },
-  { value: 'ACCREDITATION_ADDER', label: 'Accreditation Adder', description: 'Can create and manage accreditations (external freelancer)' },
-  { value: 'ACCREDITATION_APPROVER', label: 'Accreditation Approver', description: 'Can approve/reject accreditations (external freelancer)' },
 ];
 
 export default function AdminEmployeeEditPage() {
@@ -199,9 +196,6 @@ export default function AdminEmployeeEditPage() {
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
       case 'ADMIN':
-        return 'destructive';
-      case 'VALIDATOR':
-      case 'ACCREDITATION_APPROVER':
         return 'destructive';
       case 'EMPLOYEE':
         return 'default';

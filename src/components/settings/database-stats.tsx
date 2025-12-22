@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Database, Users, Package, CreditCard, Shield, FolderKanban, Activity } from 'lucide-react';
+import { Database, Users, Package, CreditCard, FolderKanban, Activity } from 'lucide-react';
 
 interface DatabaseStatsProps {
   stats: {
@@ -9,7 +9,6 @@ interface DatabaseStatsProps {
     assets: number;
     subscriptions: number;
     suppliers: number;
-    accreditations: number;
     projects: number;
     activityLogs: number;
   };
@@ -44,13 +43,6 @@ export function DatabaseStats({ stats }: DatabaseStatsProps) {
       icon: Database,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
-    },
-    {
-      label: 'Accreditations',
-      value: stats.accreditations,
-      icon: Shield,
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-50',
     },
     {
       label: 'Projects',

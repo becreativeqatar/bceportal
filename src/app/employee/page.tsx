@@ -44,7 +44,6 @@ export default async function EmployeeDashboard() {
       subscriptionHistory,
       assetHistory,
       purchaseRequests,
-      assignedTasks,
       hrProfile,
       leaveRequests,
       leaveBalances,
@@ -59,26 +58,6 @@ export default async function EmployeeDashboard() {
         include: {
           _count: { select: { items: true } },
         },
-      }),
-      // Get tasks assigned to user
-      prisma.taskAssignee.findMany({
-        where: { userId: session.user.id },
-        include: {
-          task: {
-            include: {
-              column: {
-                include: {
-                  board: { select: { id: true, title: true } },
-                },
-              },
-              _count: {
-                select: { checklist: true, comments: true },
-              },
-            },
-          },
-        },
-        orderBy: { assignedAt: 'desc' },
-        take: 10,
       }),
       // Get HR profile for document expiry alerts
       prisma.hRProfile.findUnique({
@@ -120,9 +99,8 @@ export default async function EmployeeDashboard() {
     // Calculate stats
     const activeAssets = assetHistory.filter((a: any) => a.isCurrentlyAssigned);
     const activeSubscriptions = subscriptionHistory.filter((s: any) => s.status === 'ACTIVE');
-    const pendingPurchaseRequests = purchaseRequests.filter((pr) => pr.status === 'PENDING');
-    const incompleteTasks = assignedTasks.filter((t) => !t.task.isCompleted);
-    const pendingLeaveRequests = leaveRequests.filter((lr) => lr.status === 'PENDING');
+    const pendingPurchaseRequests = purchaseRequests.filter((pr: any) => pr.status === 'PENDING');
+    const pendingLeaveRequests = leaveRequests.filter((lr: any) => lr.status === 'PENDING');
     const approvedLeaveRequests = leaveRequests.filter((lr) => lr.status === 'APPROVED');
 
     // Get date of joining for accrual calculation
@@ -220,77 +198,6 @@ export default async function EmployeeDashboard() {
 
           {/* PRIMARY SECTION: Tasks + Purchase Requests */}
           <div className="grid md:grid-cols-2 gap-6 mb-6">
-            {/* My Tasks Card */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-0 border-b">
-                <div className="flex items-center justify-between pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-orange-100 rounded-lg">
-                      <CheckSquare className="h-5 w-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <h2 className="font-semibold text-gray-900">My Tasks</h2>
-                      <p className="text-sm text-gray-500">{incompleteTasks.length} active tasks</p>
-                    </div>
-                  </div>
-                  {incompleteTasks.length > 0 && (
-                    <Badge variant="secondary" className="bg-orange-100 text-orange-700">
-                      {incompleteTasks.length} active
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {incompleteTasks.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <CheckSquare className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p className="font-medium">All caught up!</p>
-                    <p className="text-sm">No pending tasks assigned to you</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {incompleteTasks.slice(0, 4).map((t) => (
-                      <Link
-                        key={t.task.id}
-                        href={`/admin/tasks/boards/${t.task.column.board.id}`}
-                        className="block"
-                      >
-                        <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
-                          <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
-                            t.task.priority === 'URGENT' ? 'bg-red-500' :
-                            t.task.priority === 'HIGH' ? 'bg-orange-500' :
-                            t.task.priority === 'MEDIUM' ? 'bg-yellow-500' : 'bg-gray-400'
-                          }`} />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm text-gray-900 truncate">{t.task.title}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline" className="text-xs">
-                                {t.task.column.title}
-                              </Badge>
-                              <span className="text-xs text-gray-500 truncate">
-                                {t.task.column.board.title}
-                              </span>
-                            </div>
-                          </div>
-                          {t.task.dueDate && (
-                            <span className="text-xs text-gray-500 flex-shrink-0">
-                              {formatDate(t.task.dueDate)}
-                            </span>
-                          )}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-              <div className="px-6 py-3 border-t bg-gray-50 rounded-b-lg">
-                <Link href="/admin/tasks" className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1">
-                  View All Tasks
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </Card>
-
             {/* Purchase Requests Card */}
             <Card className="shadow-sm">
               <CardHeader className="pb-0 border-b">

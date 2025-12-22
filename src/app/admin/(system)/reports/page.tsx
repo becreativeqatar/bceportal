@@ -12,14 +12,8 @@ import {
   Package,
   CreditCard,
   Building2,
-  IdCard,
   ShoppingCart,
-  LayoutGrid,
   UserCheck,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  FileText
 } from 'lucide-react';
 
 export default async function AdminReportsPage() {
@@ -59,14 +53,6 @@ export default async function AdminReportsPage() {
     usersByRole,
     activeUsers,
 
-    // Accreditations
-    totalAccreditations,
-    accreditationsByStatus,
-    accreditationsByProject,
-    totalScans,
-    validScans,
-    invalidScans,
-
     // Purchase Requests
     totalPurchaseRequests,
     purchaseRequestsByStatus,
@@ -74,14 +60,6 @@ export default async function AdminReportsPage() {
     purchaseRequestsByCostType,
     purchaseRequestsValue,
     pendingPurchaseRequests,
-
-    // Tasks/Boards
-    totalBoards,
-    totalTasks,
-    tasksByPriority,
-    completedTasks,
-    overdueTasks,
-    tasksByColumn,
 
     // Employees/HR
     totalEmployees,
@@ -156,22 +134,6 @@ export default async function AdminReportsPage() {
     }),
     prisma.user.count(),
 
-    // Accreditations queries
-    prisma.accreditation.count(),
-    prisma.accreditation.groupBy({
-      by: ['status'],
-      _count: { status: true },
-    }),
-    prisma.accreditation.groupBy({
-      by: ['projectId'],
-      _count: { projectId: true },
-      orderBy: { _count: { projectId: 'desc' } },
-      take: 5,
-    }),
-    prisma.accreditationScan.count(),
-    prisma.accreditationScan.count({ where: { wasValid: true } }),
-    prisma.accreditationScan.count({ where: { wasValid: false } }),
-
     // Purchase Requests queries
     prisma.purchaseRequest.count(),
     prisma.purchaseRequest.groupBy({
@@ -191,28 +153,6 @@ export default async function AdminReportsPage() {
     }),
     prisma.purchaseRequest.count({
       where: { status: 'PENDING' },
-    }),
-
-    // Tasks/Boards queries
-    prisma.board.count({ where: { isArchived: false } }),
-    prisma.task.count(),
-    prisma.task.groupBy({
-      by: ['priority'],
-      _count: { priority: true },
-    }),
-    prisma.task.count({
-      where: { completedAt: { not: null } },
-    }),
-    prisma.task.count({
-      where: {
-        completedAt: null,
-        dueDate: { lt: new Date() },
-      },
-    }),
-    // Get tasks grouped by column, then we'll aggregate by board
-    prisma.task.groupBy({
-      by: ['columnId'],
-      _count: { columnId: true },
     }),
 
     // Employees/HR queries
@@ -258,52 +198,6 @@ export default async function AdminReportsPage() {
       orderBy: { _count: { entityType: 'desc' } },
     }),
   ]);
-
-  // Get project names for accreditation stats
-  const projectIds = accreditationsByProject.map(a => a.projectId);
-  const projects = await prisma.accreditationProject.findMany({
-    where: { id: { in: projectIds } },
-    select: { id: true, name: true },
-  });
-
-  const accreditationProjectStats = accreditationsByProject.map(stat => {
-    const project = projects.find(p => p.id === stat.projectId);
-    return {
-      projectName: project?.name || 'Unknown Project',
-      count: stat._count.projectId,
-    };
-  });
-
-  // Get board names for task stats by aggregating column data
-  const columnIds = tasksByColumn.map(t => t.columnId);
-  const columns = await prisma.taskColumn.findMany({
-    where: { id: { in: columnIds } },
-    select: { id: true, boardId: true, board: { select: { id: true, title: true } } },
-  });
-
-  // Aggregate tasks by board
-  const boardTaskCounts = new Map<string, { title: string; count: number }>();
-  tasksByColumn.forEach(stat => {
-    const column = columns.find(c => c.id === stat.columnId);
-    if (column?.board) {
-      const existing = boardTaskCounts.get(column.boardId);
-      if (existing) {
-        existing.count += stat._count.columnId;
-      } else {
-        boardTaskCounts.set(column.boardId, {
-          title: column.board.title,
-          count: stat._count.columnId,
-        });
-      }
-    }
-  });
-
-  const taskBoardStats = Array.from(boardTaskCounts.values())
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
-
-  // Calculate task completion rate
-  const taskCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -403,21 +297,6 @@ export default async function AdminReportsPage() {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-gray-600">Tasks</CardTitle>
-                <LayoutGrid className="h-4 w-4 text-cyan-500" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{totalTasks}</div>
-              <p className="text-xs text-gray-500 mt-1">
-                {taskCompletionRate}% completion rate
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium text-gray-600">Employees</CardTitle>
                 <UserCheck className="h-4 w-4 text-emerald-500" />
               </div>
@@ -426,21 +305,6 @@ export default async function AdminReportsPage() {
               <div className="text-3xl font-bold text-gray-900">{totalEmployees}</div>
               <p className="text-xs text-gray-500 mt-1">
                 {employeesWithHRProfile} with HR profile
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-gray-600">Accreditations</CardTitle>
-                <IdCard className="h-4 w-4 text-indigo-500" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{totalAccreditations}</div>
-              <p className="text-xs text-gray-500 mt-1">
-                {totalScans} total scans
               </p>
             </CardContent>
           </Card>
@@ -680,104 +544,6 @@ export default async function AdminReportsPage() {
           </div>
         </div>
 
-        {/* Tasks & Boards Reports */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <LayoutGrid className="h-6 w-6 text-cyan-500" />
-            Tasks & Boards Reports
-          </h2>
-
-          <div className="grid md:grid-cols-4 gap-6 mb-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Total Boards</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900">{totalBoards}</div>
-                <p className="text-sm text-gray-600 mt-1">Active kanban boards</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Total Tasks</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900">{totalTasks}</div>
-                <p className="text-sm text-gray-600 mt-1">Across all boards</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Completed</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-600">{completedTasks}</div>
-                <p className="text-sm text-gray-600 mt-1">{taskCompletionRate}% completion rate</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Overdue</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-red-600">{overdueTasks}</div>
-                <p className="text-sm text-gray-600 mt-1">Past due date</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tasks by Priority</CardTitle>
-                <CardDescription>Priority distribution</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {tasksByPriority.map((item) => (
-                    <div key={item.priority} className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        {item.priority === 'URGENT' && <AlertTriangle className="h-4 w-4 text-red-500" />}
-                        {item.priority === 'HIGH' && <Clock className="h-4 w-4 text-orange-500" />}
-                        {item.priority === 'MEDIUM' && <Clock className="h-4 w-4 text-yellow-500" />}
-                        {item.priority === 'LOW' && <Clock className="h-4 w-4 text-gray-400" />}
-                        <span className="capitalize text-gray-700">{item.priority.toLowerCase()}</span>
-                      </div>
-                      <span className="font-semibold">{item._count.priority}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Boards by Tasks</CardTitle>
-                <CardDescription>Most active boards</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {taskBoardStats.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center">
-                      <span className="text-gray-700 truncate max-w-[200px]">{item.title}</span>
-                      <span className="font-semibold">{item.count}</span>
-                    </div>
-                  ))}
-                  {taskBoardStats.length === 0 && (
-                    <p className="text-sm text-gray-500">No tasks yet</p>
-                  )}
-                </div>
-                <Link href="/admin/tasks/boards" className="text-sm text-blue-600 hover:underline mt-4 inline-block">
-                  View all boards →
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
         {/* Employees/HR Reports */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -872,82 +638,6 @@ export default async function AdminReportsPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Accreditation Reports */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <IdCard className="h-6 w-6 text-indigo-500" />
-            Accreditation Reports
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-6 mb-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Accreditations by Status</CardTitle>
-                <CardDescription>Current status breakdown</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {accreditationsByStatus.map((item) => (
-                    <div key={item.status} className="flex justify-between items-center">
-                      <span className="capitalize text-gray-700">{item.status.replace('_', ' ').toLowerCase()}</span>
-                      <span className="font-semibold">{item._count.status}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>By Project</CardTitle>
-                <CardDescription>Top 5 projects</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {accreditationProjectStats.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center">
-                      <span className="text-gray-700">{item.projectName}</span>
-                      <span className="font-semibold">{item.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Total Scans</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900">{totalScans}</div>
-                <p className="text-sm text-gray-600 mt-1">All QR validations</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Valid Scans</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-600">{validScans}</div>
-                <p className="text-sm text-gray-600 mt-1">Approved access</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Invalid Scans</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-red-600">{invalidScans}</div>
-                <p className="text-sm text-gray-600 mt-1">Denied access</p>
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
         {/* Activity Logs */}

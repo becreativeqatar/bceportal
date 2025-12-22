@@ -407,14 +407,6 @@ describe('HR Utilities', () => {
       expect(getRoleBadgeVariant('ADMIN')).toBe('destructive');
     });
 
-    it('should return "destructive" for VALIDATOR', () => {
-      expect(getRoleBadgeVariant('VALIDATOR')).toBe('destructive');
-    });
-
-    it('should return "destructive" for ACCREDITATION_APPROVER', () => {
-      expect(getRoleBadgeVariant('ACCREDITATION_APPROVER')).toBe('destructive');
-    });
-
     it('should return "default" for EMPLOYEE', () => {
       expect(getRoleBadgeVariant('EMPLOYEE')).toBe('default');
     });

@@ -17,10 +17,6 @@ export async function DELETE(_request: NextRequest) {
 
     // Delete in order to respect foreign key constraints
     const deletedCounts = {
-      accreditationScans: 0,
-      accreditationHistory: 0,
-      accreditations: 0,
-      accreditationProjects: 0,
       maintenanceRecords: 0,
       assetHistory: 0,
       assets: 0,
@@ -33,12 +29,6 @@ export async function DELETE(_request: NextRequest) {
       accounts: 0,
       users: 0,
     };
-
-    // Delete Accreditation data
-    deletedCounts.accreditationScans = (await prisma.accreditationScan.deleteMany({})).count;
-    deletedCounts.accreditationHistory = (await prisma.accreditationHistory.deleteMany({})).count;
-    deletedCounts.accreditations = (await prisma.accreditation.deleteMany({})).count;
-    deletedCounts.accreditationProjects = (await prisma.accreditationProject.deleteMany({})).count;
 
     // Delete Asset data
     deletedCounts.maintenanceRecords = (await prisma.maintenanceRecord.deleteMany({})).count;

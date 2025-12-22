@@ -83,7 +83,7 @@ describe('Users API Tests', () => {
         { id: 'user-1', role: Role.ADMIN },
         { id: 'user-2', role: Role.EMPLOYEE },
         { id: 'user-3', role: Role.EMPLOYEE },
-        { id: 'user-4', role: Role.VALIDATOR },
+        { id: 'user-4', role: Role.TEMP_STAFF },
       ];
 
       const filtered = mockUsers.filter(u => u.role === Role.EMPLOYEE);
@@ -192,10 +192,7 @@ describe('Users API Tests', () => {
       const validRoles = [
         Role.ADMIN,
         Role.EMPLOYEE,
-        Role.VALIDATOR,
         Role.TEMP_STAFF,
-        Role.ACCREDITATION_ADDER,
-        Role.ACCREDITATION_APPROVER,
       ];
 
       validRoles.forEach(role => {
@@ -342,7 +339,7 @@ describe('Users API Tests', () => {
 
       const updateData = {
         name: 'Updated Name',
-        role: Role.VALIDATOR,
+        role: Role.TEMP_STAFF,
       };
 
       const mockPrismaUser = prisma.user as any;
@@ -358,7 +355,7 @@ describe('Users API Tests', () => {
       });
 
       expect(result.name).toBe('Updated Name');
-      expect(result.role).toBe(Role.VALIDATOR);
+      expect(result.role).toBe(Role.TEMP_STAFF);
     });
 
     it('should not allow changing email', () => {

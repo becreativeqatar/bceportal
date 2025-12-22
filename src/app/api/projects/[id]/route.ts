@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { projectUpdateSchema } from '@/lib/validations/projects/project';
-import { convertToQAR } from '@/lib/domains/projects/project/project-utils';
 import { logAction, ActivityActions } from '@/lib/activity';
 import { Role } from '@prisma/client';
 
@@ -27,26 +26,9 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
         manager: { select: { id: true, name: true, email: true } },
         createdBy: { select: { id: true, name: true, email: true } },
         supplier: { select: { id: true, name: true } },
-        budgetCategories: {
-          orderBy: { sortOrder: 'asc' },
-        },
-        budgetItems: {
-          include: {
-            category: true,
-            supplier: { select: { id: true, name: true } },
-            payments: { orderBy: { tranche: 'asc' } },
-          },
-          orderBy: { sortOrder: 'asc' },
-        },
-        revenues: {
-          orderBy: { invoiceDate: 'desc' },
-        },
         _count: {
           select: {
             purchaseRequests: true,
-            assetAllocations: true,
-            subscriptionAllocations: true,
-            taskBoards: true,
           },
         },
       },
@@ -83,26 +65,11 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    // Convert to QAR if currency changed
-    let contractValueQAR = data.contractValue;
-    if (data.contractValue && data.contractCurrency && data.contractCurrency !== 'QAR') {
-      contractValueQAR = await convertToQAR(data.contractValue, data.contractCurrency);
-    }
-
-    let budgetAmountQAR = data.budgetAmount;
-    if (data.budgetAmount && data.budgetCurrency && data.budgetCurrency !== 'QAR') {
-      budgetAmountQAR = await convertToQAR(data.budgetAmount, data.budgetCurrency);
-    }
-
     const { id: _, ...updateData } = data;
 
     const project = await prisma.project.update({
       where: { id },
-      data: {
-        ...updateData,
-        contractValueQAR,
-        budgetAmountQAR,
-      },
+      data: updateData,
       include: {
         manager: { select: { id: true, name: true, email: true } },
       },
@@ -143,7 +110,6 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
       include: {
         _count: {
           select: {
-            budgetItems: true,
             purchaseRequests: true,
           },
         },

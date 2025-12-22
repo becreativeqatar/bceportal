@@ -15,10 +15,5 @@ export default async function EmployeeLayout({
     redirect('/login');
   }
 
-  // Redirect validators to their dashboard
-  if (session?.user?.role === 'VALIDATOR') {
-    redirect('/validator');
-  }
-
   return <EmployeeLayoutClient>{children}</EmployeeLayoutClient>;
 }

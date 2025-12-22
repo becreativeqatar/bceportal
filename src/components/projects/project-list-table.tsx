@@ -30,13 +30,11 @@ interface Project {
   status: string;
   clientType: string;
   clientName: string | null;
-  contractValueQAR: number | null;
-  budgetAmountQAR: number | null;
   startDate: string | null;
   endDate: string | null;
   manager: { id: string; name: string | null; email: string } | null;
   supplier: { id: string; name: string } | null;
-  _count: { budgetItems: number; purchaseRequests: number };
+  _count: { purchaseRequests: number };
 }
 
 interface Pagination {
@@ -184,7 +182,6 @@ export function ProjectListTable() {
               <TableHead>Name</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Client</TableHead>
-              <TableHead className="text-right">Contract Value</TableHead>
               <TableHead>Manager</TableHead>
               <TableHead>Timeline</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -193,7 +190,7 @@ export function ProjectListTable() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
@@ -221,11 +218,6 @@ export function ProjectListTable() {
                     </Badge>
                   </TableCell>
                   <TableCell>{getClientDisplay(project)}</TableCell>
-                  <TableCell className="text-right">
-                    {project.contractValueQAR
-                      ? `QAR ${Number(project.contractValueQAR).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
-                      : '-'}
-                  </TableCell>
                   <TableCell>
                     {project.manager?.name || project.manager?.email || '-'}
                   </TableCell>

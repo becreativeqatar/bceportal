@@ -23,22 +23,15 @@ export default async function AdminProjectsPage() {
   const [
     totalProjects,
     activeProjects,
-    projectStats,
     statusCounts,
   ] = await Promise.all([
     prisma.project.count(),
     prisma.project.count({ where: { status: 'ACTIVE' } }),
-    prisma.project.aggregate({
-      _sum: { contractValueQAR: true, budgetAmountQAR: true },
-    }),
     prisma.project.groupBy({
       by: ['status'],
       _count: { _all: true },
     }),
   ]);
-
-  const totalContractValue = Number(projectStats._sum.contractValueQAR || 0);
-  const totalBudget = Number(projectStats._sum.budgetAmountQAR || 0);
 
   // Get status breakdown
   const statusMap = statusCounts.reduce((acc, item) => {
@@ -74,30 +67,6 @@ export default async function AdminProjectsPage() {
                   <p className="text-xs text-gray-500">
                     {activeProjects} active
                   </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-1 pt-3 px-4">
-                  <CardTitle className="text-xs font-medium text-gray-600">Contract Value</CardTitle>
-                </CardHeader>
-                <CardContent className="pb-3 px-4">
-                  <div className="text-2xl font-bold text-gray-900">
-                    QAR {totalContractValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                  </div>
-                  <p className="text-xs text-gray-500">Total contract value</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-1 pt-3 px-4">
-                  <CardTitle className="text-xs font-medium text-gray-600">Total Budget</CardTitle>
-                </CardHeader>
-                <CardContent className="pb-3 px-4">
-                  <div className="text-2xl font-bold text-gray-900">
-                    QAR {totalBudget.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                  </div>
-                  <p className="text-xs text-gray-500">Allocated budget</p>
                 </CardContent>
               </Card>
 

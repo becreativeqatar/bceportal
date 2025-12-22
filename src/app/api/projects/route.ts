@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { projectCreateSchema, projectModuleQuerySchema } from '@/lib/validations/projects/project';
-import { generateProjectCode, convertToQAR } from '@/lib/domains/projects/project/project-utils';
+import { generateProjectCode } from '@/lib/domains/projects/project/project-utils';
 import { logAction, ActivityActions } from '@/lib/activity';
 
 // GET /api/projects - List projects with filtering
@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
           supplier: { select: { id: true, name: true } },
           _count: {
             select: {
-              budgetItems: true,
               purchaseRequests: true,
             },
           },
@@ -86,21 +85,10 @@ export async function POST(request: NextRequest) {
     // Generate code if not provided or use custom
     const code = data.code || await generateProjectCode();
 
-    // Convert to QAR if needed
-    const contractValueQAR = data.contractValue && data.contractCurrency !== 'QAR'
-      ? await convertToQAR(data.contractValue, data.contractCurrency)
-      : data.contractValue;
-
-    const budgetAmountQAR = data.budgetAmount && data.budgetCurrency !== 'QAR'
-      ? await convertToQAR(data.budgetAmount, data.budgetCurrency)
-      : data.budgetAmount;
-
     const project = await prisma.project.create({
       data: {
         ...data,
         code,
-        contractValueQAR,
-        budgetAmountQAR,
         createdById: session.user.id,
       },
       include: {
