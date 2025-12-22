@@ -140,7 +140,6 @@ async function DocumentList() {
                     <th className="pb-3 font-medium">Reference</th>
                     <th className="pb-3 font-medium">Expiry Date</th>
                     <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3 font-medium">Vehicle</th>
                     <th className="pb-3 font-medium"></th>
                   </tr>
                 </thead>
@@ -151,6 +150,7 @@ async function DocumentList() {
                         <div className="font-medium">{doc.documentType.name}</div>
                         <div className="text-xs text-muted-foreground">
                           {doc.documentType.category}
+                          {doc.asset && ` • ${doc.asset.assetTag || doc.asset.brand}`}
                         </div>
                       </td>
                       <td className="py-3 text-sm">
@@ -164,15 +164,6 @@ async function DocumentList() {
                           status={doc.expiryInfo.status}
                           daysRemaining={doc.expiryInfo.daysRemaining}
                         />
-                      </td>
-                      <td className="py-3 text-sm">
-                        {doc.asset ? (
-                          <span>
-                            {doc.asset.assetTag || `${doc.asset.brand} ${doc.asset.model}`}
-                          </span>
-                        ) : (
-                          '-'
-                        )}
                       </td>
                       <td className="py-3">
                         <Link href={`/admin/company-documents/${doc.id}`}>
