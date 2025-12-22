@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { redirect, notFound } from 'next/navigation';
-import { Role } from '@prisma/client';
+import { Role, AssetRequestStatus } from '@prisma/client';
 import Link from 'next/link';
 import AssetHistory from '@/components/AssetHistory';
 import { formatDate, formatDateTime } from '@/lib/date-format';
@@ -14,6 +14,7 @@ import { AssetCostBreakdown } from '@/components/assets/asset-cost-breakdown';
 import { CloneAssetButton } from '@/components/assets/clone-asset-button';
 import { DeleteAssetButton } from '@/components/assets/delete-asset-button';
 import { AssetMaintenanceRecords } from '@/components/assets/asset-maintenance-records';
+import { AssetAssignDialog } from '@/components/domains/operations/asset-requests';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -42,6 +43,23 @@ export default async function AssetDetailPage({ params }: Props) {
           email: true,
         },
       },
+      assetRequests: {
+        where: {
+          status: {
+            in: [
+              AssetRequestStatus.PENDING_ADMIN_APPROVAL,
+              AssetRequestStatus.PENDING_USER_ACCEPTANCE,
+              AssetRequestStatus.PENDING_RETURN_APPROVAL,
+            ],
+          },
+        },
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          requestNumber: true,
+        },
+      },
     },
   });
 
@@ -63,6 +81,10 @@ export default async function AssetDetailPage({ params }: Props) {
     });
     assignmentDate = mostRecentAssignment?.assignmentDate || null;
   }
+
+  // Check if admin can assign this asset
+  const hasPendingRequest = asset.assetRequests.length > 0;
+  const canAssign = asset.status === 'SPARE' && !hasPendingRequest;
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -91,7 +113,10 @@ export default async function AssetDetailPage({ params }: Props) {
                   Complete information for {asset.model}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                {canAssign && (
+                  <AssetAssignDialog asset={asset} />
+                )}
                 <Link href={`/admin/assets/${asset.id}/edit`}>
                   <Button>Edit Asset</Button>
                 </Link>
@@ -103,6 +128,24 @@ export default async function AssetDetailPage({ params }: Props) {
               </div>
             </div>
           </div>
+
+          {/* Pending Requests Alert */}
+          {hasPendingRequest && (
+            <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h3 className="font-medium text-yellow-800">Pending Requests</h3>
+              <div className="mt-2 space-y-1">
+                {asset.assetRequests.map((req) => (
+                  <p key={req.id} className="text-sm text-yellow-700">
+                    <Link href={`/admin/asset-requests/${req.id}`} className="underline hover:text-yellow-900">
+                      {req.requestNumber}
+                    </Link>
+                    {' - '}
+                    {req.status.replace(/_/g, ' ')}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-6">
             {/* Acquisition Type */}

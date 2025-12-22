@@ -72,6 +72,28 @@ enum LeaveCategory {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// ASSET REQUEST WORKFLOW ENUMS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum AssetRequestType {
+  EMPLOYEE_REQUEST // Employee requests a spare asset
+  ADMIN_ASSIGNMENT // Admin assigns asset to user
+  RETURN_REQUEST // User requests to return assigned asset
+}
+
+enum AssetRequestStatus {
+  PENDING_ADMIN_APPROVAL // Employee request waiting for admin
+  PENDING_USER_ACCEPTANCE // Admin assignment waiting for user
+  PENDING_RETURN_APPROVAL // Return request waiting for admin
+  ACCEPTED // User accepted assignment
+  APPROVED // Admin approved request/return
+  REJECTED // Admin rejected
+  REJECTED_BY_USER // User declined assignment
+  EXPIRED // Request timed out
+  CANCELLED // Cancelled by requester
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // PROJECT MODULE ENUMS
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -170,6 +192,12 @@ model User {
   managedProjects Project[] @relation("ProjectManager")
   createdProjects Project[] @relation("ProjectCreator")
 
+  // Asset Request relations
+  assetRequests                AssetRequest[]        @relation("AssetRequestUser")
+  assetRequestsAssigned        AssetRequest[]        @relation("AssetRequestAssigner")
+  assetRequestsProcessed       AssetRequest[]        @relation("AssetRequestProcessor")
+  assetRequestHistoryPerformed AssetRequestHistory[] @relation("AssetRequestHistoryPerformer")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -214,6 +242,7 @@ model Asset {
   // Relations & Metadata
   history            AssetHistory[]
   maintenanceRecords MaintenanceRecord[]
+  assetRequests      AssetRequest[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -1171,4 +1200,70 @@ model Project {
   @@index([code])
   @@index([managerId])
   @@index([startDate, endDate])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ASSET REQUEST WORKFLOW - Employee requests, admin assignments, and returns
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model AssetRequest {
+  id            String             @id @default(cuid())
+  requestNumber String             @unique // AR-XXXXX
+  type          AssetRequestType
+  status        AssetRequestStatus
+
+  // Asset being requested/assigned
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  // Target user (requester for EMPLOYEE_REQUEST, assignee for ADMIN_ASSIGNMENT)
+  userId String
+  user   User   @relation("AssetRequestUser", fields: [userId], references: [id])
+
+  // Request details
+  reason String? // Reason for request/return
+  notes  String? // Additional notes
+
+  // For ADMIN_ASSIGNMENT: who initiated the assignment
+  assignedById   String?
+  assignedByUser User?   @relation("AssetRequestAssigner", fields: [assignedById], references: [id])
+
+  // Processing info (approve/reject/accept/decline)
+  processedById   String?
+  processedByUser User?     @relation("AssetRequestProcessor", fields: [processedById], references: [id])
+  processedAt     DateTime?
+  processorNotes  String?
+
+  // Optional expiry for pending requests
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  history AssetRequestHistory[]
+
+  @@index([assetId])
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model AssetRequestHistory {
+  id             String       @id @default(cuid())
+  assetRequestId String
+  assetRequest   AssetRequest @relation(fields: [assetRequestId], references: [id], onDelete: Cascade)
+
+  action    String // CREATED, STATUS_CHANGED, APPROVED, REJECTED, ACCEPTED, DECLINED, CANCELLED
+  oldStatus AssetRequestStatus?
+  newStatus AssetRequestStatus?
+  notes     String?
+
+  performedById String
+  performedBy   User   @relation("AssetRequestHistoryPerformer", fields: [performedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([assetRequestId])
+  @@index([createdAt])
 }

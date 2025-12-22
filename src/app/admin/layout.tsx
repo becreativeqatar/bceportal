@@ -14,11 +14,15 @@ const getCachedBadgeCounts = unstable_cache(
       pendingLeaveRequests,
       pendingSuppliers,
       pendingPurchaseRequests,
+      pendingAssetRequestsCount,
+      pendingAssetReturnsCount,
     ] = await Promise.all([
       prisma.profileChangeRequest.count({ where: { status: 'PENDING' } }),
       prisma.leaveRequest.count({ where: { status: 'PENDING' } }),
       prisma.supplier.count({ where: { status: 'PENDING' } }),
       prisma.purchaseRequest.count({ where: { status: 'PENDING' } }),
+      prisma.assetRequest.count({ where: { status: 'PENDING_ADMIN_APPROVAL' } }),
+      prisma.assetRequest.count({ where: { status: 'PENDING_RETURN_APPROVAL' } }),
     ]);
 
     return {
@@ -26,6 +30,7 @@ const getCachedBadgeCounts = unstable_cache(
       pendingLeaveRequests,
       pendingSuppliers,
       pendingPurchaseRequests,
+      pendingAssetRequests: pendingAssetRequestsCount + pendingAssetReturnsCount,
     };
   },
   ['admin-badge-counts'],

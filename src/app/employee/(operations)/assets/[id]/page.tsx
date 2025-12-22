@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { AssetRequestStatus } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { formatDate, formatDateTime } from '@/lib/date-format';
 import { AssetMaintenanceRecords } from '@/components/assets/asset-maintenance-records';
+import { AssetRequestDialog, AssetReturnDialog } from '@/components/domains/operations/asset-requests';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -33,6 +35,23 @@ export default async function EmployeeAssetDetailPage({ params }: Props) {
         },
       },
       maintenanceRecords: true,
+      assetRequests: {
+        where: {
+          status: {
+            in: [
+              AssetRequestStatus.PENDING_ADMIN_APPROVAL,
+              AssetRequestStatus.PENDING_USER_ACCEPTANCE,
+              AssetRequestStatus.PENDING_RETURN_APPROVAL,
+            ],
+          },
+        },
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          userId: true,
+        },
+      },
     },
   });
 
@@ -57,6 +76,17 @@ export default async function EmployeeAssetDetailPage({ params }: Props) {
 
   const isAssignedToMe = asset.assignedUserId === session?.user?.id;
 
+  // Check if user can request this asset (SPARE and no pending requests)
+  const hasPendingRequest = asset.assetRequests.length > 0;
+  const myPendingRequest = asset.assetRequests.find(r => r.userId === session.user.id);
+  const canRequest = asset.status === 'SPARE' && !hasPendingRequest;
+
+  // Check if user can return this asset (assigned to them, IN_USE, no pending return)
+  const hasPendingReturn = asset.assetRequests.some(
+    r => r.type === 'RETURN_REQUEST' && r.status === 'PENDING_RETURN_APPROVAL' && r.userId === session.user.id
+  );
+  const canReturn = isAssignedToMe && asset.status === 'IN_USE' && !hasPendingReturn;
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -74,6 +104,12 @@ export default async function EmployeeAssetDetailPage({ params }: Props) {
               </p>
             </div>
             <div className="flex gap-2">
+              {canRequest && (
+                <AssetRequestDialog asset={asset} />
+              )}
+              {canReturn && (
+                <AssetReturnDialog asset={asset} />
+              )}
               <Link href="/employee/assets">
                 <Button variant="outline">Back to All Assets</Button>
               </Link>
@@ -85,6 +121,37 @@ export default async function EmployeeAssetDetailPage({ params }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Pending Request Alert */}
+        {myPendingRequest && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-1">
+                <h3 className="font-medium text-yellow-800">
+                  {myPendingRequest.status === 'PENDING_USER_ACCEPTANCE'
+                    ? 'This asset has been assigned to you'
+                    : myPendingRequest.status === 'PENDING_ADMIN_APPROVAL'
+                    ? 'Your request for this asset is pending approval'
+                    : 'Your return request is pending approval'}
+                </h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  <Link href={`/employee/asset-requests/${myPendingRequest.id}`} className="underline hover:text-yellow-900">
+                    View request details
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Show if someone else has a pending request */}
+        {hasPendingRequest && !myPendingRequest && asset.status === 'SPARE' && (
+          <div className="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <p className="text-sm text-gray-600">
+              This asset has a pending request from another user.
+            </p>
+          </div>
+        )}
 
         <div className="grid gap-6">
           {/* Acquisition Type */}

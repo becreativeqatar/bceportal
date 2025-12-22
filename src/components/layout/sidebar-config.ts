@@ -25,6 +25,7 @@ import {
   Plus,
   CheckSquare,
   Briefcase,
+  ArrowRightLeft,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -87,6 +88,7 @@ export const adminSidebarConfig: SidebarConfig = {
       defaultOpen: false,
       items: [
         { label: 'Assets', href: '/admin/assets', icon: Box },
+        { label: 'Asset Requests', href: '/admin/asset-requests', icon: ArrowRightLeft, badgeKey: 'pendingAssetRequests' },
         { label: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard },
         { label: 'Suppliers', href: '/admin/suppliers', icon: Truck, badgeKey: 'pendingSuppliers' },
       ],
@@ -147,6 +149,7 @@ export const employeeSidebarConfig: SidebarConfig = {
       defaultOpen: false,
       items: [
         { label: 'My Holdings', href: '/employee/my-assets', icon: User },
+        { label: 'Asset Requests', href: '/employee/asset-requests', icon: ArrowRightLeft, badgeKey: 'myPendingAssignments' },
         { label: 'All Assets', href: '/employee/assets', icon: Box },
         { label: 'Subscriptions', href: '/employee/subscriptions', icon: CreditCard },
         { label: 'Suppliers', href: '/employee/suppliers', icon: Truck },
@@ -172,6 +175,8 @@ export const badgeKeys = [
   'pendingLeaveRequests',
   'pendingSuppliers',
   'pendingPurchaseRequests',
+  'pendingAssetRequests',
+  'myPendingAssignments',
 ] as const;
 
 export type BadgeKey = typeof badgeKeys[number];

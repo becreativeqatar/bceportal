@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { redirect } from 'next/navigation';
-import { Role } from '@prisma/client';
+import { Role, AssetRequestStatus } from '@prisma/client';
 import Link from 'next/link';
 import { AssetListTableServerSearch } from '@/components/assets/asset-list-table-server-search';
 
@@ -20,7 +20,7 @@ export default async function AdminAssetsPage() {
   }
 
   // Fetch stats only (not all assets - the table component fetches its own data)
-  const [totalUsers, assetStats, assignedCount] = await Promise.all([
+  const [totalUsers, assetStats, assignedCount, pendingRequests, pendingReturns] = await Promise.all([
     prisma.user.count(),
     prisma.asset.aggregate({
       _count: { _all: true },
@@ -29,12 +29,19 @@ export default async function AdminAssetsPage() {
     prisma.asset.count({
       where: { assignedUserId: { not: null } },
     }),
+    prisma.assetRequest.count({
+      where: { status: AssetRequestStatus.PENDING_ADMIN_APPROVAL },
+    }),
+    prisma.assetRequest.count({
+      where: { status: AssetRequestStatus.PENDING_RETURN_APPROVAL },
+    }),
   ]);
 
   // Calculate key figures
   const totalAssets = assetStats._count._all;
   const assignedAssets = assignedCount;
   const totalValueQAR = Number(assetStats._sum.priceQAR || 0);
+  const totalPendingRequests = pendingRequests + pendingReturns;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -48,13 +55,25 @@ export default async function AdminAssetsPage() {
                   View, edit, and manage all company assets
                 </p>
               </div>
-              <Link href="/admin/assets/new">
-                <Button>+ Add Asset</Button>
-              </Link>
+              <div className="flex gap-2">
+                <Link href="/admin/asset-requests">
+                  <Button variant="outline">
+                    View Requests
+                    {totalPendingRequests > 0 && (
+                      <span className="ml-2 bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full">
+                        {totalPendingRequests}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+                <Link href="/admin/assets/new">
+                  <Button>+ Add Asset</Button>
+                </Link>
+              </div>
             </div>
 
             {/* Key Figures */}
-            <div className="grid md:grid-cols-3 gap-3 mb-6">
+            <div className="grid md:grid-cols-4 gap-3 mb-6">
               <Card>
                 <CardHeader className="pb-1 pt-3 px-4">
                   <CardTitle className="text-xs font-medium text-gray-600">Total Assets</CardTitle>
@@ -91,6 +110,22 @@ export default async function AdminAssetsPage() {
                   <p className="text-xs text-gray-500">Combined asset value</p>
                 </CardContent>
               </Card>
+
+              <Link href="/admin/asset-requests">
+                <Card className={`cursor-pointer hover:shadow-lg transition-all ${totalPendingRequests > 0 ? 'border-yellow-400 bg-yellow-50' : ''}`}>
+                  <CardHeader className="pb-1 pt-3 px-4">
+                    <CardTitle className="text-xs font-medium text-gray-600">Pending Requests</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3 px-4">
+                    <div className={`text-2xl font-bold ${totalPendingRequests > 0 ? 'text-yellow-600' : 'text-gray-400'}`}>
+                      {totalPendingRequests}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {pendingRequests} requests, {pendingReturns} returns
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
             </div>
           </div>
 
