@@ -3,7 +3,7 @@ import { prisma } from '@/lib/core/prisma';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, FileCheck, AlertTriangle, Clock, CheckCircle, ExternalLink } from 'lucide-react';
+import { Plus, FileCheck, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { getDocumentExpiryInfo, DOCUMENT_EXPIRY_WARNING_DAYS } from '@/lib/domains/system/company-documents/document-utils';
@@ -167,8 +167,8 @@ async function DocumentList() {
                       </td>
                       <td className="py-3">
                         <Link href={`/admin/company-documents/${doc.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <ExternalLink className="h-4 w-4" />
+                          <Button variant="outline" size="sm">
+                            View
                           </Button>
                         </Link>
                       </td>
