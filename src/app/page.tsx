@@ -472,6 +472,29 @@ export default async function Home() {
                   </Card>
                 </Link>
 
+                {/* Company Documents */}
+                <Link href="/admin/company-documents">
+                  <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full relative">
+                    {adminData && (adminData.expiredCompanyDocs + adminData.expiringCompanyDocs) > 0 && (
+                      <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5">
+                        {adminData.expiredCompanyDocs + adminData.expiringCompanyDocs} alerts
+                      </Badge>
+                    )}
+                    <CardHeader>
+                      <div className="text-4xl mb-2">📄</div>
+                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-slate-700 transition-colors">
+                        Company Documents
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-gray-600">Track licenses, registrations & vehicle documents</CardDescription>
+                      <div className="mt-4 flex items-center text-sm text-slate-600 font-medium group-hover:text-slate-800">
+                        Open Module <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+
                 {/* Settings */}
                 <Link href="/admin/settings">
                   <Card className="group cursor-pointer hover:shadow-lg hover:border-slate-400 transition-all duration-200 bg-white border-gray-200 h-full">

@@ -159,7 +159,13 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const document = await prisma.companyDocument.create({
     data: {
-      ...validatedData,
+      documentTypeId: validatedData.documentTypeId,
+      referenceNumber: validatedData.referenceNumber || null,
+      expiryDate: new Date(validatedData.expiryDate),
+      documentUrl: validatedData.documentUrl || null,
+      assetId: validatedData.assetId || null,
+      renewalCost: validatedData.renewalCost || null,
+      notes: validatedData.notes || null,
       createdById: session.user.id,
     },
     include: {

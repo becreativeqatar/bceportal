@@ -107,9 +107,19 @@ export const PUT = withErrorHandler(async (
     }
   }
 
+  // Build update data with proper type conversion
+  const updateData: Record<string, unknown> = {};
+  if (validatedData.documentTypeId !== undefined) updateData.documentTypeId = validatedData.documentTypeId;
+  if (validatedData.referenceNumber !== undefined) updateData.referenceNumber = validatedData.referenceNumber || null;
+  if (validatedData.expiryDate !== undefined) updateData.expiryDate = new Date(validatedData.expiryDate);
+  if (validatedData.documentUrl !== undefined) updateData.documentUrl = validatedData.documentUrl || null;
+  if (validatedData.assetId !== undefined) updateData.assetId = validatedData.assetId || null;
+  if (validatedData.renewalCost !== undefined) updateData.renewalCost = validatedData.renewalCost || null;
+  if (validatedData.notes !== undefined) updateData.notes = validatedData.notes || null;
+
   const document = await prisma.companyDocument.update({
     where: { id },
-    data: validatedData,
+    data: updateData,
     include: {
       documentType: true,
       asset: {
