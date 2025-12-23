@@ -29,6 +29,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LEAVE_REQUEST_SUBMITTED: FileText,
   LEAVE_REQUEST_APPROVED: CheckCircle,
   LEAVE_REQUEST_REJECTED: XCircle,
+  LEAVE_REQUEST_CANCELLED: XCircle,
   ASSET_ASSIGNED: Package,
   ASSET_UNASSIGNED: Package,
   ASSET_REQUEST_SUBMITTED: Package,
@@ -46,7 +47,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 function getIconColor(type: string): string {
-  if (type.includes('REJECTED') || type.includes('DECLINED')) return 'text-red-500';
+  if (type.includes('REJECTED') || type.includes('DECLINED') || type.includes('CANCELLED')) return 'text-red-500';
   if (type.includes('APPROVED') || type.includes('ACCEPTED')) return 'text-green-500';
   if (type.includes('ASSIGNED') && !type.includes('UNASSIGNED')) return 'text-green-500';
   if (type.includes('WARNING')) return 'text-yellow-500';

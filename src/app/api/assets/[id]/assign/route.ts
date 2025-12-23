@@ -8,6 +8,7 @@ import { logAction, ActivityActions } from '@/lib/activity';
 import { recordAssetAssignment } from '@/lib/asset-history';
 import { sendEmail } from '@/lib/email';
 import { assetAssignmentEmail } from '@/lib/email-templates';
+import { createNotification, NotificationTemplates } from '@/lib/domains/system/notifications';
 
 export async function POST(
   request: NextRequest,
@@ -94,26 +95,55 @@ export async function POST(
       session.user.id
     );
 
-    // Send assignment email to the new user (non-blocking)
-    if (newUser?.email) {
+    // Send assignment email and in-app notification to the new user (non-blocking)
+    if (newUser) {
       try {
-        const emailContent = assetAssignmentEmail({
-          userName: newUser.name || newUser.email,
-          assetTag: asset.assetTag || 'N/A',
-          assetType: asset.type,
-          brand: asset.brand || 'N/A',
-          model: asset.model,
-          serialNumber: asset.serial || null,
-          assignmentDate: new Date(),
-        });
-        await sendEmail({
-          to: newUser.email,
-          subject: emailContent.subject,
-          html: emailContent.html,
-          text: emailContent.text,
-        });
+        // Email notification
+        if (newUser.email) {
+          const emailContent = assetAssignmentEmail({
+            userName: newUser.name || newUser.email,
+            assetTag: asset.assetTag || 'N/A',
+            assetType: asset.type,
+            brand: asset.brand || 'N/A',
+            model: asset.model,
+            serialNumber: asset.serial || null,
+            assignmentDate: new Date(),
+          });
+          await sendEmail({
+            to: newUser.email,
+            subject: emailContent.subject,
+            html: emailContent.html,
+            text: emailContent.text,
+          });
+        }
+
+        // In-app notification
+        await createNotification(
+          NotificationTemplates.assetAssigned(
+            newUser.id,
+            asset.assetTag || '',
+            asset.model,
+            asset.id
+          )
+        );
       } catch {
-        // Don't fail the request if email fails
+        // Don't fail the request if notifications fail
+      }
+    }
+
+    // Notify previous user if asset was unassigned from them
+    if (previousUser) {
+      try {
+        await createNotification(
+          NotificationTemplates.assetUnassigned(
+            previousUser.id,
+            asset.assetTag || '',
+            asset.model,
+            asset.id
+          )
+        );
+      } catch {
+        // Don't fail the request if notification fails
       }
     }
 

@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { cancelLeaveRequestSchema } from '@/lib/validations/leave';
 import { logAction, ActivityActions } from '@/lib/activity';
 import { canCancelLeaveRequest } from '@/lib/leave-utils';
+import { createNotification, NotificationTemplates } from '@/lib/domains/system/notifications';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -159,6 +160,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         cancelledBy: isOwner ? 'owner' : 'admin',
       }
     );
+
+    // If admin cancelled someone else's leave, notify the employee
+    if (isAdmin && !isOwner) {
+      await createNotification(
+        NotificationTemplates.leaveCancelled(
+          existing.userId,
+          leaveRequest.requestNumber,
+          existing.leaveType?.name || 'Leave',
+          true, // cancelled by admin
+          reason,
+          leaveRequest.id
+        )
+      );
+    }
 
     return NextResponse.json(leaveRequest);
   } catch (error) {

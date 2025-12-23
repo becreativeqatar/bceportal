@@ -118,6 +118,25 @@ export const NotificationTemplates = {
     entityId,
   }),
 
+  leaveCancelled: (
+    userId: string,
+    requestNumber: string,
+    leaveType: string,
+    cancelledByAdmin: boolean,
+    reason?: string,
+    entityId?: string
+  ): CreateNotificationInput => ({
+    recipientId: userId,
+    type: 'LEAVE_REQUEST_CANCELLED',
+    title: 'Leave Request Cancelled',
+    message: cancelledByAdmin
+      ? `Your ${leaveType} request (${requestNumber}) was cancelled by admin.${reason ? ` Reason: ${reason}` : ''}`
+      : `Your ${leaveType} request (${requestNumber}) has been cancelled.`,
+    link: '/employee/leave',
+    entityType: 'LeaveRequest',
+    entityId,
+  }),
+
   // Asset Management
   assetAssigned: (
     userId: string,
