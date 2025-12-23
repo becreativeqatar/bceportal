@@ -8,6 +8,7 @@ import { logAction, ActivityActions } from '@/lib/activity';
 import { getAllowedStatusTransitions, getStatusLabel } from '@/lib/purchase-request-utils';
 import { sendEmail } from '@/lib/email';
 import { purchaseRequestStatusEmail } from '@/lib/email-templates';
+import { createNotification, NotificationTemplates } from '@/lib/domains/system/notifications';
 
 // PATCH - Update purchase request status (admin only)
 export async function PATCH(
@@ -168,6 +169,26 @@ export async function PATCH(
     } catch (emailError) {
       console.error('Failed to send status notification email:', emailError);
       // Don't fail the request if email fails
+    }
+
+    // Send in-app notification for approved/rejected status
+    if (status === 'APPROVED') {
+      await createNotification(
+        NotificationTemplates.purchaseRequestApproved(
+          currentRequest.requesterId,
+          purchaseRequest.referenceNumber,
+          purchaseRequest.id
+        )
+      );
+    } else if (status === 'REJECTED') {
+      await createNotification(
+        NotificationTemplates.purchaseRequestRejected(
+          currentRequest.requesterId,
+          purchaseRequest.referenceNumber,
+          reviewNotes || undefined,
+          purchaseRequest.id
+        )
+      );
     }
 
     return NextResponse.json(purchaseRequest);

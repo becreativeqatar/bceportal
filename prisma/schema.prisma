@@ -72,6 +72,23 @@ enum LeaveCategory {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// NOTIFICATION SYSTEM ENUMS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum NotificationType {
+  LEAVE_REQUEST_APPROVED
+  LEAVE_REQUEST_REJECTED
+  ASSET_ASSIGNED
+  ASSET_UNASSIGNED
+  ASSET_REQUEST_APPROVED
+  ASSET_REQUEST_REJECTED
+  PURCHASE_REQUEST_APPROVED
+  PURCHASE_REQUEST_REJECTED
+  DOCUMENT_EXPIRY_WARNING
+  GENERAL
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // ASSET REQUEST WORKFLOW ENUMS
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -200,6 +217,9 @@ model User {
 
   // Company Document relations
   companyDocumentsCreated CompanyDocument[] @relation("CompanyDocumentCreator")
+
+  // Notification relations
+  notifications Notification[] @relation("UserNotifications")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -369,6 +389,33 @@ model ActivityLog {
 
   @@index([actorUserId])
   @@index([at])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NOTIFICATION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model Notification {
+  id          String @id @default(cuid())
+  recipientId String
+  recipient   User   @relation("UserNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  type    NotificationType
+  title   String
+  message String
+  link    String? // URL to navigate when clicked
+
+  entityType String? // Related entity type (e.g., "LeaveRequest", "Asset")
+  entityId   String? // Related entity ID
+
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([recipientId])
+  @@index([recipientId, isRead])
+  @@index([createdAt])
 }
 
 model MaintenanceRecord {

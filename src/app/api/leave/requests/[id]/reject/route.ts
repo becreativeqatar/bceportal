@@ -5,6 +5,7 @@ import { Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { rejectLeaveRequestSchema } from '@/lib/validations/leave';
 import { logAction, ActivityActions } from '@/lib/activity';
+import { createNotification, NotificationTemplates } from '@/lib/domains/system/notifications';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -134,6 +135,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         leaveType: existing.leaveType?.name,
         reason,
       }
+    );
+
+    // Send notification to the requester
+    await createNotification(
+      NotificationTemplates.leaveRejected(
+        existing.userId,
+        leaveRequest.requestNumber,
+        existing.leaveType?.name || 'Leave',
+        reason,
+        leaveRequest.id
+      )
     );
 
     return NextResponse.json(leaveRequest);

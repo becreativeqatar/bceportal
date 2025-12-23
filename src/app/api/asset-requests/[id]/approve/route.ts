@@ -8,6 +8,7 @@ import { logAction, ActivityActions } from '@/lib/activity';
 import { canAdminProcess } from '@/lib/domains/operations/asset-requests/asset-request-utils';
 import { sendEmail } from '@/lib/email';
 import { assetAssignmentPendingEmail, assetReturnApprovedEmail } from '@/lib/email-templates';
+import { createNotification, NotificationTemplates } from '@/lib/domains/system/notifications';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -177,6 +178,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
     } catch (emailError) {
       console.error('Failed to send email notification:', emailError);
     }
+
+    // Send in-app notification
+    await createNotification(
+      NotificationTemplates.assetRequestApproved(
+        assetRequest.userId,
+        assetRequest.asset.assetTag || assetRequest.asset.model,
+        assetRequest.requestNumber,
+        id
+      )
+    );
 
     return NextResponse.json(updatedRequest);
   } catch (error) {

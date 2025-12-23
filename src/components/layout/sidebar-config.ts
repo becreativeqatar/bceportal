@@ -27,6 +27,7 @@ import {
   Briefcase,
   ArrowRightLeft,
   FileCheck,
+  Bell,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -114,6 +115,7 @@ export const adminSidebarConfig: SidebarConfig = {
       items: [
         { label: 'Users', href: '/admin/users', icon: Users },
         { label: 'Company Documents', href: '/admin/company-documents', icon: FileCheck },
+        { label: 'Notifications', href: '/admin/notifications', icon: Bell },
         { label: 'Reports', href: '/admin/reports', icon: BarChart3 },
         { label: 'Activity Log', href: '/admin/activity', icon: Activity },
         { label: 'Settings', href: '/admin/settings', icon: Sliders },

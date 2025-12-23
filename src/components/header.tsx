@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { MobileSidebar } from '@/components/layout/mobile-sidebar';
 import { adminSidebarConfig, employeeSidebarConfig, type BadgeCounts } from '@/components/layout/sidebar-config';
+import { NotificationBell } from '@/components/domains/system/notifications';
 
 interface HeaderProps {
   badgeCounts?: BadgeCounts;
@@ -50,7 +51,7 @@ export default function Header({ badgeCounts = {} }: HeaderProps) {
               <div className="h-8 w-20"></div>
             ) : session ? (
               <>
-                <span className="text-sm text-slate-100">
+                <span className="text-sm text-slate-100 hidden sm:inline">
                   Welcome, <span className="font-medium text-white">{session.user.name || session.user.email}</span>
                   {session.user.role && (
                     <span className="ml-1 text-xs text-slate-300">
@@ -58,6 +59,7 @@ export default function Header({ badgeCounts = {} }: HeaderProps) {
                     </span>
                   )}
                 </span>
+                <NotificationBell />
                 <Link href="/profile">
                   <Button
                     size="sm"
