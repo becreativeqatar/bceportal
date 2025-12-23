@@ -8,6 +8,7 @@ import { logAction, ActivityActions } from '@/lib/activity';
 import { canUserRespond } from '@/lib/domains/operations/asset-requests/asset-request-utils';
 import { sendBatchEmails } from '@/lib/email';
 import { assetAssignmentDeclinedEmail } from '@/lib/email-templates';
+import { createBulkNotifications, NotificationTemplates } from '@/lib/domains/system/notifications';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -100,11 +101,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
     );
 
-    // Send email notification to admins
+    // Send email and in-app notifications to admins
     try {
       const admins = await prisma.user.findMany({
         where: { role: Role.ADMIN },
-        select: { email: true },
+        select: { id: true, email: true },
       });
       const emailData = assetAssignmentDeclinedEmail({
         requestNumber: assetRequest.requestNumber,
@@ -117,8 +118,22 @@ export async function POST(request: NextRequest, context: RouteContext) {
         reason: reason || 'No reason provided',
       });
       await sendBatchEmails(admins.map(a => ({ to: a.email, subject: emailData.subject, html: emailData.html, text: emailData.text })));
+
+      // In-app notifications
+      const notifications = admins.map(admin =>
+        NotificationTemplates.assetAssignmentDeclined(
+          admin.id,
+          assetRequest.user.name || assetRequest.user.email,
+          assetRequest.asset.assetTag || '',
+          assetRequest.asset.model,
+          assetRequest.requestNumber,
+          reason,
+          id
+        )
+      );
+      await createBulkNotifications(notifications);
     } catch (emailError) {
-      console.error('Failed to send email notification:', emailError);
+      console.error('Failed to send notification:', emailError);
     }
 
     return NextResponse.json(updatedRequest);

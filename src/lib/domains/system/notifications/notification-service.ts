@@ -201,6 +201,41 @@ export const NotificationTemplates = {
     entityId,
   }),
 
+  assetAssignmentAccepted: (
+    adminId: string,
+    userName: string,
+    assetTag: string,
+    assetModel: string,
+    requestNumber: string,
+    entityId?: string
+  ): CreateNotificationInput => ({
+    recipientId: adminId,
+    type: 'ASSET_ASSIGNMENT_ACCEPTED',
+    title: 'Asset Assignment Accepted',
+    message: `${userName} accepted the assignment of ${assetModel} (${assetTag}) - ${requestNumber}`,
+    link: `/admin/asset-requests/${entityId}`,
+    entityType: 'AssetRequest',
+    entityId,
+  }),
+
+  assetAssignmentDeclined: (
+    adminId: string,
+    userName: string,
+    assetTag: string,
+    assetModel: string,
+    requestNumber: string,
+    reason?: string,
+    entityId?: string
+  ): CreateNotificationInput => ({
+    recipientId: adminId,
+    type: 'ASSET_ASSIGNMENT_DECLINED',
+    title: 'Asset Assignment Declined',
+    message: `${userName} declined the assignment of ${assetModel} (${assetTag}) - ${requestNumber}${reason ? `. Reason: ${reason}` : ''}`,
+    link: `/admin/asset-requests/${entityId}`,
+    entityType: 'AssetRequest',
+    entityId,
+  }),
+
   assetRequestApproved: (
     userId: string,
     assetTag: string,
