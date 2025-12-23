@@ -70,6 +70,23 @@ export async function createBulkNotifications(
  */
 export const NotificationTemplates = {
   // Leave Management
+  leaveSubmitted: (
+    adminId: string,
+    requesterName: string,
+    requestNumber: string,
+    leaveType: string,
+    totalDays: number,
+    entityId?: string
+  ): CreateNotificationInput => ({
+    recipientId: adminId,
+    type: 'LEAVE_REQUEST_SUBMITTED',
+    title: 'New Leave Request',
+    message: `${requesterName} submitted a ${leaveType} request (${requestNumber}) for ${totalDays} day${totalDays === 1 ? '' : 's'}.`,
+    link: `/admin/leave/requests/${entityId}`,
+    entityType: 'LeaveRequest',
+    entityId,
+  }),
+
   leaveApproved: (
     userId: string,
     requestNumber: string,
@@ -133,6 +150,57 @@ export const NotificationTemplates = {
   }),
 
   // Asset Requests
+  assetRequestSubmitted: (
+    adminId: string,
+    requesterName: string,
+    assetTag: string,
+    assetModel: string,
+    requestNumber: string,
+    entityId?: string
+  ): CreateNotificationInput => ({
+    recipientId: adminId,
+    type: 'ASSET_REQUEST_SUBMITTED',
+    title: 'New Asset Request',
+    message: `${requesterName} requested asset ${assetModel} (${assetTag}) - ${requestNumber}`,
+    link: `/admin/asset-requests/${entityId}`,
+    entityType: 'AssetRequest',
+    entityId,
+  }),
+
+  assetReturnSubmitted: (
+    adminId: string,
+    requesterName: string,
+    assetTag: string,
+    assetModel: string,
+    requestNumber: string,
+    entityId?: string
+  ): CreateNotificationInput => ({
+    recipientId: adminId,
+    type: 'ASSET_RETURN_SUBMITTED',
+    title: 'Asset Return Request',
+    message: `${requesterName} wants to return ${assetModel} (${assetTag}) - ${requestNumber}`,
+    link: `/admin/asset-requests/${entityId}`,
+    entityType: 'AssetRequest',
+    entityId,
+  }),
+
+  assetAssignmentPending: (
+    userId: string,
+    assetTag: string,
+    assetModel: string,
+    assignerName: string,
+    requestNumber: string,
+    entityId?: string
+  ): CreateNotificationInput => ({
+    recipientId: userId,
+    type: 'ASSET_ASSIGNMENT_PENDING',
+    title: 'Asset Assignment Pending',
+    message: `${assignerName} wants to assign ${assetModel} (${assetTag}) to you. Please accept or decline.`,
+    link: `/employee/asset-requests/${entityId}`,
+    entityType: 'AssetRequest',
+    entityId,
+  }),
+
   assetRequestApproved: (
     userId: string,
     assetTag: string,
@@ -165,6 +233,22 @@ export const NotificationTemplates = {
   }),
 
   // Purchase Requests
+  purchaseRequestSubmitted: (
+    adminId: string,
+    referenceNumber: string,
+    requesterName: string,
+    title: string,
+    entityId?: string
+  ): CreateNotificationInput => ({
+    recipientId: adminId,
+    type: 'PURCHASE_REQUEST_SUBMITTED',
+    title: 'New Purchase Request',
+    message: `${requesterName} submitted a purchase request (${referenceNumber}): ${title}`,
+    link: `/admin/purchase-requests/${entityId}`,
+    entityType: 'PurchaseRequest',
+    entityId,
+  }),
+
   purchaseRequestApproved: (
     userId: string,
     referenceNumber: string,

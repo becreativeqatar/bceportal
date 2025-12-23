@@ -9,6 +9,7 @@ import { generatePurchaseRequestNumber } from '@/lib/purchase-request-utils';
 import { USD_TO_QAR_RATE } from '@/lib/constants';
 import { sendEmail } from '@/lib/email';
 import { purchaseRequestSubmittedEmail } from '@/lib/email-templates';
+import { createBulkNotifications, NotificationTemplates } from '@/lib/domains/system/notifications';
 
 // GET - List purchase requests
 export async function GET(request: NextRequest) {
@@ -272,14 +273,15 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Send email notification to admins
+    // Send email and in-app notifications to admins
     try {
       const admins = await prisma.user.findMany({
         where: { role: Role.ADMIN },
-        select: { email: true },
+        select: { id: true, email: true },
       });
 
       if (admins.length > 0) {
+        // Email notification
         const emailContent = purchaseRequestSubmittedEmail({
           referenceNumber,
           requesterName: session.user.name || session.user.email,
@@ -296,6 +298,18 @@ export async function POST(request: NextRequest) {
           html: emailContent.html,
           text: emailContent.text,
         });
+
+        // In-app notifications
+        const notifications = admins.map(admin =>
+          NotificationTemplates.purchaseRequestSubmitted(
+            admin.id,
+            referenceNumber,
+            session.user.name || session.user.email || 'User',
+            data.title,
+            purchaseRequest.id
+          )
+        );
+        await createBulkNotifications(notifications);
       }
     } catch (emailError) {
       console.error('Failed to send notification email:', emailError);

@@ -26,12 +26,17 @@ interface NotificationItemProps {
 }
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  LEAVE_REQUEST_SUBMITTED: FileText,
   LEAVE_REQUEST_APPROVED: CheckCircle,
   LEAVE_REQUEST_REJECTED: XCircle,
   ASSET_ASSIGNED: Package,
   ASSET_UNASSIGNED: Package,
+  ASSET_REQUEST_SUBMITTED: Package,
   ASSET_REQUEST_APPROVED: CheckCircle,
   ASSET_REQUEST_REJECTED: XCircle,
+  ASSET_RETURN_SUBMITTED: Package,
+  ASSET_ASSIGNMENT_PENDING: Package,
+  PURCHASE_REQUEST_SUBMITTED: FileText,
   PURCHASE_REQUEST_APPROVED: CheckCircle,
   PURCHASE_REQUEST_REJECTED: XCircle,
   DOCUMENT_EXPIRY_WARNING: AlertTriangle,
@@ -40,10 +45,11 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 
 function getIconColor(type: string): string {
   if (type.includes('REJECTED')) return 'text-red-500';
-  if (type.includes('APPROVED') || type.includes('ASSIGNED'))
-    return 'text-green-500';
+  if (type.includes('APPROVED')) return 'text-green-500';
+  if (type.includes('ASSIGNED') && !type.includes('UNASSIGNED')) return 'text-green-500';
   if (type.includes('WARNING')) return 'text-yellow-500';
   if (type.includes('UNASSIGNED')) return 'text-orange-500';
+  if (type.includes('SUBMITTED') || type.includes('PENDING')) return 'text-blue-500';
   return 'text-blue-500';
 }
 

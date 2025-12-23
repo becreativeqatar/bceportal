@@ -5,6 +5,7 @@ import { Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { createLeaveRequestSchema, leaveRequestQuerySchema } from '@/lib/validations/leave';
 import { logAction, ActivityActions } from '@/lib/activity';
+import { createBulkNotifications, NotificationTemplates } from '@/lib/domains/system/notifications';
 import {
   calculateWorkingDays,
   meetsNoticeDaysRequirement,
@@ -464,6 +465,30 @@ export async function POST(request: NextRequest) {
         endDate: data.endDate,
       }
     );
+
+    // Notify admins about new leave request
+    try {
+      const admins = await prisma.user.findMany({
+        where: { role: Role.ADMIN },
+        select: { id: true },
+      });
+
+      if (admins.length > 0) {
+        const notifications = admins.map(admin =>
+          NotificationTemplates.leaveSubmitted(
+            admin.id,
+            session.user.name || session.user.email || 'Employee',
+            leaveRequest.requestNumber,
+            leaveType.name,
+            totalDays,
+            leaveRequest.id
+          )
+        );
+        await createBulkNotifications(notifications);
+      }
+    } catch (notifyError) {
+      console.error('Failed to send leave request notifications:', notifyError);
+    }
 
     return NextResponse.json(leaveRequest, { status: 201 });
   } catch (error) {

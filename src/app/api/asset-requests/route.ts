@@ -17,6 +17,7 @@ import {
   canReturnAsset,
 } from '@/lib/domains/operations/asset-requests/asset-request-utils';
 import { sendEmail, sendBatchEmails } from '@/lib/email';
+import { createNotification, createBulkNotifications, NotificationTemplates } from '@/lib/domains/system/notifications';
 import {
   assetRequestSubmittedEmail,
   assetAssignmentPendingEmail,
@@ -309,13 +310,13 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Send email notifications
+    // Send email and in-app notifications
     try {
       if (type === AssetRequestType.EMPLOYEE_REQUEST) {
         // Notify admins about new request
         const admins = await prisma.user.findMany({
           where: { role: Role.ADMIN },
-          select: { email: true },
+          select: { id: true, email: true },
         });
         const emailData = assetRequestSubmittedEmail({
           requestNumber: assetRequest.requestNumber,
@@ -328,6 +329,19 @@ export async function POST(request: NextRequest) {
           reason: reason || '',
         });
         await sendBatchEmails(admins.map(a => ({ to: a.email, subject: emailData.subject, html: emailData.html, text: emailData.text })));
+
+        // In-app notifications
+        const notifications = admins.map(admin =>
+          NotificationTemplates.assetRequestSubmitted(
+            admin.id,
+            assetRequest.user.name || assetRequest.user.email,
+            asset.assetTag || '',
+            asset.model,
+            assetRequest.requestNumber,
+            assetRequest.id
+          )
+        );
+        await createBulkNotifications(notifications);
       } else if (type === AssetRequestType.ADMIN_ASSIGNMENT) {
         // Notify user about pending assignment
         const emailData = assetAssignmentPendingEmail({
@@ -341,11 +355,23 @@ export async function POST(request: NextRequest) {
           reason: notes || undefined,
         });
         await sendEmail({ to: assetRequest.user.email, subject: emailData.subject, html: emailData.html, text: emailData.text });
+
+        // In-app notification
+        await createNotification(
+          NotificationTemplates.assetAssignmentPending(
+            userId,
+            asset.assetTag || '',
+            asset.model,
+            session.user.name || session.user.email || 'Admin',
+            assetRequest.requestNumber,
+            assetRequest.id
+          )
+        );
       } else if (type === AssetRequestType.RETURN_REQUEST) {
         // Notify admins about return request
         const admins = await prisma.user.findMany({
           where: { role: Role.ADMIN },
-          select: { email: true },
+          select: { id: true, email: true },
         });
         const emailData = assetReturnRequestEmail({
           requestNumber: assetRequest.requestNumber,
@@ -358,10 +384,23 @@ export async function POST(request: NextRequest) {
           reason: reason || '',
         });
         await sendBatchEmails(admins.map(a => ({ to: a.email, subject: emailData.subject, html: emailData.html, text: emailData.text })));
+
+        // In-app notifications
+        const notifications = admins.map(admin =>
+          NotificationTemplates.assetReturnSubmitted(
+            admin.id,
+            assetRequest.user.name || assetRequest.user.email,
+            asset.assetTag || '',
+            asset.model,
+            assetRequest.requestNumber,
+            assetRequest.id
+          )
+        );
+        await createBulkNotifications(notifications);
       }
     } catch (emailError) {
-      console.error('Failed to send email notification:', emailError);
-      // Don't fail the request if email fails
+      console.error('Failed to send notification:', emailError);
+      // Don't fail the request if notifications fail
     }
 
     return NextResponse.json(assetRequest, { status: 201 });
