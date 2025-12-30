@@ -326,6 +326,61 @@ async function main() {
   }
 
   console.log('✅ Created company document types');
+
+  // Create default document numbering configurations
+  const DOCUMENT_NUMBER_CONFIGS = [
+    // Document Types (non-asset)
+    { entityType: 'LEAVE_REQUEST', entityLabel: 'Leave Request', code: 'LV', description: 'Employee leave requests', includeMonth: false, sequenceDigits: 3, isAssetCategory: false, isSystemRequired: true },
+    { entityType: 'SUPPLIER', entityLabel: 'Supplier', code: 'SP', description: 'Vendor/supplier records', includeMonth: false, sequenceDigits: 3, isAssetCategory: false, isSystemRequired: true },
+    { entityType: 'PAYROLL_RUN', entityLabel: 'Payroll Run', code: 'PY', description: 'Monthly payroll runs', includeMonth: true, sequenceDigits: 3, isAssetCategory: false, isSystemRequired: true },
+    { entityType: 'PAYSLIP', entityLabel: 'Payslip', code: 'PS', description: 'Employee payslips', includeMonth: true, sequenceDigits: 3, isAssetCategory: false, isSystemRequired: true },
+    { entityType: 'EMPLOYEE_LOAN', entityLabel: 'Employee Loan', code: 'LN', description: 'Employee loans and advances', includeMonth: false, sequenceDigits: 3, isAssetCategory: false, isSystemRequired: true },
+    { entityType: 'ASSET_REQUEST', entityLabel: 'Asset Request', code: 'AR', description: 'Asset request/return workflow', includeMonth: false, sequenceDigits: 3, isAssetCategory: false, isSystemRequired: true },
+    { entityType: 'PROJECT', entityLabel: 'Project', code: 'PJ', description: 'Project tracking', includeMonth: false, sequenceDigits: 3, isAssetCategory: false, isSystemRequired: true },
+    { entityType: 'PURCHASE_REQUEST', entityLabel: 'Purchase Request', code: 'PR', description: 'Purchase requests', includeMonth: true, sequenceDigits: 3, isAssetCategory: false, isSystemRequired: true },
+
+    // Asset Categories
+    { entityType: 'ASSET_CP', entityLabel: 'Asset - Computing', code: 'CP', description: 'Laptops, desktops, servers, workstations', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_MO', entityLabel: 'Asset - Mobile Devices', code: 'MO', description: 'Tablets, smartphones, mobile devices', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_DP', entityLabel: 'Asset - Display', code: 'DP', description: 'Monitors, projectors, displays', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_AV', entityLabel: 'Asset - Audio Visual', code: 'AV', description: 'Cameras, audio equipment, video gear', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_NW', entityLabel: 'Asset - Networking', code: 'NW', description: 'Routers, switches, access points', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_PN', entityLabel: 'Asset - Printing', code: 'PN', description: 'Printers, scanners, copiers', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_CB', entityLabel: 'Asset - Cables', code: 'CB', description: 'Cables, adapters, connectors', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_ST', entityLabel: 'Asset - Storage', code: 'ST', description: 'External drives, NAS, storage devices', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_PT', entityLabel: 'Asset - Peripherals', code: 'PT', description: 'Keyboards, mice, accessories', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_OF', entityLabel: 'Asset - Office Furniture', code: 'OF', description: 'Desks, chairs, furniture', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_OE', entityLabel: 'Asset - Office Equipment', code: 'OE', description: 'Whiteboards, shredders', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_AP', entityLabel: 'Asset - Appliances', code: 'AP', description: 'Kitchen appliances, AC units', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_SF', entityLabel: 'Asset - Safety', code: 'SF', description: 'Fire extinguishers, first aid', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_CL', entityLabel: 'Asset - Cleaning', code: 'CL', description: 'Cleaning equipment', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_VH', entityLabel: 'Asset - Vehicles', code: 'VH', description: 'Company vehicles', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_ME', entityLabel: 'Asset - Miscellaneous', code: 'ME', description: 'Other equipment', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_SW', entityLabel: 'Asset - Software/SaaS', code: 'SW', description: 'Software licenses, SaaS subscriptions', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+    { entityType: 'ASSET_DG', entityLabel: 'Asset - Digital Assets', code: 'DG', description: 'Domains, SSL certificates', includeMonth: false, sequenceDigits: 3, isAssetCategory: true, isSystemRequired: true },
+  ];
+
+  for (const config of DOCUMENT_NUMBER_CONFIGS) {
+    await prisma.documentNumberConfig.upsert({
+      where: { entityType: config.entityType },
+      update: {},
+      create: config,
+    });
+  }
+
+  console.log('✅ Created document numbering configurations');
+
+  // Create company prefix setting
+  await prisma.systemSettings.upsert({
+    where: { key: 'companyPrefix' },
+    update: {},
+    create: {
+      key: 'companyPrefix',
+      value: 'BCE',
+    },
+  });
+
+  console.log('✅ Created company prefix setting');
   console.log('🎉 Seeding completed successfully!');
 }
 

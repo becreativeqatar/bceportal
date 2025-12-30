@@ -16,6 +16,7 @@ import { createAssetSchema, type CreateAssetRequest } from '@/lib/validations/as
 import { AssetStatus, AcquisitionType } from '@prisma/client';
 import { USD_TO_QAR_RATE } from '@/lib/constants';
 import { getQatarEndOfDay } from '@/lib/qatar-timezone';
+import { getCategoryOptions, suggestCategoryFromType, type AssetCategoryCode } from '@/lib/domains/operations/assets/asset-categories';
 
 export default function NewAssetPage() {
   const router = useRouter();
@@ -38,6 +39,7 @@ export default function NewAssetPage() {
     resolver: zodResolver(createAssetSchema),
     defaultValues: {
       assetTag: '',
+      assetCategory: '' as AssetCategoryCode,
       type: '',
       category: '',
       brand: '',
@@ -65,6 +67,7 @@ export default function NewAssetPage() {
   // Watch critical fields for side effects
   const watchedType = watch('type');
   const watchedCategory = watch('category');
+  const watchedAssetCategory = watch('assetCategory');
   const watchedLocation = watch('location');
   const watchedPrice = watch('price');
   const watchedCurrency = watch('priceCurrency');
@@ -73,6 +76,9 @@ export default function NewAssetPage() {
   const watchedStatus = watch('status');
   const watchedAcquisitionType = watch('acquisitionType');
   const watchedAssignedUserId = watch('assignedUserId');
+
+  // Get BEC category options for dropdown
+  const categoryOptions = getCategoryOptions();
 
   // Fetch users on mount
   useEffect(() => {
@@ -87,6 +93,16 @@ export default function NewAssetPage() {
       setAssetTypeSuggestions([]);
     }
   }, [watchedType]);
+
+  // Auto-suggest BEC asset category based on type
+  useEffect(() => {
+    if (watchedType && watchedType.length > 0 && !watchedAssetCategory) {
+      const suggestedCategory = suggestCategoryFromType(watchedType);
+      if (suggestedCategory) {
+        setValue('assetCategory', suggestedCategory);
+      }
+    }
+  }, [watchedType, watchedAssetCategory, setValue]);
 
   // Fetch category suggestions
   useEffect(() => {
@@ -296,33 +312,60 @@ export default function NewAssetPage() {
                       </div>
                     )}
                   </div>
-                  <div className="space-y-2 relative">
-                    <Label htmlFor="category">Category / Department</Label>
-                    <Input
-                      id="category"
-                      {...register('category')}
-                      onFocus={() => setShowCategorySuggestions(true)}
-                      onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 200)}
-                      placeholder="IT, Marketing, Engineering, etc."
-                      autoComplete="off"
-                    />
-                    {showCategorySuggestions && categorySuggestions.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-auto">
-                        {categorySuggestions.map((category, index) => (
-                          <div
-                            key={index}
-                            className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                            onClick={() => {
-                              setValue('category', category);
-                              setShowCategorySuggestions(false);
-                            }}
-                          >
-                            {category}
-                          </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="assetCategory">BCE Asset Category *</Label>
+                    <Select
+                      value={watchedAssetCategory || ''}
+                      onValueChange={(value) => setValue('assetCategory', value as AssetCategoryCode)}
+                    >
+                      <SelectTrigger className={errors.assetCategory ? 'border-red-500' : ''}>
+                        <SelectValue placeholder="Select category..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoryOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex flex-col">
+                              <span>{option.label}</span>
+                            </div>
+                          </SelectItem>
                         ))}
-                      </div>
+                      </SelectContent>
+                    </Select>
+                    {errors.assetCategory && (
+                      <p className="text-sm text-red-500">{errors.assetCategory.message}</p>
                     )}
+                    <p className="text-xs text-muted-foreground">
+                      Auto-suggested based on asset type
+                    </p>
                   </div>
+                </div>
+
+                <div className="space-y-2 relative">
+                  <Label htmlFor="category">Department / Team</Label>
+                  <Input
+                    id="category"
+                    {...register('category')}
+                    onFocus={() => setShowCategorySuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 200)}
+                    placeholder="IT, Marketing, Engineering, etc."
+                    autoComplete="off"
+                  />
+                  {showCategorySuggestions && categorySuggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-auto">
+                      {categorySuggestions.map((cat, index) => (
+                        <div
+                          key={index}
+                          className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                          onClick={() => {
+                            setValue('category', cat);
+                            setShowCategorySuggestions(false);
+                          }}
+                        >
+                          {cat}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -401,7 +444,7 @@ export default function NewAssetPage() {
                       style={{ textTransform: 'uppercase' }}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Leave empty to auto-generate (e.g., LAP-2024-001)
+                      Leave empty to auto-generate (e.g., BCE-CP-25001)
                     </p>
                   </div>
                 </div>

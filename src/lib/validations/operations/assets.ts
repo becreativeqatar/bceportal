@@ -1,8 +1,15 @@
 import { z } from 'zod';
 import { AssetStatus, AcquisitionType } from '@prisma/client';
+import { CATEGORY_CODES } from '@/lib/domains/operations/assets/asset-categories';
+
+// Valid BEC category codes - need at least one element for z.enum
+const validCategoryCodes = ['CP', 'MO', 'DP', 'AV', 'NW', 'PR', 'CB', 'ST', 'PT', 'OF', 'OE', 'AP', 'SF', 'CL', 'VH', 'ME', 'SW', 'DG'] as const;
 
 export const createAssetSchema = z.object({
   assetTag: z.string().optional().nullable().or(z.literal('')),
+  assetCategory: z.enum(validCategoryCodes, {
+    message: 'Please select a valid asset category'
+  }),
   type: z.string().min(1, 'Type is required'),
   category: z.string().optional().nullable().or(z.literal('')),
   brand: z.string().optional().nullable().or(z.literal('')),
@@ -55,6 +62,7 @@ export const createAssetSchema = z.object({
 // Base schema without refinements for updates
 const baseAssetSchema = z.object({
   assetTag: z.string().optional().nullable().or(z.literal('')),
+  assetCategory: z.enum(validCategoryCodes).optional().nullable().or(z.literal('')),
   type: z.string().min(1, 'Type is required'),
   category: z.string().optional().nullable().or(z.literal('')),
   brand: z.string().optional().nullable().or(z.literal('')),
@@ -118,9 +126,10 @@ export const assetQuerySchema = z.object({
   status: z.nativeEnum(AssetStatus).optional(),
   type: z.string().optional(),
   category: z.string().optional(),
+  assetCategory: z.string().optional(), // BEC category code filter
   p: z.coerce.number().min(1).default(1),
   ps: z.coerce.number().min(1).max(100).default(20),
-  sort: z.enum(['model', 'brand', 'type', 'category', 'purchaseDate', 'warrantyExpiry', 'priceQAR', 'createdAt', 'assetTag']).default('createdAt'),
+  sort: z.enum(['model', 'brand', 'type', 'category', 'assetCategory', 'purchaseDate', 'warrantyExpiry', 'priceQAR', 'createdAt', 'assetTag']).default('createdAt'),
   order: z.enum(['asc', 'desc']).default('desc'),
 });
 

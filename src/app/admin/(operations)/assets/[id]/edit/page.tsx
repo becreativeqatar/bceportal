@@ -17,10 +17,12 @@ import { updateAssetSchema, type UpdateAssetRequest } from '@/lib/validations/as
 import { AssetStatus, AcquisitionType } from '@prisma/client';
 import { USD_TO_QAR_RATE } from '@/lib/constants';
 import { getQatarEndOfDay } from '@/lib/qatar-timezone';
+import { getCategoryOptions, type AssetCategoryCode } from '@/lib/domains/operations/assets/asset-categories';
 
 interface Asset {
   id: string;
   assetTag?: string;
+  assetCategory?: string;
   type: string;
   brand?: string;
   model: string;
@@ -63,6 +65,7 @@ export default function EditAssetPage() {
     resolver: zodResolver(updateAssetSchema),
     defaultValues: {
       assetTag: '',
+      assetCategory: null,
       type: '',
       category: '',
       brand: '',
@@ -90,6 +93,7 @@ export default function EditAssetPage() {
   // Watch critical fields
   const watchedType = watch('type');
   const watchedCategory = watch('category');
+  const watchedAssetCategory = watch('assetCategory');
   const watchedLocation = watch('location');
   const watchedPrice = watch('price');
   const watchedCurrency = watch('priceCurrency');
@@ -97,6 +101,9 @@ export default function EditAssetPage() {
   const watchedAcquisitionType = watch('acquisitionType');
   const watchedAssignedUserId = watch('assignedUserId');
   const watchedPurchaseDate = watch('purchaseDate');
+
+  // Get BEC category options for dropdown
+  const categoryOptions = getCategoryOptions();
 
   // Maintenance tracking state
   const [maintenanceRecords, setMaintenanceRecords] = useState<Array<{ id: string; maintenanceDate: string; notes: string | null }>>([]);
@@ -213,6 +220,7 @@ export default function EditAssetPage() {
         setAsset(assetData);
         reset({
           assetTag: assetData.assetTag || '',
+          assetCategory: assetData.assetCategory || null,
           type: assetData.type || '',
           category: assetData.category || '',
           brand: assetData.brand || '',
@@ -418,33 +426,55 @@ export default function EditAssetPage() {
                       </div>
                     )}
                   </div>
-                  <div className="space-y-2 relative">
-                    <Label htmlFor="category">Category / Department</Label>
-                    <Input
-                      id="category"
-                      {...register('category')}
-                      onFocus={() => setShowCategorySuggestions(true)}
-                      onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 200)}
-                      placeholder="IT, Marketing, Engineering, etc."
-                      autoComplete="off"
-                    />
-                    {showCategorySuggestions && categorySuggestions.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-auto">
-                        {categorySuggestions.map((category, index) => (
-                          <div
-                            key={index}
-                            className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                            onClick={() => {
-                              setValue('category', category);
-                              setShowCategorySuggestions(false);
-                            }}
-                          >
-                            {category}
-                          </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="assetCategory">BCE Asset Category</Label>
+                    <Select
+                      value={watchedAssetCategory || ''}
+                      onValueChange={(value) => setValue('assetCategory', value as AssetCategoryCode)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoryOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <span>{option.label}</span>
+                          </SelectItem>
                         ))}
-                      </div>
-                    )}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Category code for BCE asset tag
+                    </p>
                   </div>
+                </div>
+
+                <div className="space-y-2 relative">
+                  <Label htmlFor="category">Department / Team</Label>
+                  <Input
+                    id="category"
+                    {...register('category')}
+                    onFocus={() => setShowCategorySuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 200)}
+                    placeholder="IT, Marketing, Engineering, etc."
+                    autoComplete="off"
+                  />
+                  {showCategorySuggestions && categorySuggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-auto">
+                      {categorySuggestions.map((cat, index) => (
+                        <div
+                          key={index}
+                          className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                          onClick={() => {
+                            setValue('category', cat);
+                            setShowCategorySuggestions(false);
+                          }}
+                        >
+                          {cat}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

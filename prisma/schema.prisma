@@ -245,7 +245,8 @@ model VerificationToken {
 
 model Asset {
   id              String          @id @default(cuid())
-  assetTag        String?         @unique // #1 Asset ID/Tag
+  assetTag        String?         @unique // #1 Asset ID/Tag (BCE-XX-YYXXX format)
+  assetCategory   String? // BCE category code (CP, MO, DP, etc.)
   type            String // #2 Asset Type (Laptop, Mouse, Monitor, etc.)
   category        String? // #3 Category/Department (IT, Marketing, Engineering, etc.)
   brand           String? // #4 Brand/Manufacturer (Apple, Dell, HP, etc.)
@@ -322,6 +323,7 @@ model AssetHistory {
 
 model Subscription {
   id                    String                @id @default(cuid())
+  subscriptionTag       String?               @unique // BCE tag (BCE-SW-YYXXX or BCE-DG-YYXXX)
   serviceName           String
   category              String?
   accountId             String?
@@ -508,6 +510,30 @@ model SystemSettings {
   updatedAt DateTime @updatedAt
 
   @@index([key])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DOCUMENT NUMBERING CONFIGURATION
+// Centralized management of BCE document/asset tag codes
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model DocumentNumberConfig {
+  id             String   @id @default(cuid())
+  entityType     String   @unique // e.g., "LEAVE_REQUEST", "ASSET_CP", "ASSET_MO"
+  entityLabel    String // Human-readable label: "Leave Request", "Asset - Computing"
+  code           String // 2-letter code: "LV", "CP", "MO" etc.
+  description    String? // Optional description
+  includeMonth   Boolean  @default(false) // If true: BCE-XX-YYMM-SEQ, else: BCE-XX-YY-SEQ
+  sequenceDigits Int      @default(3) // Number of digits for sequence (padded)
+  isAssetCategory Boolean @default(false) // True for asset categories (CP, MO, etc.)
+  isSystemRequired Boolean @default(false) // Prevent deletion of core configs
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([code, isAssetCategory]) // Code must be unique within document types OR asset categories
+  @@index([isAssetCategory])
+  @@index([isActive])
 }
 
 model HRProfile {

@@ -13,6 +13,7 @@ import { assetAssignmentEmail } from '@/lib/email-templates';
 // Helper to convert field names to human-readable labels
 const fieldLabels: Record<string, string> = {
   assetTag: 'Asset Tag',
+  assetCategory: 'BCE Category',
   brand: 'Brand',
   model: 'Model',
   type: 'Type',

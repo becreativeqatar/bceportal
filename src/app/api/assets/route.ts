@@ -5,8 +5,9 @@ import { Role, AssetStatus, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { createAssetSchema, assetQuerySchema } from '@/lib/validations/assets';
 import { logAction, ActivityActions } from '@/lib/activity';
-import { generateAssetTag } from '@/lib/asset-utils';
+import { generateAssetTag } from '@/lib/domains/operations/assets/asset-utils';
 import { recordAssetCreation } from '@/lib/asset-history';
+import { AcquisitionType } from '@prisma/client';
 import { USD_TO_QAR_RATE } from '@/lib/constants';
 import { buildFilterWithSearch } from '@/lib/db/search-filter';
 import { withErrorHandler } from '@/lib/http/handler';
@@ -16,6 +17,7 @@ interface AssetFilters {
   status?: AssetStatus;
   type?: string;
   category?: string;
+  assetCategory?: string;
 }
 
 async function getAssetsHandler(request: NextRequest) {
@@ -37,18 +39,19 @@ async function getAssetsHandler(request: NextRequest) {
     }, { status: 400 });
   }
 
-  const { q, status, type, category, p, ps, sort, order } = validation.data;
+  const { q, status, type, category, assetCategory, p, ps, sort, order } = validation.data;
 
   // Build filters object with proper typing
   const filters: AssetFilters = {};
   if (status) filters.status = status;
   if (type) filters.type = type;
   if (category) filters.category = category;
+  if (assetCategory) filters.assetCategory = assetCategory;
 
   // Build where clause using reusable search filter
   const where = buildFilterWithSearch({
     searchTerm: q,
-    searchFields: ['assetTag', 'model', 'brand', 'serial', 'type', 'supplier', 'configuration'],
+    searchFields: ['assetTag', 'assetCategory', 'model', 'brand', 'serial', 'type', 'supplier', 'configuration'],
     filters: Object.keys(filters).length > 0 ? filters : undefined,
   });
 
@@ -110,7 +113,14 @@ async function createAssetHandler(request: NextRequest) {
   const data = validation.data;
 
   // Generate asset tag if not provided, and ensure it's always uppercase
-  let assetTag = data.assetTag || await generateAssetTag(data.type);
+  const isTransferred = data.acquisitionType === AcquisitionType.TRANSFERRED;
+  let assetTag = data.assetTag;
+
+  // Only generate new tag if not provided AND assetCategory is specified
+  if (!assetTag && data.assetCategory) {
+    assetTag = await generateAssetTag(data.assetCategory, isTransferred);
+  }
+
   if (assetTag) {
     assetTag = assetTag.toUpperCase();
   }
@@ -135,6 +145,7 @@ async function createAssetHandler(request: NextRequest) {
   // Build asset data with proper typing
   const assetData: Prisma.AssetCreateInput = {
     assetTag,
+    assetCategory: data.assetCategory || null,
     type: data.type,
     category: data.category || null,
     brand: data.brand || null,

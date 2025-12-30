@@ -9,6 +9,7 @@ import { getQatarNow, getQatarStartOfDay } from '@/lib/qatar-timezone';
 import { parseInputDateString } from '@/lib/date-format';
 import { USD_TO_QAR_RATE } from '@/lib/constants';
 import { buildFilterWithSearch } from '@/lib/db/search-filter';
+import { generateSubscriptionTag, getSubscriptionCategoryCode } from '@/lib/domains/operations/subscriptions/subscription-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     const where = buildFilterWithSearch({
       searchTerm: q,
-      searchFields: ['serviceName', 'accountId', 'vendor', 'category'],
+      searchFields: ['serviceName', 'subscriptionTag', 'accountId', 'vendor', 'category'],
       filters,
     });
 
@@ -121,6 +122,10 @@ export async function POST(request: NextRequest) {
 
     const data = validation.data;
 
+    // Generate subscription tag
+    const categoryCode = getSubscriptionCategoryCode(data.category);
+    const subscriptionTag = await generateSubscriptionTag(categoryCode);
+
     // SAFEGUARD: Always calculate costQAR to prevent data loss
     let costQAR = data.costQAR;
 
@@ -141,6 +146,7 @@ export async function POST(request: NextRequest) {
     // Convert date strings to Date objects
     const subscriptionData: any = {
       ...data,
+      subscriptionTag, // Add the generated BEC tag
       costCurrency: currency, // Use the calculated currency with default
       costQAR: costQAR || null, // Ensure costQAR is always set, use null instead of undefined
       purchaseDate: data.purchaseDate ? parseInputDateString(data.purchaseDate) : null,
@@ -171,7 +177,7 @@ export async function POST(request: NextRequest) {
       ActivityActions.SUBSCRIPTION_CREATED,
       'Subscription',
       subscription.id,
-      { serviceName: subscription.serviceName, billingCycle: subscription.billingCycle }
+      { serviceName: subscription.serviceName, billingCycle: subscription.billingCycle, subscriptionTag: subscription.subscriptionTag }
     );
 
     // Create subscription history entry for creation
