@@ -105,7 +105,15 @@ export function formatError(
 
   // Handle generic errors (don't expose internal details in production)
   const isDev = process.env.NODE_ENV === 'development';
-  
+
+  // Always log errors to console for Vercel logs
+  console.error('[API Error]', {
+    message: error.message,
+    stack: error.stack,
+    requestId,
+    timestamp,
+  });
+
   return {
     response: {
       error: 'Internal Server Error',
