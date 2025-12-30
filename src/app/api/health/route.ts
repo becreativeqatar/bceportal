@@ -23,6 +23,29 @@ export async function GET() {
     allHealthy = false;
   }
 
+  // Asset table check
+  try {
+    const assetCount = await prisma.asset.count();
+    checks.assets = { status: 'up', count: assetCount };
+  } catch (error) {
+    checks.assets = {
+      status: 'down',
+      error: error instanceof Error ? error.message : 'Asset table query failed',
+    };
+    allHealthy = false;
+  }
+
+  // DocumentNumberConfig table check
+  try {
+    const configCount = await prisma.documentNumberConfig.count();
+    checks.documentNumberConfig = { status: 'up', count: configCount };
+  } catch (error) {
+    checks.documentNumberConfig = {
+      status: 'down',
+      error: error instanceof Error ? error.message : 'DocumentNumberConfig query failed',
+    };
+  }
+
   // Supabase Storage check
   try {
     const supabaseStart = Date.now();
