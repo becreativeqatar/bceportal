@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Loader2, Pencil, Trash2, Hash, Package, FileText, Save, AlertTriangle } from 'lucide-react';
+import { Loader2, Pencil, Trash2, Hash, Package, FileText, Save, AlertTriangle, Plus } from 'lucide-react';
 
 interface DocumentNumberConfig {
   id: string;
@@ -33,20 +33,24 @@ interface DocumentNumberConfig {
 }
 
 interface FormData {
+  entityType: string;
   entityLabel: string;
   code: string;
   description: string;
   includeMonth: boolean;
   sequenceDigits: number;
+  isAssetCategory: boolean;
   isActive: boolean;
 }
 
 const emptyForm: FormData = {
+  entityType: '',
   entityLabel: '',
   code: '',
   description: '',
   includeMonth: false,
   sequenceDigits: 3,
+  isAssetCategory: false,
   isActive: true,
 };
 
@@ -62,6 +66,7 @@ export function DocumentNumberingSettings() {
   const [editingConfig, setEditingConfig] = useState<DocumentNumberConfig | null>(null);
   const [deletingConfig, setDeletingConfig] = useState<DocumentNumberConfig | null>(null);
   const [formData, setFormData] = useState<FormData>(emptyForm);
+  const [isCreating, setIsCreating] = useState(false);
 
   const fetchConfigs = useCallback(async () => {
     try {
@@ -82,14 +87,27 @@ export function DocumentNumberingSettings() {
     fetchConfigs();
   }, [fetchConfigs]);
 
+  const openCreateDialog = (isAssetCategory: boolean) => {
+    setIsCreating(true);
+    setEditingConfig(null);
+    setFormData({
+      ...emptyForm,
+      isAssetCategory,
+    });
+    setIsDialogOpen(true);
+  };
+
   const openEditDialog = (config: DocumentNumberConfig) => {
+    setIsCreating(false);
     setEditingConfig(config);
     setFormData({
+      entityType: config.entityType,
       entityLabel: config.entityLabel,
       code: config.code,
       description: config.description || '',
       includeMonth: config.includeMonth,
       sequenceDigits: config.sequenceDigits,
+      isAssetCategory: config.isAssetCategory,
       isActive: config.isActive,
     });
     setIsDialogOpen(true);
@@ -111,10 +129,26 @@ export function DocumentNumberingSettings() {
       return;
     }
 
+    if (isCreating) {
+      if (!formData.entityType.trim()) {
+        toast.error('Entity type is required');
+        return;
+      }
+      if (!formData.entityLabel.trim()) {
+        toast.error('Label is required');
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/admin/document-config/${editingConfig?.id}`, {
-        method: 'PUT',
+      const url = isCreating
+        ? '/api/admin/document-config'
+        : `/api/admin/document-config/${editingConfig?.id}`;
+      const method = isCreating ? 'POST' : 'PUT';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
@@ -124,7 +158,7 @@ export function DocumentNumberingSettings() {
         throw new Error(errorData.error || 'Failed to save');
       }
 
-      toast.success('Configuration updated');
+      toast.success(isCreating ? 'Configuration created' : 'Configuration updated');
       setIsDialogOpen(false);
       fetchConfigs();
     } catch (error) {
@@ -327,9 +361,15 @@ export function DocumentNumberingSettings() {
             </TabsList>
 
             <TabsContent value="documents" className="space-y-2">
+              <div className="flex justify-end mb-2">
+                <Button size="sm" onClick={() => openCreateDialog(false)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Document Type
+                </Button>
+              </div>
               {documentTypes.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">
-                  No document type configurations found. Run database seed to create defaults.
+                  No document type configurations found. Click &quot;Add Document Type&quot; to create one.
                 </p>
               ) : (
                 documentTypes.map(renderConfigRow)
@@ -337,9 +377,15 @@ export function DocumentNumberingSettings() {
             </TabsContent>
 
             <TabsContent value="assets" className="space-y-2">
+              <div className="flex justify-end mb-2">
+                <Button size="sm" onClick={() => openCreateDialog(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Asset Category
+                </Button>
+              </div>
               {assetCategories.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">
-                  No asset category configurations found. Run database seed to create defaults.
+                  No asset category configurations found. Click &quot;Add Asset Category&quot; to create one.
                 </p>
               ) : (
                 assetCategories.map(renderConfigRow)
@@ -362,24 +408,46 @@ export function DocumentNumberingSettings() {
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
+      {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Configuration</DialogTitle>
+            <DialogTitle>
+              {isCreating
+                ? `Add ${formData.isAssetCategory ? 'Asset Category' : 'Document Type'}`
+                : 'Edit Configuration'}
+            </DialogTitle>
             <DialogDescription>
-              Update the document numbering configuration for {editingConfig?.entityLabel}
+              {isCreating
+                ? `Create a new ${formData.isAssetCategory ? 'asset category' : 'document type'} configuration`
+                : `Update the document numbering configuration for ${editingConfig?.entityLabel}`}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {isCreating && (
+              <div className="space-y-2">
+                <Label htmlFor="entityType">Entity Type (System ID) *</Label>
+                <Input
+                  id="entityType"
+                  value={formData.entityType}
+                  onChange={(e) => setFormData({ ...formData, entityType: e.target.value.toUpperCase().replace(/[^A-Z_]/g, '') })}
+                  placeholder={formData.isAssetCategory ? "e.g., ASSET_XX" : "e.g., INVOICE"}
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Unique system identifier (uppercase letters and underscores only)
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="entityLabel">Label</Label>
+              <Label htmlFor="entityLabel">Label *</Label>
               <Input
                 id="entityLabel"
                 value={formData.entityLabel}
                 onChange={(e) => setFormData({ ...formData, entityLabel: e.target.value })}
-                placeholder="e.g., Leave Request"
+                placeholder={formData.isAssetCategory ? "e.g., Asset - New Category" : "e.g., Invoice"}
               />
             </div>
 
@@ -461,7 +529,7 @@ export function DocumentNumberingSettings() {
             </Button>
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
+              {isCreating ? 'Create' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
